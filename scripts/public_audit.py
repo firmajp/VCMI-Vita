@@ -3,7 +3,8 @@
 from pathlib import Path
 import hashlib,json,re,struct,zipfile,zlib,subprocess,os
 root=Path(__file__).resolve().parents[1]
-elf=root/'build/vcmi/clientapp/vcmiclient'
+build_root=Path(os.environ.get('VCMI_AUDIT_BUILD_ROOT',root/'build'))
+elf=build_root/'vcmi/clientapp/vcmiclient'
 vpk=root/'dist/vcmi_vita_1.0.0-rc.1.vpk'
 data=elf.read_bytes()
 assert data[:6]==b'\x7fELF\x01\x01'
@@ -20,7 +21,7 @@ for i in range(count):
         clean(data[offset:offset+size],f'load segment {i}');segments+=1
 with zipfile.ZipFile(vpk) as z:
     eboot=z.read('eboot.bin')
-    assert eboot==(root/'build/vcmi/clientapp/vcmiclient.self').read_bytes()
+    assert eboot==(build_root/'vcmi/clientapp/vcmiclient.self').read_bytes()
     clean(eboot,'SELF raw bytes')
     streams=0
     for match in re.finditer(rb'\x78[\x01\x5e\x9c\xda]',eboot):
@@ -48,7 +49,7 @@ for marker in [b'VCMI VITA BUILD 01.00 (1.0.0-rc.1)',b'vcmi-startup-rc1.log',b'v
 assert b'VCMI_RC1_MODIFIED_PTHREAD_RELINK_PROBE' not in data
 result={'elf_sha256':hashlib.sha256(data).hexdigest(),'eboot_sha256':hashlib.sha256(eboot).hexdigest(),
         'private_paths_in_ELF_and_SELF':'none detected','ELF_load_segments_checked':segments,'SELF_valid_zlib_streams_checked':streams,
-        'shipped_SELF_equal_to_clean_build':True,'indexed_LiveArea_dimensions_palette':'passed','boot_image_equality':True,
+        'shipped_SELF_equal_to_clean_build':True,'indexed_LiveArea_dimensions_palette':'passed','boot_image_equality':True,'known_public_CI_paths':sorted(set(x.decode('utf-8',errors='replace') for x in re.findall(rb'/home/runner/[^\x00\r\n ]{1,300}',data))),
         'OpenSSL_implementation_symbols':'none detected','modified_pthread_probe_absent_from_release':True,
         'limits':'Technical pattern, format and equality checks; not a legal certificate or device execution test.'}
 out=root/'docs/compliance/BINARY_CHECKS.json';out.parent.mkdir(parents=True,exist_ok=True)

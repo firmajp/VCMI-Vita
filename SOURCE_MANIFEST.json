@@ -143,8 +143,9 @@
   "livearea": {
     "license": "CC0-1.0 (design), SIL-OFL-1.1 (Noto fonts)",
     "created": "2026-10-31",
-    "source": "packaging/generate-boot.ps1 and packaging/generate-livearea.ps1",
-    "excluded_previous_supplied_images": true
+    "source": "tools/make_vcmi_livearea.py; packaging/generate-livearea.ps1 wrapper; packaging/generate-boot.ps1 for unchanged boot splash",
+    "excluded_previous_supplied_images": true,
+    "content_rev": 101
   },
   "FFmpeg": {
     "version": "7.1.2",
@@ -158,6 +159,7 @@
     "version": "1.0.0-rc.1",
     "baseline": "v038 / 0.1.25",
     "complete_modified_files": true,
-    "new_repository_no_old_history": true
+    "new_repository_no_old_history": true,
+    "distribution_revision": "livearea101"
   }
 }

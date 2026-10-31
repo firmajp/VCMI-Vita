@@ -7,5 +7,5 @@
     "clientapp/EntryPoint.cpp"
   ],
   "changes": "RC version/title/log filenames only; no new gameplay, startup or performance algorithm",
-  "additional_build_changes": "SFO 01.00, path-map flags, monolithic install paths, clean dependency rebuild, public artwork/metadata; exact RC console test pending"
+  "additional_build_changes": "SFO 01.00, path-map flags, monolithic install paths, clean dependency rebuild, public artwork/metadata; original exact RC1 console checklist passed by user report; LiveArea101 visual/install check pending"
 }

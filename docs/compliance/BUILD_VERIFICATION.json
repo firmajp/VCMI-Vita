@@ -19,5 +19,6 @@
   "PCH": "disabled after Windows cross-compiler mapping failure",
   "SDK_prerequisites": "Dedicated existing VitaSDK; remaining dependency sources and package recipes supplied; compiler bootstrap not claimed",
   "reproducible_bit_identical_independent_rebuild": "not claimed",
-  "exact_RC_device_test": "pending"
+  "exact_RC_device_test": "passed for original RC1 VPK identified in DEVICE_TEST.json; new LiveArea101 visual/install check pending",
+  "livearea101_engine_rebuild": "not performed or needed; reuse tested original executable with byte-equality evidence"
 }

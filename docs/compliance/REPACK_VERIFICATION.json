@@ -1,0 +1,53 @@
+{
+  "status": "passed",
+  "original_tested_vpk_sha256": "d5b3bfa2f21b606898e25456e2a88e8eeb107280c9022512ee9f8b7f921e59a1",
+  "new_vpk_sha256": "f33e5106a42bda7260570a31104492b66010df4dbfe3d0f4f1f91c8eb1c2b172",
+  "eboot_sha256": "abe5b7d55ffb06ce314ed85fc232dd766044d1a1c5d5c5785ef2ba0a67d176aa",
+  "eboot_SFO_boot_and_all_game_resources": "byte-identical to user-tested RC1",
+  "source_dependency_recipe_files_compared": 36460,
+  "source_dependency_recipe_equality": "all unchanged",
+  "changed_VPK_entries": [
+    "licenses/ARTWORK_PROVENANCE.md",
+    "licenses/BINARY_BUILD_PROVENANCE.json",
+    "licenses/MODIFICATIONS.md",
+    "licenses/PTHREAD_LINKING.md",
+    "licenses/SOURCE_ACCESS.md",
+    "licenses/SOURCE_MANIFEST.json",
+    "licenses/THIRD_PARTY_NOTICES.md",
+    "licenses/VERSION.json",
+    "licenses/index.txt",
+    "sce_sys/icon0.png",
+    "sce_sys/pic0.png",
+    "sce_sys/livearea/contents/bg.png",
+    "sce_sys/livearea/contents/startup.png",
+    "sce_sys/livearea/contents/template.xml"
+  ],
+  "new_images": "all four copied byte-for-byte from user archive; indexed 8-bit opaque noninterlaced <=128 colors; content-rev 101",
+  "generator_smoke_test": {
+    "tooling": "Python 3.12.14 / Pillow 12.3.0 / numpy 2.3.5",
+    "results": {
+      "sce_sys/livearea/contents/bg.png": {
+        "byte_identical": true,
+        "pixel_identical": true,
+        "mean_absolute_channel_difference": 0.0
+      },
+      "sce_sys/icon0.png": {
+        "byte_identical": true,
+        "pixel_identical": true,
+        "mean_absolute_channel_difference": 0.0
+      },
+      "sce_sys/livearea/contents/startup.png": {
+        "byte_identical": false,
+        "pixel_identical": false,
+        "mean_absolute_channel_difference": 0.7526974080771549
+      },
+      "sce_sys/pic0.png": {
+        "byte_identical": true,
+        "pixel_identical": true,
+        "mean_absolute_channel_difference": 0.0
+      }
+    },
+    "limit": "Three supplied PNGs reproduce byte-for-byte. startup.png is visually similar but not pixel/byte-identical in this environment; supplied original PNG was preserved, no strict bit-reproducibility claim for that artwork."
+  },
+  "device_test": "Original RC1 full checklist confirmed by user; new LiveArea101 install/visual check pending"
+}

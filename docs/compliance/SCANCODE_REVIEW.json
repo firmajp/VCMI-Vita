@@ -3,13 +3,13 @@
   "python": "3.12.14",
   "pluggy": "1.5.0",
   "scan": "licenses + info; full eligible source/docs coverage verified by file hashes; empty records verified against empty files because ScanCode omits their hashes",
-  "files": 36637,
+  "files": 36638,
   "expressions": {
     "(no detection)": 8109,
-    "CC0-1.0 AND OFL-1.1 AND CC-BY-SA-3.0 AND CC-BY-4.0": 1,
+    "(LicenseRef-scancode-public-domain AND CC0-1.0 AND OFL-1.1) AND (CC0-1.0 AND OFL-1.1 AND CC-BY-SA-3.0 AND CC-BY-4.0)": 1,
     "LGPL-2.0-or-later AND GPL-3.0-or-later AND GPL-2.0-or-later AND LGPL-2.1-only AND GPL-1.0-or-later AND GPL-3.0-only": 1,
     "GPL-3.0-only": 26,
-    "(LGPL-2.0-or-later AND LGPL-2.1-only AND GPL-3.0-or-later AND GPL-1.0-or-later AND GPL-3.0-only) AND (LGPL-2.0-or-later AND GPL-1.0-or-later)": 1,
+    "(LGPL-2.0-or-later AND LGPL-2.1-only AND GPL-3.0-or-later AND GPL-1.0-or-later AND GPL-3.0-only) AND (LGPL-2.0-or-later AND GPL-1.0-or-later) AND (GPL-1.0-or-later AND LGPL-2.1-only)": 1,
     "(LGPL-2.1-only AND LGPL-2.1-or-later) AND (GPL-1.0-or-later AND GPL-3.0-or-later AND GPL-2.0-or-later AND LGPL-2.0-or-later)": 1,
     "GPL-3.0-or-later AND LGPL-2.1-only": 1,
     "(BSL-1.0 AND CC0-1.0 AND OFL-1.1) AND (LGPL-2.1-or-later AND GPL-1.0-or-later)": 1,
@@ -263,7 +263,8 @@
     "Apache-2.0 AND LicenseRef-scancode-warranty-disclaimer": 1,
     "GPL-3.0-only AND Zlib": 1,
     "LPD-document": 3,
-    "LicenseRef-scancode-public-domain AND (CC-BY-NC-ND-4.0 AND CC-BY-ND-4.0)": 1
+    "LicenseRef-scancode-public-domain AND (CC-BY-NC-ND-4.0 AND CC-BY-ND-4.0)": 1,
+    "CC0-1.0 AND LicenseRef-scancode-public-domain AND OFL-1.1": 1
   },
   "scan_errors": {},
   "review_flags": [

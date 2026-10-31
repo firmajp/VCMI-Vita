@@ -32,7 +32,7 @@ This is a mixed-license source distribution. The combined executable is distribu
 | GCC / libstdc++ runtime | VitaSDK GCC 15.2.0 | GPLv3 with GCC Runtime Library Exception 3.1; copies supplied |
 | Noto Sans / Noto Serif | bundled font files | SIL Open Font License 1.1; copyright notices retained in fonts and OFL-NOTO.txt |
 | VCMI artwork | bundled built-in module | CC BY-SA 4.0 unless stated otherwise; VCMI-ASSET-AUTHORS.txt identifies authors, public-domain and CC BY exceptions |
-| LiveArea / boot graphics | original geometric PNG + System.Drawing generators | New design CC0-1.0; Noto font SIL OFL; see ARTWORK_PROVENANCE.md |
+| LiveArea / boot graphics | LiveArea101 Python/Pillow/numpy generator; unchanged System.Drawing boot generator | New design CC0-1.0 to the extent rights exist; Noto font SIL OFL; see ARTWORK_PROVENANCE.md |
 | FFmpeg | 7.1.2, minimal Bink/Smacker build | LGPL-2.1-or-later; full source and ABI/header adaptation script supplied; GPL/nonfree options disabled |
 
 Full license and notice files are in `LICENSES/` and alongside their sources. Source file headers remain authoritative for embedded or separately licensed portions. Embedded decoder source headers carrying their license text are included in the license collection as well.

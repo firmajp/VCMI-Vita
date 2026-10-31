@@ -1,9 +1,9 @@
 {
   "vpk": "vcmi_vita_1.0.0-rc.1.vpk",
-  "sha256": "d5b3bfa2f21b606898e25456e2a88e8eeb107280c9022512ee9f8b7f921e59a1",
-  "vpk_bytes": 17378896,
+  "sha256": "f33e5106a42bda7260570a31104492b66010df4dbfe3d0f4f1f91c8eb1c2b172",
+  "vpk_bytes": 17451915,
   "recursive_vpk_entries": 875,
-  "source_tree_files": 36651,
+  "source_tree_files": 36656,
   "all_files_below_100MB": true,
   "checks": [
     "ZIP CRC/paths/duplicates",
@@ -15,14 +15,14 @@
     "LiveArea XML references",
     "46 translations",
     "excluded artwork hashes",
-    "original geometric LiveArea",
+    "LiveArea101 supplied artwork",
     "bundled source byte equality",
     "common secret-token patterns"
   ],
   "limits": [
     "No legal certification",
     "Not a judicial determination of third-party rights",
-    "Exact rebuilt RC device installation test remains pending",
+    "Original RC1 device checklist passed by user report; new LiveArea101 visual/install check pending",
     "ScanCode findings are documented separately; no independent legal audit"
   ]
 }

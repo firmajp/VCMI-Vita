@@ -1,6 +1,6 @@
 # VCMI-Vita
 
-**1.0.0-rc.1 — first release candidate.** A native [VCMI](https://github.com/vcmi/vcmi) engine port for PlayStation Vita, based on the device-tested 0.1.25 / v038 implementation. This is a candidate for testing, not a claim that every map, campaign or hardware configuration works.
+**1.0.0-rc.1 — first release candidate, LiveArea revision 101.** A native [VCMI](https://github.com/vcmi/vcmi) engine port for PlayStation Vita, based on the device-tested 0.1.25 / v038 implementation. This is a candidate for testing, not a claim that every map, campaign or hardware configuration works.
 
 You need your own legally obtained **Heroes of Might and Magic III: Complete** data. The Steam HD Edition is incompatible. Original game archives, maps, music, installers and Windows executables are not included. This independent community port is not affiliated with or endorsed by Ubisoft, Sony or the upstream VCMI project. Names identify compatibility and remain their owners' trademarks.
 
@@ -27,7 +27,7 @@ Saves: `ux0:data/vcmi/Saves/`; settings: `ux0:data/vcmi/config/`; engine logs: `
 
 Use the left stick for the cursor and Cross to confirm/click, or use the front touchscreen. Rear touch is disabled. Prompts use PlayStation button symbols. CPU/GPU requests are 444/222 MHz; plugins can override them.
 
-Startup, map movement, battles, towns and saving/loading were exercised on the 0.1.25 baseline. This RC rebuild has new metadata, sanitized build paths and public geometric artwork. Test installation, LiveArea, launch, one town, a battle and save/load on the exact RC VPK before promoting it to a final release. Large battles, sieges, campaigns, arbitrary mods and long sessions need broader testing.
+The user confirmed installation, LiveArea, launch, town, battle and save/load on the original exact RC1 VPK; its digest and checklist are in docs/compliance/DEVICE_TEST.json. This artwork revision preserves that tested executable, SFO, boot splash and game resources. Install this refreshed VPK and check the new bubble icon, LiveArea background/gate and launch; the new artwork has not yet been checked on a console. Large battles, sieges, campaigns, arbitrary mods and long sessions need broader testing.
 
 Logs: `ux0:data/vcmi-startup-rc1.log`, `vcmi-performance-rc1.log` and `vcmi-watchdog-rc1.log`. Holding L + R + Start for about two seconds intentionally aborts the process for a diagnostic dump; unsaved progress is lost. Review logs before sharing and never upload commercial game data.
 

@@ -85,9 +85,9 @@ result = {
     'source_tree_files': len(all_paths), 'all_files_below_100MB': True,
     'checks': ['ZIP CRC/paths/duplicates', 'short on-device paths and bounded directory depth', 'nested original-data extension denylist',
                'required licenses/source notices', 'bundled notice byte equality', 'Vita title/version', 'LiveArea XML references',
-               '46 translations', 'excluded artwork hashes', 'original geometric LiveArea', 'bundled source byte equality', 'common secret-token patterns'],
+               '46 translations', 'excluded artwork hashes', 'LiveArea101 supplied artwork', 'bundled source byte equality', 'common secret-token patterns'],
     'limits': ['No legal certification', 'Not a judicial determination of third-party rights',
-               'Exact rebuilt RC device installation test remains pending', 'ScanCode findings are documented separately; no independent legal audit'],
+               'Original RC1 device checklist passed by user report; new LiveArea101 visual/install check pending', 'ScanCode findings are documented separately; no independent legal audit'],
 }
 (ROOT/'AUDIT_RESULTS.json').write_text(json.dumps(result, indent=2) + '\n')
 print(json.dumps(result, indent=2))

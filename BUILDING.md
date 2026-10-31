@@ -32,5 +32,5 @@ python scripts/checksums.py generate
 python scripts/checksums.py verify
 ```
 
-Regenerate graphics with packaging/generate-boot.ps1 then packaging/generate-livearea.ps1 and pngquant. Noto font notices are preserved; LiveArea PNGs must remain indexed with at most 128 colors. Check RELEASING.md before redistributing.
+Regenerate the unchanged boot splash with packaging/generate-boot.ps1. LiveArea revision 101 uses tools/make_vcmi_livearea.py (Python, Pillow and numpy), called by packaging/generate-livearea.ps1 with --rev 101 and the bundled NotoSerif-Bold.ttf. The generator already writes indexed PNGs; do not recompress the supplied release artwork. Its preview.png is only a local mockup, not an installable asset. Noto font notices are preserved; LiveArea PNGs must remain indexed with at most 128 colors. Check RELEASING.md before redistributing.
 

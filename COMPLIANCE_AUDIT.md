@@ -10,4 +10,4 @@ Public geometric artwork and Noto font notices are retained. Commercial game dat
 
 Primary terms: [GPLv3](https://www.gnu.org/licenses/gpl-3.0.en.html), [LGPL 2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html), [FFmpeg licensing](https://www.ffmpeg.org/legal.html). Applicable texts and author notices are supplied in LICENSES and component sources.
 
-The user tested the v038 engine baseline; the exact rebuilt RC's console installation remains pending. ScanCode is an external tool run by this project's maintainer, not an independent legal review. Its detections require interpretation and do not establish ownership or exclude all unattributed similarities. No certification of every legal outcome is claimed.
+The user tested the v038 engine baseline; the original exact RC1 checklist has now passed by user report; LiveArea101 artwork installation/visual verification remains pending. ScanCode is an external tool run by this project's maintainer, not an independent legal review. Its detections require interpretation and do not establish ownership or exclude all unattributed similarities. No certification of every legal outcome is claimed.

@@ -23,5 +23,8 @@
     "swresample": "a84df803e84a967569715494dfd0a4e7cab30904d7ac1fc8550e657336e6ff49"
   },
   "FFmpeg": "7.1.2; GPL, nonfree and version3 options disabled; enum adaptation supplied",
-  "device_test": "v038 baseline tested; exact rebuilt RC pending"
+  "device_test": "Original exact RC1 VPK passed user-reported full device checklist; new LiveArea101 installation/visual check pending",
+  "distribution_revision": "livearea101",
+  "parent_tested_vpk_sha256": "d5b3bfa2f21b606898e25456e2a88e8eeb107280c9022512ee9f8b7f921e59a1",
+  "repack": "Same tested eboot.bin, SFO, boot splash and game resources; only LiveArea artwork/XML and bundled notices/version metadata replaced. No engine rebuild."
 }

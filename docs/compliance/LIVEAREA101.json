@@ -1,0 +1,42 @@
+{
+  "content_revision": 101,
+  "origin": "User-supplied vcmi_livearea_for_codex.zip",
+  "archive_sha256": "d0ff4b45e47155f5ca79ff91bedb0cca1c3e3761e1d3ec9eaac5cb1b72e13d54",
+  "generator": "tools/make_vcmi_livearea.py",
+  "license": "CC0-1.0 design/generator to extent rights exist; Noto font OFL-1.1",
+  "files": [
+    {
+      "path": "sce_sys/icon0.png",
+      "sha256": "09848ae19672e3cc22d29374150786b1a1a9adc47bd2b6d153a457860bc434e8",
+      "width": 128,
+      "height": 128,
+      "palette_colors": 128,
+      "copied_without_reencoding": true
+    },
+    {
+      "path": "sce_sys/pic0.png",
+      "sha256": "248e439893b14bcdaf46ed25b3cdcf43ae24c2db111639344ab00381d7f58d49",
+      "width": 960,
+      "height": 544,
+      "palette_colors": 128,
+      "copied_without_reencoding": true
+    },
+    {
+      "path": "sce_sys/livearea/contents/bg.png",
+      "sha256": "62ce388fade4976a65ff2a5af61609d5f0cd028e76dffe984a24e518b8f04cea",
+      "width": 840,
+      "height": 500,
+      "palette_colors": 128,
+      "copied_without_reencoding": true
+    },
+    {
+      "path": "sce_sys/livearea/contents/startup.png",
+      "sha256": "e3bffa3903740666b5dbc5bacca3a2afd4fb3b5f552961b5c7064e9df8aa1fbf",
+      "width": 280,
+      "height": 158,
+      "palette_colors": 128,
+      "copied_without_reencoding": true
+    }
+  ],
+  "device_visual_check": "pending for new artwork; previous RC1 full checklist passed"
+}

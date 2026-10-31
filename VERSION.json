@@ -3,5 +3,8 @@
   "vita_app_ver": "01.00",
   "title_id": "H3VC00001",
   "device_tested_engine_baseline": "0.1.25 / v038",
-  "status": "release candidate"
+  "status": "release candidate",
+  "distribution_revision": "livearea101",
+  "livearea_content_rev": 101,
+  "device_test": "Original RC1 passed; new LiveArea installation/visual check pending"
 }
