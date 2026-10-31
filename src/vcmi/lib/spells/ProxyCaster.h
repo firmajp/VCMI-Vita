@@ -1,0 +1,44 @@
+/*
+ * ProxyCaster.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+
+#pragma once
+
+#include <vcmi/spells/Caster.h>
+
+namespace spells
+{
+
+class DLL_LINKAGE ProxyCaster : public Caster
+{
+public:
+	ProxyCaster(const Caster * actualCaster_);
+	virtual ~ProxyCaster();
+
+	int32_t getCasterUnitId() const override;
+	int32_t getSpellSchoolLevel(const Spell * spell, SpellSchool * outSelectedSchool = nullptr) const override;
+	int32_t getEffectLevel(const Spell * spell) const override;
+	int64_t getSpellBonus(const Spell * spell, int64_t base, const battle::Unit * affectedStack) const override;
+	int64_t getSpecificSpellBonus(const Spell * spell, int64_t base) const override;
+	int32_t getEffectPower(const Spell * spell) const override;
+	int32_t getEnchantPower(const Spell * spell) const override;
+	int64_t getEffectValue(const Spell * spell) const override;
+	int64_t getEffectRange(const Spell * spell) const override;
+	PlayerColor getCasterOwner() const override;
+	std::string getCasterNameTextID() const override;
+	void getCastDescription(const Spell * spell, const battle::Units & attacked, MetaString & text) const override;
+	void spendMana(ServerCallback * server, const int32_t spellCost) const override;
+	const CGHeroInstance * getHeroCaster() const override;
+	int32_t manaLimit() const override;
+
+protected:
+	const Caster * actualCaster;
+};
+
+} // namespace spells

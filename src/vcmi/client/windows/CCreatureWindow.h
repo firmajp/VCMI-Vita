@@ -1,0 +1,237 @@
+/*
+ * CCreatureWindow.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#pragma once
+
+#include "../../lib/bonuses/Bonus.h"
+#include "../../lib/filesystem/ResourcePath.h"
+#include "../widgets/MiscWidgets.h"
+#include "CWindowObject.h"
+#include "../gui/Shortcut.h"
+
+class CCommanderInstance;
+class CStackInstance;
+class CStack;
+class UpgradeInfo;
+
+class CPlayerInterface;
+class UnitView;
+class CTabbedInt;
+class CButton;
+class CMultiLineLabel;
+class CListBox;
+class CCreaturePic;
+class CPicture;
+class CArtPlace;
+class CCommanderArtPlace;
+class LRClickableArea;
+class GraphicalPrimitiveCanvas;
+class CFilledTexture;
+class CSlider;
+class CGStatusBar;
+
+class CCommanderSkillIcon : public LRClickableAreaWText //TODO: maybe bring commander skill button initialization logic inside?
+{
+	std::shared_ptr<CIntObject> object; // passive object that will be used to determine clickable area
+	bool isMasterAbility; // refers to WoG abilities obtainable via combining master skills (for example attack + speed unlocks shoot)
+	bool isSelected; // used only for programmatically created border around selected "master abilities"
+public:
+	CCommanderSkillIcon(std::shared_ptr<CIntObject> object_, bool isMasterAbility_, std::function<void()> callback);
+
+	std::function<void()> callback;
+
+	void clickPressed(const Point & cursorPosition) override;
+
+	void setObject(std::shared_ptr<CIntObject> object);
+	void select();
+	void deselect(); //TODO: consider using observer pattern instead?
+	bool getIsMasterAbility();
+
+	void show(Canvas &to) override;
+};
+
+class CStackWindow : public CWindowObject
+{
+	struct BonusInfo
+	{
+		std::string description;
+		ImagePath imagePath;
+		BonusSource bonusSource;
+	};
+
+	class CWindowSection : public CIntObject
+	{
+	private:
+		std::shared_ptr<CPicture> background;
+	protected:
+		CStackWindow * stackWindow;
+	public:
+		CWindowSection(CStackWindow * parent, const ImagePath & backgroundPath, int yOffset);
+	};
+
+	class ActiveSpellsSection : public CWindowSection
+	{
+		std::vector<std::shared_ptr<CAnimImage>> spellIcons;
+		std::vector<std::shared_ptr<LRClickableAreaWText>> clickableAreas;
+		std::vector<std::shared_ptr<CLabel>> labels;
+	public:
+		ActiveSpellsSection(CStackWindow * owner, int yOffset);
+	};
+
+	class BonusLineSection : public CWindowSection
+	{
+		std::array<std::shared_ptr<CPicture>, 2> icon;
+		std::array<std::shared_ptr<CMultiLineLabel>, 2> description;
+		std::array<std::shared_ptr<GraphicalPrimitiveCanvas>, 2> frame;
+		std::array<std::vector<std::shared_ptr<CLabel>>, 2> bonusSource;
+	public:
+		BonusLineSection(CStackWindow * owner, size_t lineIndex);
+	};
+
+	class BonusesSection : public CWindowSection
+	{
+		std::shared_ptr<CListBox> lines;
+	public:
+		BonusesSection(CStackWindow * owner, int yOffset, std::optional<size_t> preferredSize = std::optional<size_t>());
+	};
+
+	class ButtonsSection : public CWindowSection
+	{
+		std::shared_ptr<CButton> dismiss;
+		std::array<std::shared_ptr<CButton>, 4> upgrade;// no more than 4 buttons - space limit
+		std::shared_ptr<CButton> exit;
+	public:
+		ButtonsSection(CStackWindow * owner, int yOffset);
+	};
+
+	class CommanderMainSection : public CWindowSection
+	{
+		std::vector<std::shared_ptr<CCommanderSkillIcon>> skillIcons;
+		std::vector<std::shared_ptr<CCommanderArtPlace>> artifacts;
+
+		std::shared_ptr<CPicture> abilitiesBackground;
+		std::shared_ptr<CListBox> abilities;
+
+		std::shared_ptr<CButton> leftBtn;
+		std::shared_ptr<CButton> rightBtn;
+	public:
+		CommanderMainSection(CStackWindow * owner, int yOffset);
+	};
+
+	class MainSection : public CWindowSection
+	{
+		enum class EStat : size_t
+		{
+			ATTACK,
+			DEFENCE,
+			SHOTS,
+			DAMAGE,
+			HEALTH,
+			HEALTH_LEFT,
+			SPEED,
+			MANA,
+			AFTER_LAST
+		};
+
+		std::shared_ptr<CCreaturePic> animation;
+		std::shared_ptr<CPicture> deadCommanderOverlay;
+		std::shared_ptr<LRClickableArea> animationArea;
+		std::shared_ptr<CLabel> name;
+		std::array<std::shared_ptr<CPicture>, 8> statIcons;
+		std::shared_ptr<CPicture> icons;
+		std::shared_ptr<MoraleLuckBox> morale;
+		std::shared_ptr<MoraleLuckBox> luck;
+
+		std::vector<std::shared_ptr<CLabel>> stats;
+
+		std::shared_ptr<CAnimImage> expRankIcon;
+		std::shared_ptr<CIntObject> expArea;
+		std::shared_ptr<CLabel> expLabel;
+
+		void addStatLabel(EStat index, int64_t value1, int64_t value2);
+		void addStatLabel(EStat index, int64_t value);
+
+		static ImagePath getBackgroundName(bool showExp, bool showArt);
+
+		std::array<std::string, 8> statNames;
+		std::array<std::string, 8> statFormats;
+	public:
+		MainSection(CStackWindow * owner, int yOffset, bool showExp, bool showArt);
+	};
+
+	class StackExperienceDetailsWindow;
+
+
+	std::shared_ptr<CFilledTexture> backgroundTexture;
+
+	std::shared_ptr<CArtPlace> stackArtifact;
+	std::shared_ptr<CButton> stackArtifactButton;
+
+
+	std::unique_ptr<UnitView> info;
+	EShortcut closeShortcut = EShortcut::GLOBAL_RETURN;
+	std::unique_ptr<CStackInstance> fakeNode;
+	std::vector<BonusInfo> activeBonuses;
+	size_t activeTab;
+	std::shared_ptr<CTabbedInt> commanderTab;
+
+	std::map<size_t, std::shared_ptr<CButton>> switchButtons;
+
+	std::shared_ptr<CWindowSection> mainSection;
+	std::shared_ptr<CWindowSection> activeSpellsSection;
+	std::shared_ptr<CWindowSection> commanderMainSection;
+	std::shared_ptr<CWindowSection> commanderBonusesSection;
+	std::shared_ptr<CWindowSection> bonusesSection;
+	std::shared_ptr<CWindowSection> buttonsSection;
+
+	std::shared_ptr<CCommanderSkillIcon> selectedIcon;
+	si32 selectedSkill;
+
+	void setSelection(si32 newSkill, std::shared_ptr<CCommanderSkillIcon> newIcon);
+	std::shared_ptr<CIntObject> switchTab(size_t index);
+
+	void removeStackArtifact(ArtifactPosition pos);
+
+	void initSections();
+	void initBonusesList();
+	void submitSelection();
+
+	void init();
+	void initCommanderLevelUpData(CPlayerInterface * askedInterface, const CCommanderInstance * commander, const std::vector<ui32> & skills, bool moreLevels, QuestionID question);
+	void answer(ui32 selection);
+	void showStackExperienceDetailsWindow();
+
+	std::string getCommanderSkillDescription(int skillIndex, int skillLevel);
+
+public:
+	// for battles
+	CStackWindow(const CStack * stack, bool popup, EShortcut closeShortcut = EShortcut::GLOBAL_RETURN);
+
+	// for non-existing stacks, e.g. recruit screen
+	CStackWindow(const CCreature * creature, bool popup);
+
+	// for normal stacks in armies
+	CStackWindow(const CStackInstance * stack, bool popup);
+	CStackWindow(const CStackInstance * stack, std::function<void()> dismiss, const UpgradeInfo & info, std::function<void(CreatureID)> callback);
+
+	// for commanders & commander level-up dialog
+	CStackWindow(const CCommanderInstance * commander, bool popup);
+	CStackWindow(CPlayerInterface * askedInterface, const CCommanderInstance * commander, const std::vector<ui32> & skills, bool moreLevels, QuestionID question);
+	bool isCommanderLevelUpDialog() const;
+	void close() override;
+
+	void keyPressed(EShortcut key) override;
+	~CStackWindow();
+
+private:
+	QuestionID questionID;
+	CPlayerInterface * owner = nullptr; ///< interface that was asked; in hotseat it may not be the current one
+	bool moreLevelsFollow = false; ///< level-up window stays open for the next level instead of closing on selection
+	bool selectionSubmitted = false;
+};

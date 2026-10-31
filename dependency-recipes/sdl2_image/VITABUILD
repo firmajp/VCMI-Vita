@@ -1,0 +1,34 @@
+pkgname=sdl2_image
+pkgver=2.8.12
+pkgrel=1
+license=('Zlib')
+url="https://github.com/libsdl-org/SDL_image"
+source=(
+    "https://www.libsdl.org/projects/SDL_image/release/SDL2_image-${pkgver}.tar.gz"
+    "pkg-config-fix.patch"
+)
+sha256sums=(
+    "393f5efb50536ec13ca4f4affb69cc9966d3c3f969e6c5e701faddf9f9785381"
+    "a35580ce63abb881753d5751c1fdb61c4276ddce1253125654d9a8b082a1aa58"
+)
+depends=('sdl2' 'libpng' 'libwebp' 'libjpeg-turbo' 'zlib')
+
+prepare() {
+  cd SDL2_image-${pkgver}
+  patch -Np1 -i "${srcdir}/pkg-config-fix.patch"
+}
+
+build() {
+  cd SDL2_image-${pkgver}
+  mkdir build && cd build
+  cmake .. -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$prefix \
+   -DCMAKE_POSITION_INDEPENDENT_CODE=OFF -DBUILD_SHARED_LIBS=OFF -DSDL2IMAGE_SAMPLES=OFF -DSDL2IMAGE_WEBP=ON -DSDL2IMAGE_DEPS_SHARED=OFF -DSDL2IMAGE_AVIF=OFF -DSDL2IMAGE_TIF=OFF \
+   -DCMAKE_C_FLAGS="-std=gnu11 -Wno-error=implicit-function-declaration -Wno-error=int-conversion -Wno-error=incompatible-pointer-types" \
+   -DCMAKE_CXX_FLAGS="-std=gnu++11 -Wno-error=implicit-function-declaration -Wno-error=int-conversion -Wno-error=incompatible-pointer-types"
+  make -j$(nproc)
+}
+
+package () {
+  cd SDL2_image-${pkgver}/build
+  make DESTDIR=$pkgdir install
+}

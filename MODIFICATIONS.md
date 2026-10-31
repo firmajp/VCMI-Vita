@@ -1,0 +1,13 @@
+# Vita modifications — 2026-10-31, 1.0.0-rc.1
+
+VCMI base revision and dependency revisions are recorded in SOURCE_MANIFEST.json. Existing copyright/license headers remain authoritative. Full modified files are supplied; patches are not required to reconstruct the exported tree.
+
+The Vita adaptation adds native startup and memory/thread diagnostics, an embedded server, Vita controller/touch mapping, software rendering and screen upload changes, archive/config caching, battle rendering/action caches and profiling, map/town invalidation, and loading progress/early splash. The v038 baseline retains battle behavior while targeting adventure-map/town drawing and startup. The full modified files are authoritative; historical private test source deltas are not required to reconstruct this tree.
+
+oneTBB has Vita synchronization/platform changes; libsquish and newlib iconv have Vita build configuration. SDL2's non-overlapping wide-row copy uses sceClibMemcpy; overlap handling is preserved. FFmpeg 7.1.2 source is supplied with minimal decoder configuration and a script that adapts installed public enum headers for the Vita ABI. minizip is configured without OpenSSL/encryption and optional compression codecs. Relevant dependency recipes and original notices are supplied.
+
+Public packaging uses neutral generated LiveArea, the new early boot image, an English installation guide, updated source/license notices and source checksums. The RC is rebuilt from this exported source tree with path mapping; it does not reuse the private test executable. Town composition reuse from v038 is included. Missing Vita SPDX headers and Git/checksum/build verification scripts are added. See BINARY_BUILD_PROVENANCE.json for hashes. No new performance changes are introduced in this release repack.
+
+Git packaging also appends exact-byte overrides to nested .gitattributes, removes inherited vendor ignore files, and retains the Boost component Jamfiles. Only the top-level generated build directory is excluded. These changes preserve required source files and checksums in a new Git repository.
+
+The clean RC build explicitly enables SDL ARM assembly, disables PIC for the static Vita dependencies and excludes the unused oneTBB allocator. FFmpeg compiler/source paths are mapped, and its generated configuration-description string is sanitized without changing build commands. Precompiled headers are disabled for this Windows cross-build. Optional copied ZIP-format specification documents are omitted; minizip implementation and license notices remain supplied. SDL ARM blitter exception notices are included separately in LICENSES.

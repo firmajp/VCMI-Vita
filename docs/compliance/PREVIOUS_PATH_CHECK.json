@@ -1,0 +1,7 @@
+{
+  "artifact": "public 0.1.24 eboot.bin",
+  "method": "Read SELF and expand valid zlib streams; scan for Windows user-directory prefixes",
+  "compressed_streams": 3,
+  "private_path_matches": 46,
+  "purpose": "Confirm the reported defect before checking the freshly rebuilt RC; no private path strings are published"
+}

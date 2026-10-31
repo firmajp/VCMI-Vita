@@ -1,0 +1,38 @@
+/*
+ * ArtifactWidget.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#pragma once
+
+#include <QDialog>
+
+class ArtifactPosition;
+class CArtifactFittingSet;
+
+
+namespace Ui {
+class ArtifactWidget;
+}
+
+class ArtifactWidget : public QDialog
+{
+	Q_OBJECT
+
+public:
+	explicit ArtifactWidget(CArtifactFittingSet & fittingSet, QWidget * parent = nullptr);
+	~ArtifactWidget();
+	
+signals:
+	void saveArtifact(int32_t artifactIndex, ArtifactPosition slot);
+ private slots:
+	void fillArtifacts();
+
+private:
+	Ui::ArtifactWidget * ui;
+	CArtifactFittingSet & fittingSet;
+};

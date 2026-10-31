@@ -1,0 +1,42 @@
+/*
+ * ActiveModsInSaveList.cpp, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#include "StdInc.h"
+#include "ActiveModsInSaveList.h"
+
+#include "../GameLibrary.h"
+#include "ModDescription.h"
+#include "CModHandler.h"
+#include "ModIncompatibility.h"
+
+void ActiveModsInSaveList::verifyActiveMods() const
+{
+	auto comparison = ModVerificationInfo::verifyListAgainstLocalMods(mods);
+	std::vector<TModID> missingMods;
+	std::vector<TModID> excessiveMods;
+
+	for (auto const & compared : comparison)
+	{
+		if (compared.first.find('.') != std::string::npos)
+			continue; // ignore changes in submods since they change a lot between mod updates
+
+		if (compared.second == ModVerificationStatus::NOT_INSTALLED)
+			missingMods.push_back(mods.at(compared.first).name);
+
+		if (compared.second == ModVerificationStatus::DISABLED)
+			missingMods.push_back(LIBRARY->modh->getModInfo(compared.first).getName());
+
+		if (compared.second == ModVerificationStatus::EXCESSIVE)
+			excessiveMods.push_back(LIBRARY->modh->getModInfo(compared.first).getName());
+	}
+
+	if(!missingMods.empty() || !excessiveMods.empty())
+		throw ModIncompatibility(missingMods, excessiveMods);
+}
+

@@ -1,0 +1,290 @@
+/*
+ * AdapterLoaders.cpp, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#include "StdInc.h"
+#include "AdapterLoaders.h"
+
+#include "Filesystem.h"
+#include "../json/JsonNode.h"
+
+CMappedFileLoader::CMappedFileLoader(const std::string & mountPoint, const JsonNode &config)
+{
+	for(auto entry : config.Struct())
+	{
+		//fileList[ResourcePath(mountPoint + entry.first)] = ResourcePath(mountPoint + entry.second.String());
+		fileList.emplace(ResourcePath(mountPoint + entry.first), ResourcePath(mountPoint + entry.second.String()));
+	}
+}
+
+std::unique_ptr<CInputStream> CMappedFileLoader::load(const ResourcePath & resourceName) const
+{
+	return CResourceHandler::get()->load(fileList.at(resourceName));
+}
+
+bool CMappedFileLoader::existsResource(const ResourcePath & resourceName) const
+{
+	return fileList.count(resourceName) != 0;
+}
+
+std::string CMappedFileLoader::getMountPoint() const
+{
+	return ""; // does not have any meaning with this type of data source
+}
+
+std::optional<boost::filesystem::path> CMappedFileLoader::getResourceName(const ResourcePath & resourceName) const
+{
+	return CResourceHandler::get()->getResourceName(fileList.at(resourceName));
+}
+
+std::unordered_set<ResourcePath> CMappedFileLoader::getFilteredFiles(std::function<bool(const ResourcePath &)> filter) const
+{
+	std::unordered_set<ResourcePath> foundID;
+
+	for(const auto & file : fileList)
+	{
+		if (filter(file.first))
+			foundID.insert(file.first);
+	}
+	return foundID;
+}
+
+std::string CMappedFileLoader::getFullFileURI(const ResourcePath& resourceName) const
+{
+	return CResourceHandler::get()->getFullFileURI(fileList.at(resourceName));
+}
+
+std::time_t CMappedFileLoader::getLastWriteTime(const ResourcePath& resourceName) const
+{
+	return CResourceHandler::get()->getLastWriteTime(fileList.at(resourceName));
+}
+
+
+
+CFilesystemList::CFilesystemList()
+{
+}
+
+CFilesystemList::~CFilesystemList()
+{
+}
+
+/// Scanning a list with fewer children costs about as much as an index lookup
+static constexpr size_t indexThreshold = 8;
+
+void CFilesystemList::indexLoader(size_t position)
+{
+	if (loaders.size() <= indexThreshold)
+		return;
+
+	std::lock_guard lock(indexGuard);
+	// filter is used to visit the resources of the child without copying its file list
+	loaders.at(position)->getFilteredFiles([this, position](const ResourcePath & resource)
+	{
+		auto & owner = index[std::hash<ResourcePath>()(resource)];
+		owner = std::max(owner, position);
+		return false;
+	});
+}
+
+void CFilesystemList::rebuildIndex()
+{
+	{
+		std::lock_guard lock(indexGuard);
+		index.clear();
+	}
+	for(size_t i = 0; i < loaders.size(); ++i)
+		indexLoader(i);
+}
+
+const ISimpleResourceLoader * CFilesystemList::getLoader(const ResourcePath & resourceName) const
+{
+	if (loaders.size() > indexThreshold)
+	{
+		std::shared_lock lock(indexGuard);
+		auto it = index.find(std::hash<ResourcePath>()(resourceName));
+		if (it == index.end())
+			return nullptr;
+
+		const auto * loader = loaders.at(it->second).get();
+		if (loader->existsResource(resourceName))
+			return loader;
+		// resource was removed from this loader, or another resource has the same hash
+	}
+
+	// last loader that has the resource wins - it holds the last overridden version
+	for(const auto & loader : std::views::reverse(loaders))
+		if (loader->existsResource(resourceName))
+			return loader.get();
+
+	return nullptr;
+}
+
+std::unique_ptr<CInputStream> CFilesystemList::load(const ResourcePath & resourceName) const
+{
+	const auto * loader = getLoader(resourceName);
+	if (loader)
+		return loader->load(resourceName);
+
+	throw std::runtime_error("Resource with name " + resourceName.getName() + " and type "
+		+ EResTypeHelper::getEResTypeAsString(resourceName.getType()) + " wasn't found.");
+}
+
+bool CFilesystemList::existsResource(const ResourcePath & resourceName) const
+{
+	return getLoader(resourceName) != nullptr;
+}
+
+std::string CFilesystemList::getMountPoint() const
+{
+	return "";
+}
+
+std::optional<boost::filesystem::path> CFilesystemList::getResourceName(const ResourcePath & resourceName) const
+{
+	const auto * loader = getLoader(resourceName);
+	if (loader)
+		return loader->getResourceName(resourceName);
+	return std::optional<boost::filesystem::path>();
+}
+
+std::set<boost::filesystem::path> CFilesystemList::getResourceNames(const ResourcePath & resourceName) const
+{
+	std::set<boost::filesystem::path> paths;
+	for(auto& loader : getResourcesWithName(resourceName))
+	{
+		auto rn = loader->getResourceName(resourceName);
+		if(rn)
+		{
+			paths.insert(*rn);
+		}
+	}
+	return paths;
+}
+
+bool CFilesystemList::updateFilteredFiles(std::function<bool(const std::string &)> filter)
+{
+	bool changed = false;
+	for(size_t i = 0; i < loaders.size(); ++i)
+	{
+		if (loaders[i]->updateFilteredFiles(filter))
+		{
+			indexLoader(i);
+			changed = true;
+		}
+	}
+	return changed;
+}
+
+std::unordered_set<ResourcePath> CFilesystemList::getFilteredFiles(std::function<bool(const ResourcePath &)> filter) const
+{
+	std::unordered_set<ResourcePath> ret;
+
+	for(const auto & loader : loaders)
+		for(const auto & entry : loader->getFilteredFiles(filter))
+			ret.insert(entry);
+
+	return ret;
+}
+
+bool CFilesystemList::createResource(const std::string & filename, bool update)
+{
+	logGlobal->trace("Creating %s", filename);
+	for (size_t position = loaders.size(); position-- > 0;)
+	{
+		const auto & loader = loaders[position];
+		if (writeableLoaders.count(loader.get()) != 0                       // writeable,
+			&& loader->createResource(filename, update))          // successfully created
+		{
+			indexLoader(position);
+
+			// Check if resource was created successfully. Possible reasons for this to fail
+			// a) loader failed to create resource (e.g. read-only FS)
+			// b) in update mode, call with filename that does not exists
+			assert(load(ResourcePath(filename)));
+
+			logGlobal->trace("Resource created successfully");
+			return true;
+		}
+	}
+	logGlobal->trace("Failed to create resource");
+	return false;
+}
+
+bool CFilesystemList::removeResource(const ResourcePath & resourceName)
+{
+	logGlobal->trace("Removing %s", resourceName.getOriginalName());
+	for(const auto & loader : std::views::reverse(loaders))
+	{
+		if(writeableLoaders.contains(loader.get()) && loader->existsResource(resourceName))
+			return loader->removeResource(resourceName);
+	}
+
+	logGlobal->trace("Failed to remove resource");
+	return false;
+}
+
+std::vector<const ISimpleResourceLoader *> CFilesystemList::getResourcesWithName(const ResourcePath & resourceName) const
+{
+	std::vector<const ISimpleResourceLoader *> ret;
+
+	for(const auto & loader : loaders)
+		std::ranges::copy(loader->getResourcesWithName(resourceName), std::back_inserter(ret));
+
+	return ret;
+}
+
+void CFilesystemList::addLoader(std::unique_ptr<ISimpleResourceLoader> loader, bool writeable)
+{
+	if (writeable)
+		writeableLoaders.insert(loader.get());
+
+	loaders.push_back(std::move(loader));
+
+	if (loaders.size() == indexThreshold + 1)
+		rebuildIndex();
+	else
+		indexLoader(loaders.size() - 1);
+}
+
+bool CFilesystemList::removeLoader(ISimpleResourceLoader * loader)
+{
+	for(auto loaderIterator = loaders.begin(); loaderIterator != loaders.end(); ++loaderIterator)
+	{
+		if(loaderIterator->get() == loader)
+		{
+			loaders.erase(loaderIterator);
+			writeableLoaders.erase(loader);
+			rebuildIndex();
+			return true;
+		}
+	}
+
+
+	return false;
+}
+
+std::string CFilesystemList::getFullFileURI(const ResourcePath& resourceName) const
+{
+	const auto * loader = getLoader(resourceName);
+	if (loader)
+		return loader->getFullFileURI(resourceName);
+
+	throw std::runtime_error("Resource with name " + resourceName.getName() + " and type "
+		+ EResTypeHelper::getEResTypeAsString(resourceName.getType()) + " wasn't found.");
+}
+
+std::time_t CFilesystemList::getLastWriteTime(const ResourcePath& resourceName) const
+{
+	const auto * loader = getLoader(resourceName);
+	if (loader)
+		return loader->getLastWriteTime(resourceName);
+
+	throw std::runtime_error("Resource with name " + resourceName.getName() + " and type "
+		+ EResTypeHelper::getEResTypeAsString(resourceName.getType()) + " wasn't found.");
+}

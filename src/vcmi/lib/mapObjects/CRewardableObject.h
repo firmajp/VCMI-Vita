@@ -1,0 +1,107 @@
+/*
+ * CRewardableObject.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#pragma once
+
+#include "army/CArmedInstance.h"
+
+#include "../rewardable/Interface.h"
+
+/// Base class that can handle granting rewards to visiting heroes.
+/// Inherits from CArmedInstance for proper transfer of armies
+class DLL_LINKAGE CRewardableObject : public CArmedInstance, public Rewardable::Interface
+{
+protected:
+
+	bool onceVisitableObjectCleared = false;
+	
+	void doStartBattle(IGameEventCallback & gameEvents, const CGHeroInstance * hero) const;
+
+	/// Handles the answer to either of the questions a rewardable object asks. Returns true if
+	/// the visit is suspended until an activity it started finishes.
+	bool answerBlockingDialog(IGameEventCallback & gameEvents, const CGHeroInstance * hero, int32_t answer, const JsonNode & visitState) const;
+
+	/// Clears creatures the hero left behind and grants the rewards still pending. Returns true if the visit is suspended again.
+	bool closeGarrisonDialog(IGameEventCallback & gameEvents, const CGHeroInstance * hero, const JsonNode & visitState) const;
+
+	void markAsVisited(IGameEventCallback & gameEvents, const CGHeroInstance * hero) const override;
+
+	const IObjectInterface * getObject() const override;
+	void markAsScouted(IGameEventCallback & gameEvents, const CGHeroInstance * hero) const override;
+	
+	/// return true if this object was "cleared" before and no longer has rewards applicable to selected hero
+	/// unlike wasVisited, this method uses information not available to player owner, for example, if object was cleared by another player before
+	bool wasVisitedBefore(const CGHeroInstance * contextHero) const override;
+	
+	void serializeJsonOptions(JsonSerializeFormat & handler) override;
+	
+	MetaString getDisplayTextImpl(PlayerColor player, const CGHeroInstance * hero, bool includeDescription) const;
+	MetaString getScoutedDescriptionMessage(const CGHeroInstance * hero) const;
+	MetaString getGenericDescriptionMessage() const;
+	MetaString getDescriptionMessage(PlayerColor player, const CGHeroInstance * hero) const;
+	std::vector<Component> getPopupComponentsImpl(PlayerColor player, const CGHeroInstance * hero) const;
+
+	/// Returns true if this object is currently guarded
+	bool isGuarded() const;
+public:
+
+	/// Visitability checks. Note that hero check includes check for hero owner (returns true if object was visited by player)
+	bool wasVisited(PlayerColor player) const override;
+	bool wasVisited(const CGHeroInstance * h) const override;
+
+	/// Returns true if object was scouted by player and he is aware of its internal state
+	bool wasScouted(PlayerColor player) const;
+	
+	/// gives reward to player or ask for choice in case of multiple rewards
+	void onHeroVisit(IGameEventCallback & gameEvents, const CGHeroInstance *h) const override;
+
+	void battleFinished(IGameEventCallback & gameEvents, const CGHeroInstance *hero, const BattleResult &result) const override;
+	void garrisonDialogClosed(IGameEventCallback & gameEvents, const CGHeroInstance *hero, const JsonNode & visitState) const override;
+
+	///possibly resets object state
+	void newTurn(IGameEventCallback & gameEvents, IGameRandomizer & gameRandomizer) const override;
+
+	/// gives second part of reward after hero level-ups for proper granting of spells/mana
+	void experienceApplied(IGameEventCallback & gameEvents, const CGHeroInstance *hero, const JsonNode & visitState) const override;
+
+	/// applies player selection of reward
+	void blockingDialogAnswered(IGameEventCallback & gameEvents, const CGHeroInstance *hero, int32_t answer, const JsonNode & visitState) const override;
+
+	void initObj(IGameRandomizer & gameRandomizer) override;
+
+	bool isCoastVisitable() const override;
+
+	void initializeGuards();
+	
+	void setPropertyDer(ObjProperty what, ObjPropertyID identifier) override;
+
+	CRewardableObject(IGameInfoCallback *cb);
+	
+	MetaString getHoverText(PlayerColor player) const override;
+	MetaString getHoverText(const CGHeroInstance * hero) const override;
+
+	MetaString getPopupText(PlayerColor player) const override;
+	MetaString getPopupText(const CGHeroInstance * hero) const override;
+
+	std::vector<Component> getPopupComponents(PlayerColor player) const override;
+	std::vector<Component> getPopupComponents(const CGHeroInstance * hero) const override;
+
+	template <typename Handler> void serialize(Handler &h)
+	{
+		h & static_cast<CArmedInstance&>(*this);
+		h & static_cast<Rewardable::Interface&>(*this);
+		h & onceVisitableObjectCleared;
+	}
+};
+
+//TODO:
+// class DLL_LINKAGE KeymasterTent : public CGObjectInstance
+
+// POSSIBLE
+// class DLL_LINKAGE CGSignBottle : public CGObjectInstance //signs and ocean bottles

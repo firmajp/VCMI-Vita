@@ -1,0 +1,76 @@
+/*
+* QuestAction.cpp, part of VCMI engine
+*
+* Authors: listed in file AUTHORS in main folder
+*
+* License: GNU General Public License v2.0 or later
+* Full text of license available in license.txt file, in main folder
+*
+*/
+
+#include "StdInc.h"
+#include "QuestAction.h"
+#include "../../AIGateway.h"
+#include "../../Goals/CompleteQuest.h"
+#include "../../../../lib/mapObjects/Quest.h"
+
+namespace NK2AI
+{
+
+namespace AIPathfinding
+{
+	bool QuestAction::canAct(const Nullkiller * aiNk, const AIPathNode * node) const
+	{
+		return canAct(aiNk, node->actor->hero);
+	}
+
+	bool QuestAction::canAct(const Nullkiller * aiNk, const AIPathNodeInfo & node) const
+	{
+		return canAct(aiNk, node.targetHero);
+	}
+
+	bool QuestAction::canAct(const Nullkiller * aiNk, const CGHeroInstance * hero) const
+	{
+		const auto * object = questInfo.getObject(aiNk->cc.get());
+		if(questInfo.hasObjectInstance() && !object)
+			return false;
+
+		const auto * quest = questInfo.getQuest(aiNk->cc.get());
+		if(!quest)
+			return false;
+
+		// key-gated object: only actionable once the key is held (nothing to activate first)
+		if(!quest->mission.requiredKeys.empty())
+		{
+			return quest->checkQuest(hero);
+		}
+
+		auto notActivated = (!object || !object->wasVisited(aiNk->playerID))
+			&& !quest->isKnownTo(hero->getOwner());
+		
+		return notActivated
+			|| quest->checkQuest(hero);
+	}
+
+	Goals::TSubgoal QuestAction::decompose(const Nullkiller * aiNk, const CGHeroInstance * hero) const
+	{
+		return Goals::sptr(Goals::CompleteQuest(questInfo, *aiNk->cc));
+	}
+
+	void QuestAction::execute(AIGateway * aiGw, const CGHeroInstance * hero) const
+	{
+		const auto * object = questInfo.getObject(aiGw->cc.get());
+		if(!object)
+			throw cannotFulfillGoalException("Quest object is no longer available.");
+
+		if(aiGw->moveHeroToTile(object->visitablePos(), HeroPtr(hero, aiGw->cc.get())) == HeroMovementResult::BLOCKED)
+			throw cannotFulfillGoalException("Unable to reach quest target.");
+	}
+
+	std::string QuestAction::toString() const
+	{
+		return "Complete Quest";
+	}
+}
+
+}

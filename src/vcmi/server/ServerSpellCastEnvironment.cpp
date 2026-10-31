@@ -1,0 +1,139 @@
+/*
+ * ServerSpellCastEnvironment.cpp, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#include "StdInc.h"
+#include "ServerSpellCastEnvironment.h"
+
+#include "CGameHandler.h"
+#include "battles/BattleProcessor.h"
+#include "activities/ActivityProcessor.h"
+#include "activities/SpellActivities.h"
+#include "activities/Activity.h"
+
+#include "../lib/battle/IBattleInfoCallback.h"
+#include "../lib/battle/IBattleState.h"
+#include "../lib/battle/Unit.h"
+#include "../lib/callback/GameRandomizer.h"
+#include "../lib/gameState/CGameState.h"
+#include "../lib/mapObjects/army/CArmedInstance.h"
+#include "../lib/networkPacks/PacksForClientBattle.h"
+#include "../lib/networkPacks/SetStackEffect.h"
+
+///ServerSpellCastEnvironment
+ServerSpellCastEnvironment::ServerSpellCastEnvironment(CGameHandler * gh)
+	: gh(gh)
+{
+}
+
+bool ServerSpellCastEnvironment::describeChanges() const
+{
+	return true;
+}
+
+void ServerSpellCastEnvironment::complain(const std::string & problem)
+{
+	gh->complain(problem);
+}
+
+vstd::RNG * ServerSpellCastEnvironment::getRNG()
+{
+	return &gh->getRandomGenerator();
+}
+
+bool ServerSpellCastEnvironment::rollCombatAbility(const IBattleInfoCallback & battle, const battle::Unit & actor, int percentageChance)
+{
+	const auto * army = battle.getBattle()->getSideArmy(actor.unitSide());
+	return gh->randomizer->rollCombatAbility(army->id, percentageChance);
+}
+
+void ServerSpellCastEnvironment::apply(CPackForClient & pack)
+{
+	gh->sendAndApply(pack);
+}
+
+void ServerSpellCastEnvironment::apply(BattleLogMessage & pack)
+{
+	gh->sendAndApply(pack);
+}
+
+void ServerSpellCastEnvironment::apply(BattleStackMoved & pack)
+{
+	gh->sendAndApply(pack);
+}
+
+void ServerSpellCastEnvironment::apply(BattleUnitsChanged & pack)
+{
+	gh->sendAndApply(pack);
+}
+
+void ServerSpellCastEnvironment::apply(SetStackEffect & pack)
+{
+	gh->sendAndApply(pack);
+}
+
+void ServerSpellCastEnvironment::apply(StacksInjured & pack)
+{
+	// Spell, moat, obstacle and script damage use this non-attack pack.
+	const auto * battle = gh->gameState().getBattle(pack.battleID);
+	if(battle)
+		gh->battles->noteDeaths(*battle, pack.stacks);
+
+	gh->sendAndApply(pack);
+}
+
+void ServerSpellCastEnvironment::apply(BattleObstaclesChanged & pack)
+{
+	gh->sendAndApply(pack);
+}
+
+void ServerSpellCastEnvironment::apply(CatapultAttack & pack)
+{
+	gh->sendAndApply(pack);
+}
+
+const IGameInfoCallback * ServerSpellCastEnvironment::getCb() const
+{
+	return &gh->gameInfo();
+}
+
+void ServerSpellCastEnvironment::spellHasHit(const CBattleInfoCallback & battle, const spells::Spell & spell, const battle::Unit * casterUnit, const std::vector<std::shared_ptr<const battle::CUnitState>> & unitsBefore)
+{
+	gh->battles->spellHasHit(battle, spell, casterUnit, unitsBefore);
+}
+
+const CMap * ServerSpellCastEnvironment::getMap() const
+{
+	return &gh->gameState().getMap();
+}
+
+bool ServerSpellCastEnvironment::moveHero(ObjectInstanceID hid, int3 dst, EMovementMode mode)
+{
+	return gh->moveHero(hid, dst, mode, false);
+}
+
+void ServerSpellCastEnvironment::createBoat(const int3 & visitablePosition, BoatId type, PlayerColor initiator)
+{
+	return gh->createBoat(visitablePosition, type, initiator);
+}
+
+void ServerSpellCastEnvironment::showGarrisonDialog(ObjectInstanceID upobj, ObjectInstanceID hid, const MetaString & customTitle)
+{
+	gh->showGarrisonDialog(upobj, hid, customTitle);
+}
+
+void ServerSpellCastEnvironment::askToSelectTown(const MapObjectSelectDialog & request, SpellID spell, ObjectInstanceID caster)
+{
+	auto activity = std::make_shared<TownSelectionActivity>(gh, request.player, spell, caster, request.objects);
+
+	MapObjectSelectDialog pack = request;
+	pack.questionID = activity->askQuestion();
+
+	gh->activities->addActivity(activity);
+	gh->sendAndApply(pack);
+}

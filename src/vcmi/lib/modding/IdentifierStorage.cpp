@@ -1,0 +1,380 @@
+/*
+ * IdentifierStorage.cpp, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#include "StdInc.h"
+#include "IdentifierStorage.h"
+
+#include "IdentifierResolver.h"
+
+#include "CModHandler.h"
+#include "ModScope.h"
+
+#include "../constants/StringConstants.h"
+#include "../json/JsonNode.h"
+
+CIdentifierStorage::CIdentifierStorage(const CModHandler & modHandler_):
+	modHandler(modHandler_)
+{
+	registerObject(ModScope::scopeBuiltin(), "spellSchool", "any", SpellSchool::ANY.getNum());
+
+	for (int i = 0; i < GameConstants::RESOURCE_QUANTITY; ++i)
+		registerObject(ModScope::scopeBuiltin(), "resource", GameConstants::RESOURCE_NAMES[i], i);
+
+	for (int i = 0; i < std::size(GameConstants::PLAYER_COLOR_NAMES); ++i)
+		registerObject(ModScope::scopeBuiltin(), "playerColor", GameConstants::PLAYER_COLOR_NAMES[i], i);
+
+
+	for(int i=0; i<GameConstants::PRIMARY_SKILLS; ++i)
+	{
+		registerObject(ModScope::scopeBuiltin(), "primSkill", NPrimarySkill::names[i], i);
+		registerObject(ModScope::scopeBuiltin(), "primarySkill", NPrimarySkill::names[i], i);
+	}
+
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "creatureDamageBoth", 0);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "creatureDamageMin", 1);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "creatureDamageMax", 2);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "damageTypeAll", -1);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "damageTypeMelee", 0);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "damageTypeRanged", 1);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "heroMovementLand", 1);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "heroMovementSea", 0);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "visionsMonsters", 0);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "visionsHeroes", 1);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "visionsTowns", 2);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "immunityBattleWide", 0);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "immunityEnemyHero", 1);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "movementFlying", -1);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "movementTeleporting", 1);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "freeShootingNoPenalty", 0);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "freeShootingExceptAdjacent", 1);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "spellLevel1", 1);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "spellLevel2", 2);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "spellLevel3", 3);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "spellLevel4", 4);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "spellLevel5", 5);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "creatureLevel1", 1);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "creatureLevel2", 2);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "creatureLevel3", 3);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "creatureLevel4", 4);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "creatureLevel5", 5);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "creatureLevel6", 6);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "creatureLevel7", 7);
+	registerObject(ModScope::scopeBuiltin(), "spell", "preset", SpellID::PRESET);
+	registerObject(ModScope::scopeBuiltin(), "spell", "spellbook_preset", SpellID::SPELLBOOK_PRESET);
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "combatEventBeforeAttack", static_cast<int>(CombatEventType::BEFORE_ATTACK));
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "combatEventAfterAttack", static_cast<int>(CombatEventType::AFTER_ATTACK));
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "combatEventBeforeAttacked", static_cast<int>(CombatEventType::BEFORE_ATTACKED));
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "combatEventAfterAttacked", static_cast<int>(CombatEventType::AFTER_ATTACKED));
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "combatEventWait", static_cast<int>(CombatEventType::WAIT));
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "combatEventDefend", static_cast<int>(CombatEventType::DEFEND));
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "combatEventBeforeMove", static_cast<int>(CombatEventType::BEFORE_MOVE));
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "combatEventAfterMove", static_cast<int>(CombatEventType::AFTER_MOVE));
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "combatEventCast", static_cast<int>(CombatEventType::UNIT_SPELLCAST));
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "alignmentGood", static_cast<int>(EAlignment::GOOD));
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "alignmentEvil", static_cast<int>(EAlignment::EVIL));
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "alignmentNeutral", static_cast<int>(EAlignment::NEUTRAL));
+	registerObject(ModScope::scopeBuiltin(), "bonusSubtype", "alignmentNone", static_cast<int>(EAlignment::NONE));
+}
+
+void CIdentifierStorage::checkIdentifier(const std::string & ID)
+{
+	if (boost::algorithm::ends_with(ID, "."))
+		logMod->error("BIG WARNING: identifier %s seems to be broken!", ID);
+}
+
+std::optional<si32> CIdentifierStorage::getIdentifier(const std::string & scope, const std::string & type, const std::string & name, bool silent) const
+{
+	auto options = IdentifierRequest::fromNameAndType(scope, type, name, std::function<void(si32)>(), silent, false, true);
+	return getIdentifierImpl(options, silent);
+}
+
+std::optional<si32> CIdentifierStorage::getIdentifier(const std::string & type, const JsonNode & name, bool silent) const
+{
+	auto options = IdentifierRequest::fromNameAndType(name.getModScope(), type, name.String(), std::function<void(si32)>(), silent, false, true);
+
+	return getIdentifierImpl(options, silent);
+}
+
+std::optional<si32> CIdentifierStorage::getIdentifier(const JsonNode & name, bool silent) const
+{
+	auto options = IdentifierRequest::fromNameWithType(name.getModScope(), name.String(), std::function<void(si32)>(), silent, true);
+	return getIdentifierImpl(options, silent);
+}
+
+std::optional<si32> CIdentifierStorage::getIdentifier(const std::string & scope, const std::string & fullName, bool silent) const
+{
+	auto options = IdentifierRequest::fromNameWithType(scope, fullName, std::function<void(si32)>(), silent, true);
+	return getIdentifierImpl(options, silent);
+}
+
+std::optional<si32> CIdentifierStorage::getIdentifierCaseInsensitive(const std::string & scope, const std::string & type, const std::string & name, bool silent) const
+{
+	auto options = IdentifierRequest::fromNameAndType(scope, type, name, std::function<void(si32)>(), silent, false, false);
+	return getIdentifierImpl(options, silent);
+}
+
+std::optional<si32> CIdentifierStorage::getIdentifierImpl(const IdentifierRequest & options, bool silent) const
+{
+	auto idList = getPossibleIdentifiers(options);
+
+	if (idList.size() == 1)
+		return idList.front().id;
+	if (!silent && options.localScope != ModScope::scopeGame())
+		showIdentifierResolutionErrorDetails(options);
+	return std::optional<si32>();
+}
+
+void CIdentifierStorage::showIdentifierResolutionErrorDetails(const IdentifierRequest & options) const
+{
+	auto idList = getPossibleIdentifiers(options);
+
+	logMod->error("Failed to resolve identifier '%s' of type '%s' from mod '%s'", options.name, options.type, options.localScope);
+
+	if (options.dynamicType && options.type.empty())
+	{
+		bool suggestionFound = false;
+
+		for (auto const & entry : registeredObjects)
+		{
+			if (!boost::algorithm::ends_with(entry.first, options.name))
+				continue;
+
+			suggestionFound = true;
+			logMod->error("Perhaps you wanted to use identifier '%s' from mod '%s' instead?", entry.first, entry.second.scope);
+		}
+
+		if (suggestionFound)
+			return;
+	}
+
+	if (idList.empty())
+	{
+		// check whether identifier is unavailable due to a missing dependency on a mod
+		IdentifierRequest testOptions = options;
+		testOptions.localScope = ModScope::scopeGame();
+		testOptions.remoteScope = {};
+
+		auto testList = getPossibleIdentifiers(testOptions);
+		if (testList.empty())
+		{
+			logMod->error("Identifier '%s' of type '%s' does not exists in any loaded mod!", options.name, options.type);
+		}
+		else
+		{
+			// such identifier(s) exists, but were not picked for some reason
+			for (auto const & testOption : testList)
+			{
+				// attempt to access identifier from mods that is not dependency
+				bool isValidScope = true;
+				const auto & dependencies = modHandler.getModDependencies(options.localScope, isValidScope);
+				if (!vstd::contains(dependencies, testOption.scope))
+				{
+					logMod->error("Identifier '%s' exists in mod %s", options.name, testOption.scope);
+					logMod->error("Please add mod '%s' as dependency of mod '%s' to access this identifier", testOption.scope, options.localScope);
+					if (options.bypassDependenciesCheck)
+						logMod->error("Or, to avoid this dependency, request this object as %s:%s", testOption.scope, options.name);
+					continue;
+				}
+
+				// attempt to access identifier in form 'modName:object', but identifier is only present in different mod
+				if (options.remoteScope.empty())
+				{
+					logMod->error("Identifier '%s' exists in mod '%s' but identifier was explicitly requested from mod '%s'!", options.name, testOption.scope, options.remoteScope);
+					if (options.dynamicType)
+						logMod->error("Please use form '%s.%s' or '%s:%s.%s' to access this identifier", options.type, options.name, testOption.scope, options.type, options.name);
+					else
+						logMod->error("Please use form '%s' or '%s:%s' to access this identifier", options.name, testOption.scope, options.name);
+					continue;
+				}
+			}
+		}
+	}
+	else
+	{
+		logMod->error("Multiple possible candidates:");
+		for (auto const & testOption : idList)
+		{
+			logMod->error("Identifier %s exists in mod %s", options.name, testOption.scope);
+			if (options.dynamicType)
+				logMod->error("Please use '%s:%s.%s' to access this identifier", testOption.scope, options.type, options.name);
+			else
+				logMod->error("Please use '%s:%s' to access this identifier", testOption.scope, options.name);
+		}
+	}
+}
+
+void CIdentifierStorage::registerObject(const std::string & scope, const std::string & type, const std::string & name, si32 identifier)
+{
+	ObjectData data;
+	data.scope = scope;
+	data.id = identifier;
+
+	std::string fullID = type + '.' + name;
+	checkIdentifier(fullID);
+
+	std::pair<const std::string, ObjectData> mapping = std::make_pair(fullID, data);
+	if(!vstd::containsMapping(registeredObjects, mapping))
+	{
+		logMod->trace("registered '%s' as %s:%s", fullID, scope, identifier);
+		registeredObjects.insert(mapping);
+		registeredObjectsCaseLookup[boost::algorithm::to_lower_copy(mapping.first)] = mapping.first;
+	}
+	else
+	{
+		logMod->trace("Duplicate object '%s' found!", fullID);
+	}
+}
+
+std::vector<CIdentifierStorage::ObjectData> CIdentifierStorage::getPossibleIdentifiers(const IdentifierRequest & request) const
+{
+	std::set<std::string> allowedScopes;
+	// dependencies of requesting mod, which are also allowed scopes. Kept separately to avoid copying dependencies on every request
+	const std::set<TModID> * allowedDependencies = nullptr;
+	bool isValidScope = true;
+
+	// called have not specified destination mod explicitly
+	if (request.remoteScope.empty())
+	{
+		// special scope that should have access to all in-game objects
+		if (request.localScope == ModScope::scopeGame())
+		{
+			for(const auto & modName : modHandler.getActiveMods())
+				allowedScopes.insert(modName);
+		}
+
+		// normally ID's from all required mods, own mod and virtual built-in mod are allowed
+		else if(request.localScope != ModScope::scopeBuiltin() && !request.localScope.empty())
+		{
+			allowedDependencies = &modHandler.getModDependencies(request.localScope, isValidScope);
+
+			if(!isValidScope)
+				return std::vector<ObjectData>();
+
+			allowedScopes.insert(request.localScope);
+		}
+
+		// all mods can access built-in mod
+		allowedScopes.insert(ModScope::scopeBuiltin());
+	}
+	else
+	{
+		//if destination mod was specified explicitly, restrict lookup to this mod
+		if(request.remoteScope == ModScope::scopeBuiltin() )
+		{
+			//built-in mod is an implicit dependency for all mods, allow access into it
+			allowedScopes.insert(request.remoteScope);
+		}
+		else if ( request.localScope == ModScope::scopeGame() )
+		{
+			// allow access, this is special scope that should have access to all in-game objects
+			allowedScopes.insert(request.remoteScope);
+		}
+		else if(request.remoteScope == request.localScope )
+		{
+			// allow self-access
+			allowedScopes.insert(request.remoteScope);
+		}
+		else if (request.bypassDependenciesCheck)
+		{
+			// this is request for an identifier that bypasses mod dependencies check
+			allowedScopes.insert(request.remoteScope);
+		}
+		else
+		{
+			// allow access only if mod is in our dependencies
+			const auto & myDeps = modHandler.getModDependencies(request.localScope, isValidScope);
+
+			if(!isValidScope)
+				return std::vector<ObjectData>();
+
+			if(myDeps.count(request.remoteScope))
+				allowedScopes.insert(request.remoteScope);
+		}
+	}
+
+	std::string fullID = request.type + '.' + request.name;
+	std::string fullLowerID = boost::algorithm::to_lower_copy(fullID);
+	std::string fullIDCaseCorrected = (request.caseSensitive || !registeredObjectsCaseLookup.count(fullLowerID)) ? fullID : registeredObjectsCaseLookup.at(fullLowerID);
+
+	auto entries = registeredObjects.equal_range(fullIDCaseCorrected);
+
+	if (entries.first != entries.second)
+	{
+		std::vector<ObjectData> locatedIDs;
+
+		for (auto it = entries.first; it != entries.second; it++)
+		{
+			if (vstd::contains(allowedScopes, it->second.scope) || (allowedDependencies && vstd::contains(*allowedDependencies, it->second.scope)))
+			{
+				locatedIDs.push_back(it->second);
+			}
+		}
+		return locatedIDs;
+	}
+	return std::vector<ObjectData>();
+}
+
+bool CIdentifierStorage::resolveIdentifier(const IdentifierRequest & request) const
+{
+	auto identifiers = getPossibleIdentifiers(request);
+	if (identifiers.size() == 1) // normally resolved ID
+	{
+		request.callback(identifiers.front().id);
+		return true;
+	}
+
+	if (request.optional && identifiers.empty()) // failed to resolve optional ID
+	{
+		return true;
+	}
+
+	if (request.bypassDependenciesCheck && !request.remoteScope.empty())
+	{
+		if (!vstd::contains(modHandler.getActiveMods(), request.remoteScope))
+		{
+			logMod->debug("Mod '%s' requested identifier '%s' from not loaded mod '%s'. Ignoring.", request.localScope, request.name, request.remoteScope);
+			return true; // mod was not loaded - ignore
+		}
+	}
+
+	// error found. Try to generate some debug info
+	showIdentifierResolutionErrorDetails(request);
+	return false;
+}
+
+void CIdentifierStorage::debugDumpIdentifiers()
+{
+	logMod->trace("List of all registered objects:");
+
+	std::map<std::string, std::vector<std::string>> objectList;
+
+	for(const auto & object : registeredObjects)
+	{
+		size_t categoryLength = object.first.find('.');
+		assert(categoryLength != std::string::npos);
+
+		std::string objectCategory = object.first.substr(0, categoryLength);
+		std::string objectName = object.first.substr(categoryLength + 1);
+
+		objectList[objectCategory].push_back("[" + object.second.scope + "] " + objectName);
+	}
+
+	for(auto & category : objectList)
+		std::ranges::sort(category.second);
+
+	for(const auto & category : objectList)
+	{
+		logMod->trace("");
+		logMod->trace("### %s", category.first);
+		logMod->trace("");
+
+		for(const auto & entry : category.second)
+			logMod->trace("- " + entry);
+	}
+}

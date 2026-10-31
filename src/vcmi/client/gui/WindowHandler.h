@@ -1,0 +1,137 @@
+/*
+ * WindowHandler.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#pragma once
+
+class IShowActivatable;
+class CIntObject;
+
+class WindowHandler
+{
+	/// list of windows. front = bottom-most (background), back = top-most (foreground)
+	/// (includes adventure map, window windows, all kind of active dialogs, and so on)
+	std::vector<std::shared_ptr<IShowActivatable>> windowsStack;
+
+	/// Temporary list of recently popped windows
+	std::vector<std::shared_ptr<IShowActivatable>> disposed;
+
+	/// Widget drawn on top of every window and outside of the stack, e.g. the replay abort button
+	std::shared_ptr<IShowActivatable> overlay;
+
+	bool totalRedrawRequested = false;
+
+	/// Objects whose redraw() arrived from a thread that may not draw, repainted at the start of
+	/// the next frame. No extra drawing - the software path would have redrawn them right away.
+	/// All access happens under the interface mutex, like the rest of WindowHandler.
+	std::vector<CIntObject *> pendingRedraws;
+	bool hasPendingRedraws = false;
+
+	/// returns top windows
+	std::shared_ptr<IShowActivatable> topWindowImpl() const;
+
+	/// forces total redraw (using showAll), sets a flag, method gets called at the end of the rendering
+	void totalRedrawImpl();
+
+	/// update only top windows and draw background from buffer, sets a flag, method gets called at the end of the rendering
+	void simpleRedrawImpl();
+
+public:
+	/// forces total redraw (using showAll), sets a flag, method gets called at the end of the rendering
+	void totalRedraw();
+
+	/// Defers one object's repaint to the next frame. Safe to call from any thread;
+	/// nothing is drawn here.
+	void requestRedraw(CIntObject * object);
+
+	/// Drops a pending repaint, so that a destroyed object is never drawn
+	void cancelRedraw(CIntObject * object);
+
+	/// Repaints everything deferred by requestRedraw(). Runs on the rendering thread.
+	void processPendingRedraws();
+
+	/// update only top windows and draw background from buffer, sets a flag, method gets called at the end of the rendering
+	void simpleRedraw();
+
+	/// called whenever user selects different resolution, requiring to center/resize all windows
+	void onScreenResize();
+
+	/// deactivate old top windows, activates this one and pushes to the top
+	void pushWindow(std::shared_ptr<IShowActivatable> newInt);
+
+	/// creates window of class T and pushes it to the top
+	template <typename T, typename ... Args>
+	void createAndPushWindow(Args && ... args);
+
+	/// pops one or more windows - deactivates top, deletes and removes given number of windows, activates new front
+	void popWindows(int howMany);
+
+	/// returns true if current top window is a right-click popup
+	bool isTopWindowPopup() const;
+
+	/// removes given windows from the top and activates next
+	void popWindow(std::shared_ptr<IShowActivatable> top);
+
+	/// returns true if selected interface is on top
+	bool isTopWindow(std::shared_ptr<IShowActivatable> window) const;
+	bool isTopWindow(IShowActivatable * window) const;
+
+	/// returns top window if it matches requested class
+	template <typename T>
+	std::shared_ptr<T> topWindow() const;
+
+	/// should be called after frame has been rendered to screen
+	void onFrameRendered();
+
+	/// returns current number of windows in the stack
+	size_t count() const;
+
+	/// erases all currently existing windows from the stack
+	void clear();
+
+	/// installs a widget that is drawn on top of all windows, pass nullptr to remove it
+	void setOverlay(std::shared_ptr<IShowActivatable> newOverlay);
+
+	/// removes all windows from the stack without destroying them, so that they can be put back later
+	std::vector<std::shared_ptr<IShowActivatable>> detachAll();
+
+	/// replaces current stack with a previously detached one
+	void attachAll(std::vector<std::shared_ptr<IShowActivatable>> windows);
+
+	/// returns all existing windows of selected type
+	template <typename T>
+	std::vector<std::shared_ptr<T>> findWindows() const;
+};
+
+template <typename T, typename ... Args>
+void WindowHandler::createAndPushWindow(Args && ... args)
+{
+	auto newWindow = std::make_shared<T>(std::forward<Args>(args)...);
+	pushWindow(newWindow);
+}
+
+template <typename T>
+std::vector<std::shared_ptr<T>> WindowHandler::findWindows() const
+{
+	std::vector<std::shared_ptr<T>> result;
+
+	for(const auto & window : windowsStack)
+	{
+		std::shared_ptr<T> casted = std::dynamic_pointer_cast<T>(window);
+
+		if (casted)
+			result.push_back(casted);
+	}
+	return result;
+}
+
+template <typename T>
+std::shared_ptr<T> WindowHandler::topWindow() const
+{
+	return std::dynamic_pointer_cast<T>(topWindowImpl());
+}

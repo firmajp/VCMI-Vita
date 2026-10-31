@@ -1,0 +1,86 @@
+/*
+ * ESerializationVersion.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#pragma once
+
+/// This enumeration controls save compatibility support.
+/// - 'MINIMAL' represents the oldest supported version counter. A saved game can be loaded if its version is at least 'MINIMAL'.
+/// - 'CURRENT' represents the current save version. Saved games are created using the 'CURRENT' version.
+///
+/// To make a save-breaking change:
+/// - change 'MINIMAL' to a value higher than 'CURRENT'
+/// - remove all keys in enumeration between 'MINIMAL' and 'CURRENT' as well as all their usage (will be detected by compiler)
+/// - change 'CURRENT' to 'CURRENT = MINIMAL'
+///
+/// To make a non-breaking change:
+/// - add new enumeration value before 'CURRENT'
+/// - change 'CURRENT' to 'CURRENT = NEW_TEST_KEY'.
+///
+/// To check for version in serialize() call use form
+/// if (h.hasFeature(Handler::Version::NEW_TEST_KEY))
+///     h & newKey; // loading/saving save of a new version
+/// else
+///     newKey = saneDefaultValue; // loading of old save
+enum class ESerializationVersion : int32_t
+{
+	NONE = 0,
+
+	HOTA_MAP_STACK_COUNT = 893, // support Hota 1.7 stack count feature
+
+	HOTA_MAP_FORMAT_EXTENSIONS, // support multiple Hota 1.7 map format features
+	SPELL_RESEARCH_IMPROVEMENTS, // support counting past spell rerolls
+	NAME_MAP_LAYERS, // name map layers
+	HOTA_MAP_FORMAT_EXTENSIONS_2, // more Hota 1.7 map format features
+	TIMER_MOVEMENT_POINTS, // movement points for timer
+	DISABLE_TACTICS, // disable tactics
+	REWARDABLE_EXTENSIONS_2, // movement points limiter for rewardables
+	BONUS_TRIGGER, // bonus that allows triggered effects in combat
+	CUSTOM_GARRISON_TITLE, // GarrisonDialog pack now has custom title parameter
+	LUA_SCRIPTS,
+	REWARDABLE_RESET_CALENDAR, // rewardable reset period split into days/weeks/months
+	CONTROL_LOSS_TRACKING, // track when players ever controlled special defeat-condition objects
+	QUEST_REWORK, // quest objects reshape: persist requiredKeys / allowedDifficulties limiter fields, quest-log identity (object or keymaster-colour type)
+	HERO_SPECIALTY_ROUNDING, // DivideStackLevelUpdater carries hero level for H3-correct specialty rounding
+	MAP_GEN_LEVEL_MAP_LAYERS, // CMapGenOptions per-level map layer IDs
+	RETREAT_PERMISSION_BONUSES, // BATTLE_NO_FLEEING replaced by BATTLE_CAN_FLEE, escape tunnel provides bonus instead of hardcoded effect
+	SCRIPT_VARIABLES, // per-map script variable storage (mod-namespaced key/value store)
+	GAME_REPLAY_RECORDING, // recording of the game (and the battle ID counter it needs), stored in the savegame
+	COMBAT_ABILITY_SCRIPTS, // combat abilities that became combat scripts are converted on load; spell effects and combat scripts share one registry, so bonus subtype saves the script as a string
+	GAME_SESSION_DIRECTORY, // persistent per-game save directory and campaign start time
+	SCENARIO_EVENT_JOURNAL, // per-player history of triggered scenario event messages and components
+	MUTARE_DRAKE_OVERRIDE, // campaign header stores hero type override used for Mutare Drake crossover bonus targeting
+	TOWN_NAME_TEXT_ID, // renaming a town registers the new name in the map text container instead of storing free-form text
+	RECORD_TEXTS_METASTRING, // highscore scenario name and statistics map name are stored unresolved, to be rendered by the reader
+	BONUS_TARGET_SOURCE_ID, // bonus can restrict PERCENT_TO_TARGET_TYPE to a single source ID
+	SECONDARY_SKILL_OFFER_COOLDOWN, // hero stores level at which skills with offer cooldown were gained
+	SEER_HUT_NAME_TEXT_ID, // seer name is stored as text identifier, and a quest stores map-defined timeout message
+	SIMTURNS_CONTACT_STATUS, // game state stores players that still play simultaneous turns without contact
+	BATTLE_RESTORE_ARTIFACT_CHARGES, // battle stores initial charges of artifacts to restore them if battle is cancelled
+	CREATURE_REFUSED_JOINING_REMOVED, // wandering creatures no longer store a refused offer to join, the visit tracks it
+	HOTA_HERO_LEVEL_OPTIONS, // persist HotA per-hero experience lock
+	BOAT_LAST_HERO, // boat remembers the last hero that used it, so Summon Boat can prefer boat of the caster
+	SAVE_CHUNKS, // saved game is stored as compressed chunks: metadata, map header, game state
+	GARRISON_DIALOG_REMOVABLE_UNITS_REMOVED, // GarrisonDialog pack no longer carries removableUnits, the client checks CArmedInstance::isLocked
+	MAP_EVENT_DISABLED, // map events can be disabled by map scripts
+	RANK_LIMITER_INCLUSIVE_MIN, // RankRangeLimiter accepts stacks of its minimal rank
+	SPARSE_RESOURCE_SET, // ResourceSet stores only resources present in the set
+	QUEST_HINT_COMPONENTS, // HotA scripted quests store components shown with their hint
+	TOWN_ALIGNMENT_EXCLUSION, // random town can be set to not match faction of a player
+	NEUTRAL_TOWN_EVENTS, // town events can affect neutral towns
+	LOBBY_MAP_INFO_PACK, // lobby sends map info in its own pack instead of lobby state; client and server reject each other below this version
+	SPELL_ID_WITH_MASTERY, // spell id is combined with spell mastery level
+
+	RELEASE_170 = HOTA_MAP_STACK_COUNT,
+	RELEASE_174 = CUSTOM_GARRISON_TITLE,
+
+	MINIMAL = RELEASE_170,
+	CURRENT = SPELL_ID_WITH_MASTERY,
+};
+
+static_assert(ESerializationVersion::MINIMAL <= ESerializationVersion::CURRENT, "Invalid serialization version definition!");

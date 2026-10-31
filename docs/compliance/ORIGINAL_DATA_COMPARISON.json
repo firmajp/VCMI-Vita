@@ -1,0 +1,12 @@
+{
+  "method": "SHA256 comparison against decompressed local original LOD/SND entries whose sizes match public runtime resources",
+  "archives": 6,
+  "entries_compared": 165,
+  "exact_matches": [],
+  "limits": "Exact byte-copy detection, not a derivative-artwork or authorship determination. No original game data included.",
+  "RC_runtime_resource_equality_to_audited_0_1_24": {
+    "config.zip": 207,
+    "Mods/vcmi/Content.zip": 468
+  },
+  "public_artwork_and_boot_images_equal": true
+}

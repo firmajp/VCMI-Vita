@@ -1,0 +1,106 @@
+/*
+ * RenderHandler.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#pragma once
+
+#include "MemoryBudgetedCache.h"
+#include "render/IRenderHandler.h"
+#include "render/CDefFile.h"
+
+class EntityService;
+
+class CDefFile;
+class SDLImageShared;
+class ScalableImageShared;
+class AssetGenerator;
+class HdImageLoader;
+
+class RenderHandler final : public IRenderHandler
+{
+	/// Bumped on every draw that had to use a stand-in for an unfinished upscale
+	static std::atomic<uint32_t> placeholderDraws;
+
+	using AnimationLayoutMap = std::map<size_t, std::vector<ImageLocator>>;
+
+	std::map<AnimationPath, std::map<int, std::map<int, std::pair<std::string, CDefFile::SSpriteDef>>>> animationSpriteDefs;
+	std::map<AnimationPath, std::weak_ptr<CDefFile>> animationFiles;
+
+	/// The weak maps only find an asset while somebody else still holds it. This keeps the
+	/// most recently used ones alive so they are not decoded again on the next frame.
+	MemoryBudgetedCache retainedAssets;
+	std::map<AnimationPath, AnimationLayoutMap> animationLayouts;
+	/// Mode the locators of animationLayouts were created with. Missing for generated layouts
+	std::map<AnimationPath, EImageBlitMode> animationLayoutModes;
+	/// Copies of animationLayouts with locators of the original mode switched to the requested one
+	std::map<AnimationPath, std::map<EImageBlitMode, AnimationLayoutMap>> animationLayoutVariants;
+	std::map<SharedImageLocator, std::weak_ptr<ScalableImageShared>> imageFiles;
+	std::map<EFonts, std::shared_ptr<const IFont>> fonts;
+	std::shared_ptr<AssetGenerator> assetGenerator;
+	std::shared_ptr<HdImageLoader> hdImageLoader;
+	
+	std::mutex animationCacheMutex;
+
+	/// Recursive, since layout is returned by reference and has to stay locked while the caller reads it
+	std::recursive_mutex animationLayoutMutex;
+	std::mutex imageCacheMutex;
+
+	std::pair<std::string, CDefFile::SSpriteDef> getAnimationSpriteDef(const AnimationPath & path, int frame, int group);
+	ImagePath getAnimationFrameName(const AnimationPath & path, int frame, int group);
+	std::shared_ptr<CDefFile> getAnimationFile(const AnimationPath & path);
+	AnimationLayoutMap & getAnimationLayout(const AnimationPath & path, int scalingFactor, EImageBlitMode mode);
+	void initFromJson(AnimationLayoutMap & layout, const JsonNode & config, EImageBlitMode mode) const;
+
+	void addImageListEntry(size_t index, size_t group, const std::string & listName, const std::string & imageName);
+	void addImageListEntries(const EntityService * service);
+	void storeCachedImage(const ImageLocator & locator, std::shared_ptr<ScalableImageShared> image);
+
+	std::shared_ptr<ScalableImageShared> loadImageImpl(const ImageLocator & config);
+
+	/// Generates and upscales all frames of palette-animated terrains and rivers, which is too slow to do when such tile is first drawn
+	void preloadPaletteShiftedFrames();
+
+	std::vector<std::shared_ptr<ScalableImageShared>> paletteShiftedFrames;
+
+	std::shared_ptr<ISharedImage> loadImageFromFileUncached(const ImageLocator & locator);
+
+	ImageLocator getLocatorForAnimationFrame(const AnimationPath & path, int frame, int group, int scaling, EImageBlitMode mode);
+
+	int getScalingFactor() const;
+
+public:
+	/// Records that a draw used a stand-in for an image that is still being upscaled
+	static void notifyPlaceholderDrawn();
+
+	uint32_t getPlaceholderDrawCount() const override;
+	void reclaimEvictedAssets() override;
+
+	RenderHandler();
+	~RenderHandler();
+
+	// IRenderHandler implementation
+	void onLibraryLoadingFinished(const Services * services) override;
+
+	std::shared_ptr<IImage> loadImage(const ImageLocator & locator) override;
+	std::shared_ptr<IImage> loadImage(const ImagePath & path, EImageBlitMode mode) override;
+	std::shared_ptr<IImage> loadImage(const AnimationPath & path, int frame, int group, EImageBlitMode mode) override;
+
+	std::shared_ptr<SDLImageShared> loadScaledImage(const ImageLocator & locator) override;
+
+	std::shared_ptr<CAnimation> loadAnimation(const AnimationPath & path, EImageBlitMode mode) override;
+
+	std::shared_ptr<CanvasImage> createImage(const Point & size, CanvasScalingPolicy scalingPolicy) override;
+
+	/// Returns font with specified identifer
+	std::shared_ptr<const IFont> loadFont(EFonts font) override;
+
+	void exportGeneratedAssets() override;
+
+	std::shared_ptr<AssetGenerator> getAssetGenerator() override;
+	void updateGeneratedAssets() override;
+};

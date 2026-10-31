@@ -1,0 +1,224 @@
+/*
+ * Unit.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+
+#pragma once
+
+#include <vcmi/Creature.h>
+#include <vcmi/scripting/ApiTags.h>
+#include <vcmi/spells/Caster.h>
+
+#include "../bonuses/Bonus.h"
+#include "../bonuses/IBonusBearer.h"
+
+#include "IUnitInfo.h"
+#include "BattleHexArray.h"
+
+class MetaString;
+class JsonNode;
+class JsonSerializeFormat;
+
+class CombatValueContext;
+
+namespace battle
+{
+
+namespace BattlePhases
+{
+	enum Type
+	{
+		SIEGE, // turrets/catapult,
+		NORMAL, // normal (unmoved) creatures, other war machines,
+		WAIT_MORALE, // waited creatures that had morale,
+		WAIT, // rest of waited creatures
+		NUMBER_OF_PHASES // number of phases.
+	};
+}
+
+// Healed HP (also drained life) and resurrected units info
+struct HealInfo
+{
+	HealInfo() = default;
+	HealInfo(int64_t healedHP, int32_t resurrected)
+		: healedHealthPoints(healedHP), resurrectedCount(resurrected)
+	{ }
+
+	int64_t healedHealthPoints = 0;
+	int32_t resurrectedCount = 0;
+
+	HealInfo & operator+=(const HealInfo & other)
+	{
+		healedHealthPoints += other.healedHealthPoints;
+		resurrectedCount += other.resurrectedCount;
+		return *this;
+	}
+};
+
+class CUnitState;
+
+class DLL_LINKAGE Unit : public IUnitInfo, public spells::Caster, public virtual IBonusBearer, public ACreature, public	scripting::ApiRawPointer<Unit>
+{
+	static BattleHexArray::ArrayOfBattleHexArrays precomputeUnitHexes(BattleSide side, bool twoHex);
+
+public:
+	virtual ~Unit();
+
+	virtual bool doubleWide() const = 0;
+
+	virtual int32_t creatureIndex() const = 0;
+	virtual CreatureID creatureId() const = 0;
+	virtual int32_t creatureLevel() const = 0;
+	/// Level of this unit rather than the tier of its creature - the two differ for a commander,
+	/// which levels up on its own. Same as creatureLevel unless overridden.
+	virtual int32_t unitLevel() const;
+	virtual int32_t creatureCost() const = 0;
+	virtual int32_t creatureIconIndex() const = 0;
+
+	virtual bool ableToRetaliate() const = 0;
+	virtual bool alive() const = 0;
+	virtual bool isGhost() const = 0;
+	virtual bool isFrozen() const = 0;
+
+	bool isDead() const;
+	bool isTurret() const;
+	bool isCatapult() const;
+	bool isBallista() const;
+	bool isFirstAidTent() const;
+	bool isAmmoCart() const;
+	/// Level of a spell that the unit casts through an ability of the given level, raised by Magic Plains
+	int32_t getAbilitySpellLevel(int32_t abilityLevel, const spells::Spell * spell) const;
+	virtual bool isValidTarget(bool allowDead = false) const = 0; //non-turret non-ghost stacks (can be attacked or be object of magic effect)
+
+	virtual bool isHypnotized() const = 0;
+	virtual bool isInvincible() const = 0;
+
+	virtual bool isClone() const = 0;
+	virtual bool hasClone() const = 0;
+
+	virtual bool canCast() const = 0;
+	virtual bool isCaster() const = 0;
+	virtual bool canShootBlocked() const = 0;
+	virtual bool canShoot() const = 0;
+	virtual bool isShooter() const = 0;
+	bool isMeleeAttacker() const;
+	bool isSummoned() const;
+	/// Side whose player controls the unit, which differs from its own side while it is hypnotized
+	BattleSide controllingSide() const;
+	bool isCommander() const;
+	bool hasImmunity(SpellID spell) const;
+	bool hasAbsoluteImmunity(SpellID spell) const;
+
+	/// returns initial size of this unit
+	virtual int32_t getCount() const = 0;
+
+	/// returns remaining health of first unit
+	virtual int32_t getFirstHPleft() const = 0;
+
+	/// returns total amount of killed in this unit
+	virtual int32_t getKilled() const = 0;
+
+	/// returns amount of currently alive creatures that were resurrected temporarily and will be lost after combat
+	virtual int32_t getResurrected() const = 0;
+
+	/// returns total health that unit still has
+	virtual int64_t getAvailableHealth() const = 0;
+
+	/// returns total health that unit had initially
+	virtual int64_t getTotalHealth() const = 0;
+
+	/// Combat value of this unit, estimated from its stats and its current bonuses
+	virtual uint64_t estimateCombatValue() const = 0;
+
+	/// Same, evaluated against the actual opposing units instead of an average battle
+	virtual uint64_t estimateCombatValue(const CombatValueContext & context) const = 0;
+
+	virtual int getTotalAttacks(bool ranged) const = 0;
+
+	virtual BattleHex getPosition() const = 0;
+	virtual void setPosition(const BattleHex & hex) = 0;
+
+	virtual bool canMove(int turn = 0) const = 0; //if stack can move
+	virtual bool defended(int turn = 0) const = 0;
+	virtual bool moved(int turn = 0) const = 0; //if stack was already moved this turn
+	virtual bool willMove(int turn = 0) const = 0; //if stack has remaining move this turn
+	virtual bool waited(int turn = 0) const = 0;
+
+	virtual std::shared_ptr<Unit> acquire() const = 0;
+	virtual std::shared_ptr<CUnitState> acquireState() const = 0;
+
+	virtual BattlePhases::Type battleQueuePhase(int turn) const = 0;
+
+	virtual std::string getDescription() const;
+
+	const BattleHexArray & getSurroundingHexes(const BattleHex & assumedPosition = BattleHex::INVALID) const; // get six or 8 surrounding hexes depending on creature size
+
+	/// Returns list of hexes (head positions for double-wide units) from which attacker can attack this unit
+	BattleHexArray getAttackableHexes(const Unit * attacker) const;
+	static const BattleHexArray & getSurroundingHexes(const BattleHex & position, bool twoHex, BattleSide side);
+
+	bool coversPos(const BattleHex & position) const; //checks also if unit is double-wide
+
+	/// Returns the direction the double-wide unit is facing; returns NONE for single-hex units
+	BattleHex::EDir headDirection() const;
+
+	const BattleHexArray & getHexes() const; //up to two occupied hexes, starting from front
+	const BattleHexArray & getHexes(const BattleHex & assumedPos) const; //up to two occupied hexes, starting from front
+	static const BattleHexArray & getHexes(const BattleHex & assumedPos, bool twoHex, BattleSide side);
+
+	BattleHex occupiedHex() const; //returns number of occupied hex (not the position) if stack is double wide; otherwise -1
+	BattleHex occupiedHex(const BattleHex & assumedPos) const; //returns number of occupied hex (not the position) if stack is double wide and would stand on assumedPos; otherwise -1
+	static BattleHex occupiedHex(const BattleHex & assumedPos, bool twoHex, BattleSide side);
+
+	///MetaStrings
+	void addNameReplacement(MetaString & text) const;
+	void addNameReplacement(MetaString & text, TQuantity count) const;
+	/// General text in its singular or plural form for the unit count, with the unit name inserted
+	MetaString formatGeneralMessage(const int32_t baseTextId) const;
+
+	int getRawSurrenderCost() const;
+
+	//IConstBonusProvider
+	const IBonusBearer* getBonusBearer() const override;
+
+	//NOTE: save could possibly be const, but this requires heavy changes to Json serialization,
+	//also this method should be called only after modifying object
+	virtual JsonNode save() = 0;
+	virtual void load(const JsonNode & data) = 0;
+
+	virtual void damage(int64_t & amount) = 0;
+	virtual HealInfo heal(int64_t & amount, EHealLevel level, EHealPower power) = 0;
+};
+
+class DLL_LINKAGE UnitInfo final : public scripting::ApiSerializable<UnitInfo>
+{
+public:
+    uint32_t id = 0;
+	TQuantity count = 0;
+	CreatureID type;
+	BattleSide side = BattleSide::NONE;
+	BattleHex position;
+	bool summoned = false;
+
+	void serializeJson(JsonSerializeFormat & handler);
+
+	void save(JsonNode & data);
+	void load(uint32_t id_, const JsonNode & data);
+
+	template<typename Serializer>
+	void serializeScript(Serializer & s)
+	{
+		s("count",    count,    "Number of creatures in the stack.");
+		s("type",     type,     "Creature type of this stack.");
+		s("side",     side,     "Battle side the stack belongs to (attacker or defender).");
+		s("position", position, "Position of the stack on the battlefield. For double-wide units this is their front hex");
+		s("summoned", summoned, "True if the stack was summoned mid-battle and was not part of the initial army.");
+	}
+};
+
+}

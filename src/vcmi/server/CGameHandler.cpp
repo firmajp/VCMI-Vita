@@ -1,0 +1,4713 @@
+/*
+ * CGameHandler.cpp, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#include "StdInc.h"
+#include "CGameHandler.h"
+
+#include "CVCMIServer.h"
+#include "TurnTimerHandler.h"
+#include "ServerNetPackVisitors.h"
+#include "ServerSpellCastEnvironment.h"
+#include "battles/BattleProcessor.h"
+#include "processors/HeroPoolProcessor.h"
+#include "processors/NewTurnProcessor.h"
+#include "processors/PlayerMessageProcessor.h"
+#include "processors/TurnOrderProcessor.h"
+#include "activities/ActivityProcessor.h"
+#include "activities/LuaScriptActivity.h"
+#include "activities/MapActivities.h"
+#include "activities/SpellActivities.h"
+#include "activities/VisitActivities.h"
+
+#include "../lib/CConfigHandler.h"
+#include "../lib/CCreatureHandler.h"
+#include "../lib/CPlayerState.h"
+#include "../lib/CSkillHandler.h"
+#include "../lib/CSoundBase.h"
+#include "../lib/GameConstants.h"
+#include "../lib/IGameSettings.h"
+#include "../lib/StartInfo.h"
+#include "../lib/TerrainHandler.h"
+#include "../lib/GameLibrary.h"
+#include "../lib/int3.h"
+
+#include "../lib/battle/BattleInfo.h"
+#include "../lib/bonuses/BonusParameters.h"
+#include "../lib/callback/GameRandomizer.h"
+#include "../lib/campaign/CampaignState.h"
+
+#include "../lib/entities/ResourceTypeHandler.h"
+#include "../lib/entities/artifact/ArtifactUtils.h"
+#include "../lib/entities/artifact/CArtifact.h"
+#include "../lib/entities/artifact/CArtifactFittingSet.h"
+#include "../lib/entities/building/CBuilding.h"
+#include "../lib/entities/faction/CTownHandler.h"
+#include "../lib/entities/hero/CHeroHandler.h"
+
+#include "../lib/filesystem/Filesystem.h"
+#include "../lib/filesystem/SavegamePath.h"
+
+#include "../lib/gameState/CGameState.h"
+
+#include <vcmi/scripting/MapEventDispatcher.h>
+#include "../lib/gameState/QuestInfo.h"
+#include "../lib/gameState/SaveMetadata.h"
+#include "../lib/gameState/UpgradeInfo.h"
+
+#include "../lib/mapping/CCastleEvent.h"
+#include "../lib/mapping/CMap.h"
+#include "../lib/mapping/CMapService.h"
+#include "../lib/mapping/HotaScriptConverter.h"
+
+#include "../lib/mapObjects/CGCreature.h"
+#include "../lib/mapObjects/CGMarket.h"
+#include "../lib/mapObjects/CGPandoraBox.h"
+#include "../lib/mapObjects/Quest.h"
+#include "../lib/mapObjects/TownBuildingInstance.h"
+#include "../lib/mapObjects/CGHeroInstance.h"
+#include "../lib/mapObjects/CGTownInstance.h"
+#include "../lib/mapObjects/MiscObjects.h"
+#include "../lib/mapObjectConstructors/AObjectTypeHandler.h"
+#include "../lib/mapObjectConstructors/CObjectClassesHandler.h"
+
+#include "../lib/modding/IdentifierResolver.h"
+#include "../lib/modding/ModIncompatibility.h"
+
+#include "../lib/networkPacks/StackLocation.h"
+
+#include "../lib/pathfinder/CPathfinder.h"
+#include "../lib/pathfinder/PathfinderOptions.h"
+#include "../lib/pathfinder/TurnInfo.h"
+
+#include "../lib/rmg/CMapGenOptions.h"
+
+#include "../lib/serializer/CLegacyLoadFile.h"
+#include "../lib/serializer/CLoadFile.h"
+#include "../lib/serializer/CMemorySerializer.h"
+#include "../lib/serializer/CSaveFile.h"
+
+#include "../lib/spells/CSpell.h"
+
+#include <vstd/RNG.h>
+#include <vstd/CLoggerBase.h>
+#include <vcmi/events/EventBus.h>
+#include <vcmi/events/GenericEvents.h>
+#include <vcmi/events/AdventureEvents.h>
+
+
+#define COMPLAIN_RET_IF(cond, txt) do {if (cond){complain(txt); return;}} while(0)
+#define COMPLAIN_RET_FALSE_IF(cond, txt) do {if (cond){complain(txt); return false;}} while(0)
+#define COMPLAIN_RET(txt) {complain(txt); return false;}
+#define COMPLAIN_RETF(txt, FORMAT) {complain(boost::str(boost::format(txt) % FORMAT)); return false;}
+
+template <typename T>
+void callWith(std::vector<T> args, std::function<void(T)> fun, ui32 which)
+{
+	fun(args[which]);
+}
+
+const Services * CGameHandler::services() const
+{
+	return LIBRARY;
+}
+
+IGameInfoCallback & CGameHandler::gameInfo()
+{
+	return *gs;
+}
+
+const CGameHandler::BattleCb * CGameHandler::battle(const BattleID & battleID) const
+{
+	return gameState().getBattle(battleID);
+}
+
+const CGameHandler::GameCb * CGameHandler::game() const
+{
+	return gs.get();
+}
+
+IGameServer & CGameHandler::gameServer() const
+{
+	return server;
+}
+
+void CGameHandler::applyHeroLevelUp(const CGHeroInstance * hero, SecondarySkill skill)
+{
+	changeSecSkill(hero, skill, 1, ChangeValueMode::RELATIVE);
+}
+
+HeroLevelUp CGameHandler::rollHeroLevelUp(const CGHeroInstance * hero)
+{
+	assert(hero->gainsLevel());
+
+	// give primary skill
+	logGlobal->trace("%s got level %d", hero->getNameTextID(), hero->level);
+	auto primarySkill = randomizer->rollPrimarySkillForLevelup(hero);
+
+	SetPrimarySkill sps;
+	sps.id = hero->id;
+	sps.which = primarySkill;
+	sps.mode = ChangeValueMode::RELATIVE;
+	sps.val = 1;
+	sendAndApply(sps);
+
+	HeroLevelUp hlu;
+	hlu.player = hero->tempOwner;
+	hlu.heroId = hero->id;
+	hlu.primskill = primarySkill;
+	hlu.skills = randomizer->rollSecondarySkills(hero);
+	// level is raised only once the pack is applied
+	hlu.moreLevelsFollow = hero->level + 2 <= gameState().getHeroLevelLimit() && hero->exp >= LIBRARY->heroh->reqExp(hero->level + 2);
+
+	return hlu;
+}
+
+void CGameHandler::levelUpHeroAutomatically(const CGHeroInstance * hero)
+{
+	while(hero->canGainExperience() && hero->gainsLevel())
+	{
+		auto hlu = rollHeroLevelUp(hero);
+		sendAndApply(hlu);
+
+		if(!hlu.skills.empty())
+			applyHeroLevelUp(hero, hlu.skills.front());
+	}
+}
+
+void CGameHandler::applyCommanderLevelUp(const CCommanderInstance * c, int skill)
+{
+	SetCommanderProperty scp;
+
+	const auto * hero = dynamic_cast<const CGHeroInstance *>(c->getArmy());
+	if (hero)
+		scp.heroid = hero->id;
+	else
+	{
+		complain ("Commander is not led by hero!");
+		return;
+	}
+
+	scp.which = skill <= ECommander::SPELL_POWER ? SetCommanderProperty::BONUS : SetCommanderProperty::SPECIAL_SKILL;
+	scp.additionalInfo = skill;
+	for(const auto & bonus : c->getSkillBonuses(skill))
+	{
+		scp.accumulatedBonus = bonus;
+		sendAndApply(scp);
+	}
+
+	if (skill <= ECommander::SPELL_POWER)
+	{
+		scp.which = SetCommanderProperty::SECONDARY_SKILL;
+		scp.amount = c->secondarySkills.at(skill) + 1;
+		sendAndApply(scp);
+	}
+}
+
+CommanderLevelUp CGameHandler::rollCommanderLevelUp(const CCommanderInstance * c)
+{
+	CommanderLevelUp clu;
+
+	const auto * hero = dynamic_cast<const CGHeroInstance *>(c->getArmy());
+	if(!hero)
+		throw std::runtime_error("Commander is not led by hero!");
+
+	clu.heroId = hero->id;
+	clu.player = hero->tempOwner;
+	// level is raised only once the pack is applied
+	clu.moreLevelsFollow = c->level + 2 <= gameState().getHeroLevelLimit() && c->getTotalExperience() >= LIBRARY->heroh->reqExp(c->level + 2);
+
+	for(int skill : c->getLevelUpSkillChoices())
+		clu.skills.push_back(skill);
+
+	return clu;
+}
+
+void CGameHandler::levelUpCommanderAutomatically(const CCommanderInstance * c)
+{
+	while(c->gainsLevel())
+	{
+		auto clu = rollCommanderLevelUp(c);
+
+		sendAndApply(clu);
+
+		if(!clu.skills.empty())
+			applyCommanderLevelUp(c, *RandomGeneratorUtil::nextItem(clu.skills, getRandomGenerator()));
+	}
+}
+
+void CGameHandler::expGiven(const CGHeroInstance *hero)
+{
+	// An owner-less hero has nobody to ask and is never inside a visit, so no activity is
+	// created for him - the processor has no stack to put one on
+	if(!hero->getOwner().isValidPlayer())
+	{
+		levelUpHeroAutomatically(hero);
+		if(const auto * commander = hero->getCommander())
+			levelUpCommanderAutomatically(commander);
+		return;
+	}
+
+	// A single routine asks about every gained level, and about the commander afterwards.
+	// Added even when nothing levels: whoever granted the experience is told when the
+	// routine finishes, and must be told in that case too.
+	activities->addActivity(std::make_shared<LevelUpRoutine>(this, hero));
+}
+
+void CGameHandler::giveStackExperience(const CArmedInstance * army, TExpType val)
+{
+	GiveStackExperience gse;
+	gse.id = army->id;
+
+	for (const auto & stack : army->Slots())
+	{
+		int experienceBonusMultiplier = stack.second->valOfBonuses(BonusType::STACK_EXPERIENCE_GAIN_PERCENT);
+		gse.val[stack.first] = val + val * experienceBonusMultiplier / 100;
+	}
+	sendAndApply(gse);
+}
+
+void CGameHandler::giveExperience(const CGHeroInstance * hero, TExpType amountToGain)
+{
+	giveExperienceWithoutLevelUp(hero, amountToGain);
+	expGiven(hero);
+}
+
+void CGameHandler::giveExperienceWithoutLevelUp(const CGHeroInstance * hero, TExpType amountToGain)
+{
+	TExpType maxExp = LIBRARY->heroh->reqExp(gameState().getHeroLevelLimit());
+	TExpType currHeroExp = hero->exp;
+
+	TExpType canGainHeroExp = 0;
+	if (maxExp > currHeroExp && hero->canGainExperience())
+		canGainHeroExp = maxExp - currHeroExp;
+
+	TExpType actualHeroExperience = 0;
+
+	if (amountToGain > canGainHeroExp)
+	{
+		// set given experience to max possible, but don't decrease if hero already over top
+		actualHeroExperience = canGainHeroExp;
+
+		InfoWindow iw;
+		iw.player = hero->tempOwner;
+		iw.text.appendTextID("core.genrltxt.1"); //can gain no more XP
+		iw.text.replaceTextID(hero->getNameTextID());
+		sendAndApply(iw);
+	}
+	else
+		actualHeroExperience = amountToGain;
+
+	SetHeroExperience she;
+	she.id = hero->id;
+	she.mode = ChangeValueMode::RELATIVE;
+	she.val = actualHeroExperience;
+	sendAndApply(she);
+
+	//hero may level up
+	if (hero->getCommander() && hero->getCommander()->alive)
+	{
+		TExpType canGainCommanderExp = 0;
+		TExpType currCommanderExp = hero->getCommander()->getTotalExperience();
+		if (maxExp > currCommanderExp)
+			canGainCommanderExp = maxExp - currCommanderExp;
+
+		TExpType actualCommanderExperience = amountToGain > canGainCommanderExp ? canGainCommanderExp : amountToGain;
+
+		SetCommanderProperty scp;
+		scp.heroid = hero->id;
+		scp.which = SetCommanderProperty::EXPERIENCE;
+		scp.amount = actualCommanderExperience;
+		sendAndApply(scp);
+	}
+
+}
+
+void CGameHandler::changePrimSkill(const CGHeroInstance * hero, PrimarySkill which, si64 val, ChangeValueMode mode)
+{
+	SetPrimarySkill sps;
+	sps.id = hero->id;
+	sps.which = which;
+	sps.mode = mode;
+	sps.val = val;
+	sendAndApply(sps);
+}
+
+void CGameHandler::changeSecSkill(const CGHeroInstance * hero, SecondarySkill which, int val, ChangeValueMode mode)
+{
+	if(!hero)
+	{
+		logGlobal->error("changeSecSkill provided no hero");
+		return;
+	}
+	const int masteryBefore = hero->getSecSkillLevel(which);
+
+	SetSecSkill sss;
+	sss.id = hero->id;
+	sss.which = which;
+	sss.val = val;
+	sss.mode = mode;
+	sendAndApply(sss);
+
+	if (hero->getVisitedTown())
+		giveSpells(hero->getVisitedTown(), hero);
+
+	// Our scouting range may have changed - update it
+	if (hero->getOwner().isValidPlayer())
+		changeFogOfWar(hero->getSightCenter(), hero->getSightRadius(), hero->getOwner(), ETileVisibility::REVEALED);
+
+	// one hero level per mastery level gained
+	const int masteryGained = hero->getSecSkillLevel(which) - masteryBefore;
+	if (masteryGained > 0 && which.toSkill()->grantsLevelUp() && hero->canGainExperience())
+		giveExperience(hero, hero->experienceToGainLevels(masteryGained));
+
+}
+
+void CGameHandler::handleClientDisconnection(GameConnectionID connectionID, const std::vector<PlayerConnectionID> & disconnectedPlayerIds)
+{
+	if(gameServer().getState() == EServerState::SHUTDOWN || !gameState().getStartInfo())
+	{
+		assert(0); // game should have shut down before reaching this point!
+		return;
+	}
+
+	std::vector<PlayerColor> disconnectedPlayers;
+	std::vector<PlayerColor> remainingPlayers;
+
+	// this player have left the game - broadcast infowindow to all in-game players
+	for (const auto & player : gameState().players)
+	{
+		if (gameInfo().getPlayerState(player.first)->status != EPlayerStatus::INGAME)
+			continue;
+
+		if (gameServer().hasPlayerAt(player.first, connectionID))
+			disconnectedPlayers.push_back(player.first);
+		else
+			remainingPlayers.push_back(player.first);
+	}
+
+	if(disconnectedPlayers.empty() && !disconnectedPlayerIds.empty())
+	{
+		for(const auto & player : gameState().players)
+		{
+			if (gameInfo().getPlayerState(player.first)->status != EPlayerStatus::INGAME)
+				continue;
+
+			const auto playerSettings = gameInfo().getPlayerSettings(player.first);
+			if(!playerSettings)
+				continue;
+
+			for(const auto disconnectedPlayerId : disconnectedPlayerIds)
+			{
+				if(vstd::contains(playerSettings->connectedPlayerIDs, disconnectedPlayerId))
+				{
+					disconnectedPlayers.push_back(player.first);
+					break;
+				}
+			}
+		}
+	}
+
+	for (const auto & inGamePlayer : remainingPlayers)
+	{
+		for (const auto & lostPlayer : disconnectedPlayers)
+		{
+			InfoWindow out;
+			out.player = inGamePlayer;
+			out.text.appendTextID("vcmi.server.errors.playerLeft");
+			out.text.replaceName(lostPlayer);
+			out.components.emplace_back(ComponentType::FLAG, lostPlayer);
+			sendAndApply(out);
+		}
+	}
+}
+
+void CGameHandler::handleReceivedPack(GameConnectionID connection, CPackForServer & pack)
+{
+	//prepare struct informing that action was applied
+	auto sendPackageResponse = [&](bool successfullyApplied)
+	{
+		PackageApplied applied(
+			pack.player,
+			pack.requestID,
+			CTypeList::getInstance().getTypeID(&pack),
+			successfullyApplied
+		);
+		gameServer().sendPack(applied, connection);
+	};
+
+	PackageReceived received(
+		pack.player,
+		pack.requestID,
+		CTypeList::getInstance().getTypeID(&pack)
+	);
+	gameServer().sendPack(received, connection);
+
+	if(isBlockedByActivities(&pack, pack.player))
+	{
+		sendPackageResponse(false);
+	}
+	else
+	{
+		bool result;
+		try
+		{
+			ApplyGhNetPackVisitor applier(*this, connection);
+			pack.visit(applier);
+			result = applier.getResult();
+		}
+		catch(ExceptionNotAllowedAction &)
+		{
+			result = false;
+		}
+
+		if(result)
+			logGlobal->trace("Message %s successfully applied!", typeid(pack).name());
+		else
+			complain((boost::format("Got false in applying %s... that request must have been fishy!")
+				% typeid(pack).name()).str());
+
+		sendPackageResponse(true);
+	}
+}
+
+CGameHandler::CGameHandler(IGameServer & server, const std::shared_ptr<CGameState> & initialGamestate)
+	:CGameHandler(server)
+{
+	gs = initialGamestate;
+	randomizer = std::make_unique<GameRandomizer>(*gs);
+}
+
+CGameHandler::CGameHandler(IGameServer & server)
+	: server(server)
+	, heroPool(std::make_unique<HeroPoolProcessor>(this))
+	, battles(std::make_unique<BattleProcessor>(this))
+	, activities(std::make_unique<ActivityProcessor>(*this))
+	, turnOrder(std::make_unique<TurnOrderProcessor>(this))
+	, turnTimerHandler(std::make_unique<TurnTimerHandler>(*this))
+	, newTurnProcessor(std::make_unique<NewTurnProcessor>(this))
+	, statistics(std::make_unique<StatisticDataSet>())
+	, spellEnv(std::make_unique<ServerSpellCastEnvironment>(this))
+	, playerMessages(std::make_unique<PlayerMessageProcessor>(this))
+	, questionCounter(1)
+	, complainNoCreatures("No creatures to split")
+	, complainNotEnoughCreatures("Cannot split that stack, not enough creatures!")
+	, complainInvalidSlot("Invalid slot accessed!")
+	, complainNotRemovable("Stacks in this garrison are not removable!")
+{
+}
+
+CGameHandler::~CGameHandler() = default;
+
+ServerCallback * CGameHandler::spellcastEnvironment() const
+{
+	return spellEnv.get();
+}
+
+void CGameHandler::init(StartInfo *si, Load::ProgressAccumulator & progressTracking)
+{
+	CMapService mapService;
+	gs = std::make_shared<CGameState>();
+	int requestedSeed = settings["server"]["seed"].Integer();
+	randomizer = std::make_unique<GameRandomizer>(*gs);
+	if (requestedSeed != 0)
+		randomizer->setSeed(requestedSeed);
+	logGlobal->info("Using random seed: %d", randomizer->getDefault().nextInt());
+	gs->preInit(LIBRARY);
+	logGlobal->info("Gamestate created!");
+	gs->init(&mapService, si, *randomizer, progressTracking);
+	const auto * startInfo = gs->getStartInfo();
+	gs->setSaveDirectory(SavegamePath::generateGameDirectoryName(*startInfo, *gs->getMapHeader()));
+	logGlobal->info("Gamestate initialized!");
+
+	for (const auto & elem : gameState().players)
+		turnOrder->addPlayer(elem.first);
+
+	configureReplayLog(true);
+}
+
+void CGameHandler::setPortalDwelling(const CGTownInstance * town, bool forced=false, bool clear = false)
+{// bool forced = true - if creature should be replaced, if false - only if no creature was set
+
+	const PlayerState * p = gameInfo().tryGetPlayerState(town->tempOwner);
+	if (!p)
+	{
+		assert(town->tempOwner == PlayerColor::NEUTRAL);
+		return;
+	}
+
+	if (forced || town->creatures.at(town->getTown()->creatures.size()).second.empty())//we need to change creature
+		{
+			SetAvailableCreatures ssi;
+			ssi.tid = town->id;
+			ssi.creatures = town->creatures;
+			ssi.creatures[town->getTown()->creatures.size()].second.clear();//remove old one
+
+			std::set<CreatureID> availableCreatures;
+			for (const auto & dwelling : p->getOwnedObjects())
+			{
+				const auto & dwellingCreatures = dwelling->asOwnable()->providedCreatures();
+				availableCreatures.insert(dwellingCreatures.begin(), dwellingCreatures.end());
+			}
+
+			if (availableCreatures.empty())
+				return;
+
+			CreatureID creatureId = *RandomGeneratorUtil::nextItem(availableCreatures, getRandomGenerator());
+
+			if (clear)
+			{
+				ssi.creatures[town->getTown()->creatures.size()].first = std::max(1, (creatureId.toEntity(LIBRARY)->getGrowth())/2);
+			}
+			else
+			{
+				ssi.creatures[town->getTown()->creatures.size()].first = creatureId.toEntity(LIBRARY)->getGrowth();
+			}
+			ssi.creatures[town->getTown()->creatures.size()].second.push_back(creatureId);
+			sendAndApply(ssi);
+		}
+}
+
+void CGameHandler::onPlayerTurnEnded(PlayerColor which)
+{
+	turnTimerHandler->onEndTurn(which);
+	newTurnProcessor->onPlayerTurnEnded(which);
+}
+
+void CGameHandler::addStatistics(StatisticDataSet &stat) const
+{
+	for (const auto & elem : gameState().players)
+	{
+		if (elem.first == PlayerColor::NEUTRAL || !elem.first.isValidPlayer())
+			continue;
+
+		auto data = StatisticDataSet::createEntry(&elem.second, &gameState(), *statistics);
+
+		stat.add(data);
+	}
+}
+
+void CGameHandler::onNewTurn()
+{
+	logGlobal->trace("Turn %d", gameState().day+1);
+
+	auto calendar = gameInfo().getCalendar();
+	bool firstTurn = !calendar.getCurrentDay();
+	bool newMonth = calendar.getDayOfMonth() == calendar.getDaysInMonth();
+
+	if (firstTurn)
+	{
+		for (const auto * obj : gameState().getMap().getObjects<CGHeroInstance>())
+		{
+			if (obj->ID == Obj::PRISON) //give imprisoned hero 0 exp to level him up. easiest to do at this point
+			{
+				giveExperience(obj, 0);
+			}
+		}
+
+		for (const auto & elem : gameState().players)
+			heroPool->onNewWeek(elem.first);
+
+	}
+	else
+	{
+		addStatistics(*statistics); // write at end of turn
+	}
+
+	const auto & currentDaySelector = [day = gameState().day+1](const Bonus * bonus)
+	{
+		if (!bonus->parameters)
+			return true;
+		if ((day % bonus->parameters->toNumber()) == 0)
+			return true;
+		return false;
+	};
+
+	const auto & fullMapScoutingSelector = Selector::type()(BonusType::FULL_MAP_SCOUTING).And(currentDaySelector);
+	const auto & fullMapDarknessSelector = Selector::type()(BonusType::FULL_MAP_DARKNESS).And(currentDaySelector);
+	const auto & darknessSelector = Selector::type()(BonusType::DARKNESS).And(currentDaySelector);
+
+	for (const auto & townID : gameState().getMap().getAllTowns())
+	{
+		const auto * t = gameState().getTown(townID);
+		PlayerColor player = t->tempOwner;
+
+		// Skyship, probably easier to handle same as Veil of darkness
+		// do it every new day before veils
+		if(t->hasBonus(fullMapScoutingSelector) && player.isValidPlayer())
+			changeFogOfWar(t->getSightCenter(), GameConstants::FULL_MAP_RANGE, player, ETileVisibility::REVEALED);
+	}
+
+	for (const auto & object : gameState().getMap().getObjects<CArmedInstance>())
+	{
+		if(!object->hasBonus(darknessSelector) && !object->hasBonus(fullMapDarknessSelector))
+			continue;
+
+		for(const auto & player : gameState().players)
+		{
+			if (gameInfo().getPlayerStatus(player.first) != EPlayerStatus::INGAME)
+				continue;
+
+			if (gameInfo().getPlayerRelations(player.first, object->getOwner()) != PlayerRelations::ENEMIES)
+				continue;
+
+			if (object->hasBonus(fullMapDarknessSelector))
+				changeFogOfWar(object->getSightCenter(), GameConstants::FULL_MAP_RANGE, player.first, ETileVisibility::HIDDEN);
+			else
+				changeFogOfWar(object->getSightCenter(), object->valOfBonuses(darknessSelector), player.first, ETileVisibility::HIDDEN);
+		}
+	}
+
+	if (newMonth)
+	{
+		SetAvailableArtifacts saa;
+		saa.id = ObjectInstanceID::NONE;
+		saa.arts = randomizer->rollMarketArtifactSet();
+		sendAndApply(saa);
+	}
+
+	newTurnProcessor->onNewTurn();
+
+	if (!firstTurn)
+		checkVictoryLossConditionsForAll(); // check for map turn limit
+
+	//call objects
+	for (auto & elem : gameState().getMap().getObjects())
+	{
+		if (elem)
+			elem->newTurn(*this, *randomizer);
+	}
+}
+
+void CGameHandler::start(bool resume)
+{
+	LOG_TRACE_PARAMS(logGlobal, "resume=%d", resume);
+
+	if (!resume)
+	{
+		onNewTurn();
+		for(const auto & player : gameState().players)
+			turnTimerHandler->onGameplayStart(player.first);
+	}
+
+	turnOrder->onGameStarted();
+}
+
+void CGameHandler::tick(int millisecondsPassed)
+{
+	turnTimerHandler->update(millisecondsPassed);
+}
+
+void CGameHandler::giveSpells(const CGTownInstance *t, const CGHeroInstance *h)
+{
+	if (!h->hasSpellbook())
+		return; //hero hasn't spellbook
+	ChangeSpells cs;
+	cs.hid = h->id;
+	cs.learn = true;
+	if (t->hasBuilt(BuildingSubID::AURORA_BOREALIS) && t->hasBuilt(BuildingID::MAGES_GUILD_1))
+	{
+		// Aurora Borealis give spells of all levels even if only level 1 mages guild built
+		for (int i = 0; i < h->maxSpellLevel(); i++)
+		{
+			std::vector<SpellID> spells;
+			gameState().getAllowedSpells(spells, i+1);
+			for (const auto & spell : spells)
+				cs.spells.insert(spell);
+		}
+	}
+	else
+	{
+		for (int i = 0; i < std::min(t->mageGuildLevel(), h->maxSpellLevel()); i++)
+		{
+			for (int j = 0; j < t->spellsAtLevel(i+1, true) && j < t->spells.at(i).size(); j++)
+			{
+				if (!h->spellbookContainsSpell(t->spells.at(i).at(j)))
+					cs.spells.insert(t->spells.at(i).at(j));
+			}
+		}
+	}
+	if (!cs.spells.empty())
+		sendAndApply(cs);
+}
+
+bool CGameHandler::removeObject(const CGObjectInstance * obj, const PlayerColor & initiator)
+{
+	if (!obj || !gameInfo().tryGetObj(obj->id))
+	{
+		logGlobal->error("Something wrong, that object already has been removed or hasn't existed!");
+		return false;
+	}
+
+	RemoveObject ro;
+	ro.objectID = obj->id;
+	ro.initiator = initiator;
+	sendAndApply(ro);
+
+	checkVictoryLossConditionsForAll(); //e.g. if monster escaped (removing objs after battle is done directly by endBattle, not this function)
+	return true;
+}
+
+void CGameHandler::addQuest(const PlayerColor & player, const QuestInfo & quest)
+{
+	AddQuest aq;
+	aq.player = player;
+	aq.quest = quest;
+	sendAndApply(aq);
+}
+
+bool CGameHandler::moveHero(ObjectInstanceID hid, int3 dst, EMovementMode movementMode, bool transit, PlayerColor asker, const EPathfindingLayer & layer)
+{
+	const CGHeroInstance *h = gameInfo().getHero(hid);
+	// not turn of that hero or player can't simply teleport hero (at least not with this function)
+	if(!h || (asker != PlayerColor::NEUTRAL && movementMode != EMovementMode::STANDARD))
+	{
+		if(h && gameInfo().getStartInfo()->turnTimerInfo.isEnabled() && gameState().players.at(h->getOwner()).turnTimer.turnTimer == 0)
+			return true; //timer expired, no error
+
+		logGlobal->error("Illegal call to move hero!");
+		return false;
+	}
+
+	logGlobal->trace("Player %d (%s) wants to move hero %d from %s to %s", asker, asker.toString(), hid.getNum(), h->anchorPos().toString(), dst.toString());
+	const int3 hmpos = h->convertToVisitablePos(dst);
+
+	if (!gameState().getMap().isInTheMap(hmpos))
+	{
+		logGlobal->error("Destination tile is outside the map!");
+		return false;
+	}
+
+	const TerrainTile t = *gameInfo().getTile(hmpos);
+	const int3 guardPos = gameState().guardingCreaturePosition(hmpos);
+	const CGObjectInstance * objectToVisit = nullptr;
+	const CGObjectInstance * guardian = nullptr;
+
+	if (const ObjectInstanceID objectID = t.objectVisitedBy(h->id); objectID.hasValue())
+		objectToVisit = gameState().getObjInstance(objectID);
+
+	if (gameInfo().isInTheMap(guardPos))
+	{
+		for (auto const & objectID : gameInfo().getTile(guardPos)->visitableObjects)
+		{
+			const auto * object = gameState().getObjInstance(objectID);
+
+			if (object->ID == MapObjectID::MONSTER) // exclude other objects, such as hero flying above monster
+				guardian = object;
+		}
+	}
+
+	const bool embarking = !h->inBoat() && objectToVisit && objectToVisit->ID == Obj::BOAT;
+
+	bool disembarking = false;
+
+	if(h->inBoat() && t.isLand())
+	{
+		const auto * boat = h->getBoat();
+
+		const bool hasDisembarkIntent = (layer == EPathfindingLayer::LAND);
+
+		// Ensure the destination tile is physically valid for the current vehicle
+		const bool isStayingInPlace = (dst == h->pos);
+		const bool isValidVehicleType = (boat->layer == EPathfindingLayer::SAIL || boat->layer == EPathfindingLayer::AVIATE);
+		const bool isDestinationFree = !t.blocked();
+		const bool isValidDestination = isStayingInPlace || (isValidVehicleType && isDestinationFree);
+
+		disembarking = hasDisembarkIntent && isValidDestination;
+	}
+
+	//result structure for start - movement failed, no move points used
+	TryMoveHero tmh;
+	tmh.id = hid;
+	tmh.start = h->pos;
+	tmh.end = dst;
+	tmh.result = TryMoveHero::FAILED;
+	tmh.movePoints = h->movementPointsRemaining();
+
+	const auto complainRet = [&](const std::string & message)
+	{
+		//send info about movement failure
+		complain(message);
+		sendAndApply(tmh);
+		return false;
+	};
+
+	const bool requiresLayer = movementMode == EMovementMode::STANDARD && dst != h->pos;
+	const bool hasValidLayer = layer >= EPathfindingLayer::LAND && layer < EPathfindingLayer::NUM_LAYERS;
+	if(requiresLayer && !hasValidLayer)
+		return complainRet("Invalid movement layer!");
+
+	//check if destination tile is available
+	auto pathfinderHelper = std::make_unique<CPathfinderHelper>(gameState(), h, PathfinderOptions(gameInfo()));
+	const auto * ti = pathfinderHelper->getTurnInfo();
+
+	const bool canFly = ti->hasFlyingMovement() || (h->inBoat() && (h->getBoat()->layer == EPathfindingLayer::AIR || h->getBoat()->layer == EPathfindingLayer::AVIATE));
+	const bool canWalkOnSea = ti->hasWaterWalking() || (h->inBoat() && h->getBoat()->layer == EPathfindingLayer::WATER);
+	const bool usesMovementCost = movementMode == EMovementMode::STANDARD || embarking || disembarking;
+	const int cost = usesMovementCost
+		? pathfinderHelper->getMovementCost(h->visitablePos(), hmpos, layer, h->movementPointsRemaining())
+		: 0;
+
+	const bool movingOntoObstacle = t.blocked() && !t.visitable();
+	const bool objectCoastVisitable = objectToVisit && objectToVisit->isCoastVisitable();
+	const bool movingOntoWater = !h->inBoat() && t.isWater() && !objectCoastVisitable;
+
+	if (guardian && getVisitingHero(guardian) != nullptr)
+		return complainRet("You cannot move your hero there. Simultaneous turns are active and another player is interacting with this wandering monster!");
+
+	if (objectToVisit && getVisitingHero(objectToVisit) != nullptr && getVisitingHero(objectToVisit) != h)
+		return complainRet("You cannot move your hero there. Simultaneous turns are active and another player is interacting with this map object!");
+
+	if (objectToVisit &&
+		objectToVisit->getOwner().isValidPlayer())
+	{
+		if (gameInfo().getPlayerRelations(objectToVisit->getOwner(), h->getOwner()) == PlayerRelations::ENEMIES &&
+		   !turnOrder->isContactAllowed(objectToVisit->getOwner(), h->getOwner()))
+			return complainRet("You cannot move your hero there. This object belongs to another player and simultaneous turns are still active!");
+
+		if (gs->getBattle(objectToVisit->getOwner()) != nullptr)
+			return complainRet("You cannot move your hero there. This object belongs to another player who is engaged in battle and simultaneous turns are still active!");
+
+		// A battle pushed above a pending level-up could kill the hero before the skill is applied
+		if (objectToVisit->getOwner() != h->getOwner() && activities->findActivity<LevelUpRoutine>(objectToVisit->getOwner(), [](const LevelUpRoutine &){ return true; }))
+			return complainRet("You cannot move your hero there. This object belongs to another player who is choosing skills for a hero!");
+	}
+
+	//it's a rock or blocked and not visitable tile
+	//OR hero is on land and dest is water and (there is not present only one object - boat)
+	if (!t.getTerrain()->isPassable() || (movingOntoObstacle && !canFly))
+		return complainRet("Cannot move hero, destination tile is blocked!");
+
+	//hero is not on boat/water walking and dst water tile doesn't contain boat/hero (objs visitable from land) -> we test back cause boat may be on top of another object (#276)
+	if(movingOntoWater && !canFly && !canWalkOnSea)
+		return complainRet("Cannot move hero, destination tile is on water!");
+
+	if(h->inBoat() && h->getBoat()->layer == EPathfindingLayer::SAIL && t.isLand())
+	{
+		if(t.blocked())
+			return complainRet("Cannot disembark hero, tile is blocked!");
+
+		//hole is neither visitable nor blocking, so check for it explicitly
+		if(pathfinderHelper->isTileBlockedByHole(hmpos))
+			return complainRet("Cannot disembark hero, tile contains a hole!");
+	}
+
+	if(!h->pos.areNeighbours(dst) && movementMode == EMovementMode::STANDARD)
+		return complainRet("Tiles " + h->pos.toString()+ " and "+ dst.toString() +" are not neighboring!");
+
+	if(h->isGarrisoned())
+		return complainRet("Can not move garrisoned hero!");
+
+	if(h->movementPointsRemaining() < cost && dst != h->pos && movementMode == EMovementMode::STANDARD)
+		return complainRet(boost::str(boost::format("Hero doesn't have enough movement points to move from %s to %s: has %d, needs %d!") % h->pos.toString() % dst.toString() % h->movementPointsRemaining() % cost));
+
+	if (transit && !canFly && !(canWalkOnSea && t.isWater()) && !CGTeleport::isTeleport(objectToVisit))
+		return complainRet("Hero cannot transit over this tile!");
+
+	//several generic blocks of code
+
+	// should be called if hero changes tile but before applying TryMoveHero package
+	auto leaveTile = [&]()
+	{
+		for(const auto & objID : gameState().getMap().getTile(h->visitablePos()).visitableObjects)
+			gameState().getObjInstance(objID)->onHeroLeave(*this, h);
+
+		gameInfo().getTilesInRange(tmh.fowRevealed, h->getSightCenter()+(tmh.end-tmh.start), h->getSightRadius(), ETileVisibility::HIDDEN, h->tempOwner);
+	};
+
+	auto doMove = [&](TryMoveHero::EResult result, EGuardLook lookForGuards,
+								EVisitDest visitDest, ELEaveTile leavingTile) -> bool
+	{
+		LOG_TRACE_PARAMS(logGlobal, "Hero %s starts movement from %s to %s", h->getNameTextID() % tmh.start.toString() % tmh.end.toString());
+
+		auto moveActivity = std::make_shared<HeroMovementActivity>(this, tmh, h);
+		activities->addActivity(moveActivity);
+
+		if (leavingTile == LEAVING_TILE)
+			leaveTile();
+
+		if (lookForGuards == CHECK_FOR_GUARDS && gameInfo().isInTheMap(guardPos))
+			tmh.attackedFrom = guardPos;
+
+		tmh.result = result;
+		sendAndApply(tmh);
+
+		if (visitDest == VISIT_DEST && tmh.start == tmh.end)
+		{ // Hero should be always able to visit any object he is staying on even if there are guards around
+			visitObjectOnTile(t, h);
+		}
+		else if (lookForGuards == CHECK_FOR_GUARDS && gameInfo().isInTheMap(guardPos))
+		{
+			objectVisited(guardian, h);
+
+			moveActivity->visitDestAfterVictory = visitDest==VISIT_DEST;
+		}
+		else if (visitDest == VISIT_DEST)
+		{
+			visitObjectOnTile(t, h);
+		}
+
+		moveActivity->finish();
+		logGlobal->trace("Hero %s ends movement", h->getNameTextID());
+		return result != TryMoveHero::FAILED;
+	};
+
+	//interaction with blocking object (like resources)
+	auto blockingVisit = [&]() -> bool
+	{
+		// only the object that visitObjectOnTile() would visit may block the hero, same as in pathfinder
+		const ObjectInstanceID objectID = t.objectVisitedBy(h->id);
+		if (!objectID.hasValue())
+			return false;
+
+		const CGObjectInstance * object = gameInfo().getObj(objectID);
+
+		if(h->inBoat() && !object->isBlockedVisitable() && !h->getBoat()->onboardVisitAllowed)
+			return doMove(TryMoveHero::SUCCESS, this->IGNORE_GUARDS, DONT_VISIT_DEST, REMAINING_ON_TILE);
+
+		const auto * questSource = object->asQuestSource();
+		const bool stopsHero = object->isBlockedVisitable() || (questSource && questSource->requiresQuestToPass());
+
+		if (stopsHero && !object->passableFor(h))
+		{
+			EVisitDest visitDest = VISIT_DEST;
+			if(h->inBoat() && !h->getBoat()->onboardVisitAllowed)
+				visitDest = DONT_VISIT_DEST;
+
+			return doMove(TryMoveHero::BLOCKING_VISIT, this->IGNORE_GUARDS, visitDest, REMAINING_ON_TILE);
+		}
+		return false;
+	};
+
+	if (settings["general"]["saveBeforeVisit"].Bool() &&
+		gameInfo().getPlayerState(h->getOwner())->human &&
+	   (guardian || objectToVisit) &&
+	   movementMode == EMovementMode::STANDARD)
+	{
+		const auto savePath = SavegamePath::getPath(
+			*gameInfo().getStartInfo(), *gameInfo().getMapHeader(), "BeforeVisitSave");
+		save(savePath, PlayerColor::CANNOT_DETERMINE);
+	}
+
+	if (!transit && embarking)
+	{
+		tmh.movePoints = h->movementPointsAfterEmbark(h->movementPointsRemaining(), cost, false, ti);
+		return doMove(TryMoveHero::EMBARK, IGNORE_GUARDS, DONT_VISIT_DEST, LEAVING_TILE);
+		// In H3 embark ignore guards
+	}
+
+	if (disembarking)
+	{
+		tmh.movePoints = h->movementPointsAfterEmbark(h->movementPointsRemaining(), cost, true, ti);
+		return doMove(TryMoveHero::DISEMBARK, CHECK_FOR_GUARDS, VISIT_DEST, LEAVING_TILE);
+	}
+
+	if (movementMode != EMovementMode::STANDARD)
+	{
+		if (blockingVisit()) // e.g. hero on the other side of teleporter
+			return true;
+
+		EGuardLook guardsCheck = (gameInfo().getSettings().getBoolean(EGameSettings::SPELLS_DIMENSION_DOOR_TRIGGERS_GUARDS) && movementMode == EMovementMode::DIMENSION_DOOR)
+			? CHECK_FOR_GUARDS
+			: IGNORE_GUARDS;
+
+		doMove(TryMoveHero::TELEPORTATION, guardsCheck, DONT_VISIT_DEST, LEAVING_TILE);
+
+		// visit town for town portal / castle gates
+		// do not visit any other objects, e.g. monoliths to avoid double-teleporting
+		if (objectToVisit)
+		{
+			if (const auto * town = dynamic_cast<const CGTownInstance *>(objectToVisit))
+				objectVisited(town, h);
+		}
+		return true;
+	}
+
+	//still here? it is standard movement!
+	{
+		tmh.movePoints = h->movementPointsRemaining() >= cost
+						? h->movementPointsRemaining() - cost
+						: 0;
+
+		EGuardLook lookForGuards = CHECK_FOR_GUARDS;
+		EVisitDest visitDest = VISIT_DEST;
+		if (transit)
+		{
+			if (CGTeleport::isTeleport(objectToVisit))
+				visitDest = DONT_VISIT_DEST;
+
+			if (canFly || (canWalkOnSea && t.isWater()))
+			{
+				lookForGuards = IGNORE_GUARDS;
+				visitDest = DONT_VISIT_DEST;
+			}
+		}
+		else if (blockingVisit())
+			return true;
+
+		if(h->getBoat() && !h->getBoat()->onboardAssaultAllowed)
+			lookForGuards = IGNORE_GUARDS;
+
+		turnTimerHandler->setEndTurnAllowed(h->getOwner(), !movingOntoWater && !movingOntoObstacle);
+		doMove(TryMoveHero::SUCCESS, lookForGuards, visitDest, LEAVING_TILE);
+		statistics->getPlayerAccumulator(asker).movementPointsUsed += tmh.movePoints;
+		return true;
+	}
+}
+
+bool CGameHandler::teleportHero(ObjectInstanceID hid, ObjectInstanceID dstid, ui8 source, PlayerColor asker)
+{
+	const CGHeroInstance *h = gameInfo().getHero(hid);
+	const CGTownInstance *t = gameInfo().getTown(dstid);
+
+	if (!h || !t)
+		COMPLAIN_RET("Invalid call to teleportHero!");
+
+	const CGTownInstance *from = h->getVisitedTown();
+	if (((h->getOwner() != t->getOwner())
+		&& complain("Cannot teleport hero to another player"))
+
+	|| ((!from || !from->hasBuilt(BuildingSubID::CASTLE_GATE))
+		&& complain("Hero must be in town with Castle gate for teleporting"))
+
+	|| (from->getFactionID() != t->getFactionID()
+		&& complain("Source town and destination town should belong to the same faction"))
+
+	|| (!t->hasBuilt(BuildingSubID::CASTLE_GATE)
+		&& complain("Cannot teleport hero to town without Castle gate in it")))
+			return false;
+
+	int3 pos = h->convertFromVisitablePos(t->visitablePos());
+	moveHero(hid,pos,EMovementMode::CASTLE_GATE);
+	return true;
+}
+
+void CGameHandler::setOwner(const CGObjectInstance * obj, const PlayerColor owner)
+{
+	PlayerColor oldOwner = gameState().getOwner(obj->id);
+
+	setObjPropertyID(obj->id, ObjProperty::OWNER, owner);
+
+	std::set<PlayerColor> playerColors = {owner, oldOwner};
+	checkVictoryLossConditions(playerColors);
+
+	const CGTownInstance * town = dynamic_cast<const CGTownInstance *>(obj);
+	if (town) //town captured
+	{
+		if(owner.isValidPlayer())
+			statistics->getPlayerAccumulator(owner).lastCapturedTownDay = gameState().getCalendar().getCurrentDay();
+
+		if (owner.isValidPlayer() && town->hasBuilt(BuildingSubID::PORTAL_OF_SUMMONING))
+			setPortalDwelling(town, true, false);
+	}
+
+	if ((obj->ID == Obj::CREATURE_GENERATOR1 || obj->ID == Obj::CREATURE_GENERATOR4) && owner.isValidPlayer())
+	{
+		for (const CGTownInstance * t : gameInfo().getPlayerState(owner)->getTowns())
+		{
+			if (t->hasBuilt(BuildingSubID::PORTAL_OF_SUMMONING))
+				setPortalDwelling(t);//set initial creatures for all portals of summoning
+		}
+	}
+}
+
+void CGameHandler::setVisitState(const CGHeroInstance * hero, const JsonNode & state)
+{
+	assert(hero);
+
+	// Searched from the top of the stack down: a town visit pushes a building visit above
+	// itself, and the state belongs to the innermost one, the one that is running now
+	auto * visit = activities->findActivity<ObjectInteractionActivity>(hero->getOwner(),
+		[hero](const ObjectInteractionActivity & candidate){ return candidate.visitingHero == hero->id; });
+
+	// The object would suspend and never be resumed, so the rest of its visit would be lost
+	if(!visit)
+		throw std::runtime_error("Hero " + hero->getNameTextID() + " stored visit state " + state.toCompactString() + " outside of a visit");
+
+	visit->visitState = state;
+}
+
+void CGameHandler::showBlockingDialog(BlockingDialog *iw)
+{
+	auto dialogActivity = std::make_shared<BlockingDialogActivity>(this, *iw);
+	activities->addActivity(dialogActivity);
+	iw->questionID = dialogActivity->askQuestion();
+	sendAndApply(*iw);
+}
+
+void CGameHandler::showScriptDialog(BlockingDialog * iw)
+{
+	// The dialog is placed above the paused script activity. Its reply is stored there and
+	// read when the script activity is exposed and resumes the coroutine.
+	auto * scriptActivity = activities->activityAs<LuaScriptActivity>(activities->topActivity(iw->player));
+	if(!scriptActivity)
+	{
+		logGlobal->error("showScriptDialog called without an active script activity for player %s", iw->player.toString());
+		return;
+	}
+
+	auto dialogActivity = std::make_shared<ScriptDialogActivity>(this, iw->player);
+	activities->addActivity(dialogActivity);
+	iw->questionID = dialogActivity->askQuestion();
+	sendAndApply(*iw);
+}
+
+void CGameHandler::runScriptedEvent(scripting::MapEventDispatcher & dispatcher, PlayerColor player, ObjectInstanceID visitingHero,
+	const std::function<std::optional<int>(scripting::MapEventDispatcher &)> & dispatch)
+{
+	// The script may pause on a blocking action. LuaScriptActivity keeps its coroutine alive
+	// between resumptions and stays on the stack, blocking the end of the event, until the
+	// script finishes.
+	auto scriptActivity = std::make_shared<LuaScriptActivity>(this, player);
+	if(visitingHero.hasValue())
+		scriptActivity->setVisitingHero(visitingHero);
+	activities->addActivity(scriptActivity);
+
+	auto handle = dispatch(dispatcher);
+	if(handle)
+		scriptActivity->setCoroutine(*handle);
+	else
+		scriptActivity->finish();
+}
+
+void CGameHandler::showTeleportDialog(TeleportDialog *iw)
+{
+	auto dialogActivity = std::make_shared<TeleportDialogActivity>(this, *iw);
+	activities->addActivity(dialogActivity);
+	iw->questionID = dialogActivity->askQuestion();
+	sendAndApply(*iw);
+}
+
+void CGameHandler::setScriptVariable(const std::string & scope, const std::string & name, const JsonNode & value)
+{
+	SetScriptVariable pack;
+	pack.scope = scope;
+	pack.name = name;
+	pack.value = value;
+	sendAndApply(pack);
+}
+
+void CGameHandler::disableMapEvent(ObjectInstanceID town, const std::string & scriptHandler)
+{
+	auto hasEvent = [&](const auto & events)
+	{
+		return std::ranges::any_of(events, [&](const CMapEvent & event){ return event.scriptHandler == scriptHandler; });
+	};
+	const auto * townObject = town.hasValue() ? gameInfo().getTown(town) : nullptr;
+
+	if(town.hasValue() ? !townObject || !hasEvent(townObject->events) : !hasEvent(gameState().getMap().events))
+	{
+		logGlobal->error("Attempt to disable unknown map event %s!", scriptHandler);
+		return;
+	}
+
+	DisableMapEvent pack;
+	pack.town = town;
+	pack.scriptHandler = scriptHandler;
+	sendAndApply(pack);
+}
+
+void CGameHandler::setQuestHint(ObjectInstanceID obj, const MetaString & hint, const std::vector<Component> & components)
+{
+	// applying hint to anything else would throw on every client, e.g. if script targets already removed object
+	const auto * questSource = dynamic_cast<const QuestSource *>(gameState().getObjInstance(obj));
+	if(!questSource || !questSource->getActiveQuest())
+	{
+		logGlobal->error("Attempt to set quest hint for object %d that is not an active quest source!", obj.getNum());
+		return;
+	}
+
+	SetQuestHint pack;
+	pack.object = obj;
+	pack.hint = hint;
+	pack.components = components;
+	sendAndApply(pack);
+}
+
+void CGameHandler::giveResource(PlayerColor player, GameResID which, int val)
+{
+	if (!val)
+		return; //don't waste time on empty call
+
+	TResources resources;
+	resources[which] = val;
+	giveResources(player, resources);
+}
+
+void CGameHandler::giveResources(PlayerColor player, const ResourceSet & resources)
+{
+	if (resources.empty())
+		return;
+
+	SetResources sr;
+	sr.mode = ChangeValueMode::RELATIVE;
+	sr.player = player;
+	sr.res = resources;
+	sendAndApply(sr);
+}
+
+void CGameHandler::giveCreatures(const CGHeroInstance * hero, const CCreatureSet &creatures)
+{
+	if (!hero->canBeMergedWith(creatures, true))
+	{
+		complain("Unable to give creatures! Hero does not have enough free slots to receive them!");
+		return;
+	}
+
+	for (const auto & unit : creatures.Slots())
+	{
+		SlotID pos = hero->getSlotFor(unit.second->getCreature());
+		if (!pos.validSlot())
+		{
+			//try to merge two other stacks to make place
+			std::pair<SlotID, SlotID> toMerge;
+			if (hero->mergeableStacks(toMerge))
+			{
+				moveStack(StackLocation(hero->id, toMerge.first), StackLocation(hero->id, toMerge.second)); //merge toMerge.first into toMerge.second
+				pos = toMerge.first;
+			}
+		}
+		assert(pos.validSlot());
+		assert(hero->slotEmpty(pos) || hero->getCreature(pos) == unit.second->getCreature());
+
+		if (hero->hasStackAtSlot(pos))
+			changeStackCount(StackLocation(hero->id, pos), unit.second->getCount(), ChangeValueMode::RELATIVE);
+		else
+			insertNewStack(StackLocation(hero->id, pos), unit.second->getCreature(), unit.second->getCount());
+	}
+}
+
+void CGameHandler::giveCreatures(const CArmedInstance *obj, const CGHeroInstance * h, const CCreatureSet &creatures, bool remove)
+{
+	COMPLAIN_RET_IF(!creatures.stacksCount(), "Strange, giveCreatures called without args!");
+	COMPLAIN_RET_IF(obj->stacksCount(), "Cannot give creatures from not-cleared object!");
+	COMPLAIN_RET_IF(creatures.stacksCount() > GameConstants::ARMY_SIZE, "Too many stacks to give!");
+
+	//first we move creatures to give to make them army of object-source
+	for (const auto & elem : creatures.Slots())
+	{
+		addToSlot(StackLocation(obj->id, obj->getSlotFor(elem.second->getCreature())), elem.second->getCreature(), elem.second->getCount());
+	}
+
+	tryJoiningArmy(obj, h, remove, true);
+}
+
+const CArmedInstance * CGameHandler::getArmyOrThrow(ObjectInstanceID id, const std::string & context)
+{
+	const auto * army = dynamic_cast<const CArmedInstance *>(gameInfo().getObj(id));
+	if (!army)
+		throw std::runtime_error(context + ": object " + std::to_string(id.getNum()) + " has no army");
+	return army;
+}
+
+void CGameHandler::takeCreatures(ObjectInstanceID objid, const std::vector<CStackBasicDescriptor> &creatures, bool forceRemoval)
+{
+	if (creatures.empty())
+		return;
+
+	const auto * army = getArmyOrThrow(objid, "takeCreatures");
+
+	// rewards and scripts can request units that the army does not have - such request is skipped as a whole
+	if (!army->hasUnits(creatures, !forceRemoval && army->needsLastStack()))
+	{
+		logGlobal->error("Cannot take creatures from %s: army does not have them, or would be left without units", army->describeArmy());
+		return;
+	}
+
+	for (const CStackBasicDescriptor &stackToTake : creatures)
+	{
+		TQuantity collected = 0;
+		while(collected < stackToTake.getCount())
+		{
+			bool foundSth = false;
+			for (const auto & armySlot : army->Slots())
+			{
+				if (armySlot.second->getType() == stackToTake.getType())
+				{
+					if (stackToTake.getCount() - collected >= armySlot.second->getCount())
+					{
+						// take entire stack
+						collected += armySlot.second->getCount();
+						if (!eraseStack(StackLocation(army->id, armySlot.first), forceRemoval))
+							throw std::runtime_error("takeCreatures: failed to take last stack of " + army->describeArmy());
+					}
+					else
+					{
+						// take part of the stack
+						changeStackCount(StackLocation(army->id, armySlot.first), collected - stackToTake.getCount(), ChangeValueMode::RELATIVE);
+						collected = stackToTake.getCount();
+					}
+					foundSth = true;
+					break;
+				}
+			}
+
+			if (!foundSth)
+				throw std::runtime_error("takeCreatures: " + army->describeArmy() + " has no " + stackToTake.getType()->getJsonKey() + " left to take");
+		}
+	}
+}
+
+void CGameHandler::heroVisitCastle(const CGTownInstance * obj, const CGHeroInstance * hero)
+{
+	if (obj->getVisitingHero() != hero && obj->getGarrisonHero() != hero)
+	{
+		HeroVisitCastle vc;
+		vc.hid = hero->id;
+		vc.tid = obj->id;
+		vc.startVisit = true;
+		sendAndApply(vc);
+	}
+	visitCastleObjects(obj, hero);
+
+	if (obj->getVisitingHero() && obj->getGarrisonHero())
+		useScholarSkill(obj->getVisitingHero()->id, obj->getGarrisonHero()->id);
+	checkVictoryLossConditionsForPlayer(hero->tempOwner); //transported artifact?
+}
+
+void CGameHandler::visitCastleObjects(const CGTownInstance * t, const CGHeroInstance * h)
+{
+	std::vector<const CGHeroInstance * > visitors;
+	visitors.push_back(h);
+	visitCastleObjects(t, visitors);
+}
+
+void CGameHandler::visitCastleObjects(const CGTownInstance * t, const std::vector<const CGHeroInstance * > & visitors)
+{
+	std::vector<BuildingID> buildingsToVisit;
+	for (auto const & hero : visitors)
+		giveSpells (t, hero);
+
+	for (const auto & building : t->rewardableBuildings)
+	{
+		if (!t->getTown()->buildings.at(building.first)->manualHeroVisit && t->hasBuilt(building.first))
+			buildingsToVisit.push_back(building.first);
+	}
+
+	if (!buildingsToVisit.empty())
+	{
+		auto visitActivity = std::make_shared<TownBuildingVisitActivity>(this, t, visitors, buildingsToVisit);
+		activities->addActivity(visitActivity);
+	}
+}
+
+void CGameHandler::stopHeroVisitCastle(const CGTownInstance * obj, const CGHeroInstance * hero)
+{
+	HeroVisitCastle vc;
+	vc.hid = hero->id;
+	vc.tid = obj->id;
+	sendAndApply(vc);
+}
+
+void CGameHandler::removeArtifact(const ArtifactLocation & al)
+{
+	removeArtifact(al.artHolder, {al.slot});
+}
+
+void CGameHandler::removeArtifact(const ObjectInstanceID & srcId, const std::vector<ArtifactPosition> & slotsPack)
+{
+	BulkEraseArtifacts ea;
+	ea.artHolder = srcId;
+	ea.posPack.insert(ea.posPack.end(), slotsPack.begin(), slotsPack.end());
+	sendAndApply(ea);
+}
+
+void CGameHandler::changeSpells(const CGHeroInstance * hero, bool give, const std::set<SpellID> &spells)
+{
+	ChangeSpells cs;
+	cs.hid = hero->id;
+	cs.spells = spells;
+	cs.learn = give;
+	sendAndApply(cs);
+}
+
+void CGameHandler::setResearchedSpells(const CGTownInstance * town, int level, const std::vector<SpellID> & spells, bool accepted)
+{
+	SetResearchedSpells cs;
+	cs.tid = town->id;
+	cs.spells = spells;
+	cs.level = level;
+	cs.accepted = accepted;
+	sendAndApply(cs);
+}
+
+void CGameHandler::giveHeroBonus(GiveBonus * bonus)
+{
+	sendAndApply(*bonus);
+}
+
+void CGameHandler::setMovePoints(SetMovePoints * smp)
+{
+	sendAndApply(*smp);
+}
+
+void CGameHandler::setMovePoints(ObjectInstanceID hid, int val)
+{
+	SetMovePoints smp;
+	smp.hid = hid;
+	smp.val = val;
+	sendAndApply(smp);
+}
+
+void CGameHandler::setManaPoints(ObjectInstanceID hid, int val)
+{
+	SetMana sm;
+	sm.hid = hid;
+	sm.val = val;
+	sm.mode = ChangeValueMode::ABSOLUTE;
+	sendAndApply(sm);
+}
+
+void CGameHandler::giveHero(ObjectInstanceID id, PlayerColor player, ObjectInstanceID boatId)
+{
+	GiveHero gh;
+	gh.id = id;
+	gh.player = player;
+	gh.boatId = boatId;
+	sendAndApply(gh);
+
+	//Reveal fow around new hero, especially released from Prison
+	const auto * h = gameInfo().getHero(id);
+	changeFogOfWar(h->getSightCenter(), h->getSightRadius(), player, ETileVisibility::REVEALED);
+}
+
+void CGameHandler::changeObjPos(ObjectInstanceID objid, int3 newPos, const PlayerColor & initiator)
+{
+	ChangeObjPos cop;
+	cop.objid = objid;
+	cop.nPos = newPos;
+	cop.initiator = initiator;
+	sendAndApply(cop);
+}
+
+void CGameHandler::useScholarSkill(ObjectInstanceID fromHero, ObjectInstanceID toHero)
+{
+	const CGHeroInstance * h1 = gameInfo().getHero(fromHero);
+	const CGHeroInstance * h2 = gameInfo().getHero(toHero);
+	int h1_scholarSpellLevel = h1->valOfBonuses(BonusType::LEARN_MEETING_SPELL_LIMIT);
+	int h2_scholarSpellLevel = h2->valOfBonuses(BonusType::LEARN_MEETING_SPELL_LIMIT);
+
+	if (h1_scholarSpellLevel < h2_scholarSpellLevel)
+	{
+		std::swap (h1,h2);//1st hero need to have higher scholar level for correct message
+		std::swap(fromHero, toHero);
+	}
+
+	int ScholarSpellLevel = std::max(h1_scholarSpellLevel, h2_scholarSpellLevel);//heroes can trade up to this level
+	if (!ScholarSpellLevel || !h1->hasSpellbook() || !h2->hasSpellbook())
+		return;//no scholar skill or no spellbook
+
+	int h1Lvl = std::min(ScholarSpellLevel, h1->maxSpellLevel());//heroes can receive these levels
+	int h2Lvl = std::min(ScholarSpellLevel, h2->maxSpellLevel());
+
+	ChangeSpells cs1;
+	cs1.learn = true;
+	cs1.hid = toHero;//giving spells to first hero
+	for (auto it : h1->getSpellsInSpellbook())
+		if (h2Lvl >= it.toSpell()->getLevel() && !h2->spellbookContainsSpell(it))//hero can learn it and don't have it yet
+			cs1.spells.insert(it);//spell to learn
+
+	ChangeSpells cs2;
+	cs2.learn = true;
+	cs2.hid = fromHero;
+
+	for (auto it : h2->getSpellsInSpellbook())
+		if (h1Lvl >= it.toSpell()->getLevel() && !h1->spellbookContainsSpell(it))
+			cs2.spells.insert(it);
+
+	if (!cs1.spells.empty() || !cs2.spells.empty())//create a message
+	{
+		SecondarySkill scholarSkill = SecondarySkill::SCHOLAR;
+
+		int scholarSkillLevel = std::max(h1->getSecSkillLevel(scholarSkill), h2->getSecSkillLevel(scholarSkill));
+		InfoWindow iw;
+		iw.player = h1->tempOwner;
+		iw.components.emplace_back(ComponentType::SEC_SKILL, scholarSkill, scholarSkillLevel);
+
+		iw.text.appendTextID("core.genrltxt.139");//"%s, who has studied magic extensively,
+		iw.text.replaceTextID(h1->getNameTextID());
+
+		if (!cs2.spells.empty())//if found new spell - apply
+		{
+			iw.text.appendTextID("core.genrltxt.140");//learns
+			int size = cs2.spells.size();
+			for (auto it : cs2.spells)
+			{
+				iw.components.emplace_back(ComponentType::SPELL, it);
+				iw.text.appendName(it);
+				switch (size--)
+				{
+					case 2:
+						iw.text.appendTextID("core.genrltxt.141");
+					case 1:
+						break;
+					default:
+						iw.text.appendRawString(", ");
+				}
+			}
+			iw.text.appendTextID("core.genrltxt.142");//from %s
+			iw.text.replaceTextID(h2->getNameTextID());
+			sendAndApply(cs2);
+		}
+
+		if (!cs1.spells.empty() && !cs2.spells.empty())
+		{
+			iw.text.appendTextID("core.genrltxt.141");//and
+		}
+
+		if (!cs1.spells.empty())
+		{
+			iw.text.appendTextID("core.genrltxt.147");//teaches
+			int size = cs1.spells.size();
+			for (auto it : cs1.spells)
+			{
+				iw.components.emplace_back(ComponentType::SPELL, it);
+				iw.text.appendName(it);
+				switch (size--)
+				{
+					case 2:
+						iw.text.appendTextID("core.genrltxt.141");
+					case 1:
+						break;
+					default:
+						iw.text.appendRawString(", ");
+				}
+			}
+			iw.text.appendTextID("core.genrltxt.148");//from %s
+			iw.text.replaceTextID(h2->getNameTextID());
+			sendAndApply(cs1);
+		}
+		sendAndApply(iw);
+	}
+}
+
+void CGameHandler::heroExchange(ObjectInstanceID hero1, ObjectInstanceID hero2)
+{
+	const auto * h1 = gameInfo().getHero(hero1);
+	const auto * h2 = gameInfo().getHero(hero2);
+
+	if (gameInfo().getPlayerRelations(h1->getOwner(), h2->getOwner()) != PlayerRelations::ENEMIES)
+	{
+		auto exchange = std::make_shared<GarrisonDialogActivity>(this, h1->getOwner(), h1, h2);
+
+		// An AI does not trade with allies, nor should it make a human wait in a window that only
+		// the AI can close, and in hotseat both windows would share one screen.
+		// An ally busy with something else, e.g. their own garrison window, is left out, since
+		// an exchange above it would block it until the initiator closes the window.
+		const PlayerColor partner = h2->getOwner();
+		if(partner != h1->getOwner() && gameInfo().getPlayerState(h1->getOwner())->isHuman() && gameInfo().getPlayerState(partner)->isHuman() && !hasBothPlayersAtSameConnection(h1->getOwner(), partner) && !activities->topActivity(partner))
+			exchange->addPartner(partner);
+
+		activities->addActivity(exchange);
+
+		ExchangeDialog hex;
+		hex.questionID = exchange->askQuestion();
+		hex.hero1 = hero1;
+		hex.hero2 = hero2;
+		for(const auto & player : exchange->getPlayers())
+		{
+			hex.player = player;
+			sendAndApply(hex);
+		}
+
+		useScholarSkill(hero1,hero2);
+	}
+}
+
+void CGameHandler::sendAndApply(CPackForClient & pack)
+{
+	gameServer().applyPack(pack);
+}
+
+void CGameHandler::sendQuestionResolved(QuestionID questionID)
+{
+	QuestionResolved pack(questionID);
+	sendAndApply(pack);
+}
+
+void CGameHandler::sendAndApply(CGarrisonOperationPack & pack)
+{
+	sendAndApply(static_cast<CPackForClient &>(pack));
+	checkVictoryLossConditionsForAll();
+}
+
+void CGameHandler::sendAndApply(CArtifactOperationPack & pack)
+{
+	sendAndApply(static_cast<CPackForClient &>(pack));
+	checkVictoryLossConditionsForAll();
+}
+
+void CGameHandler::sendAndApply(SetResources & pack)
+{
+	sendAndApply(static_cast<CPackForClient &>(pack));
+	checkVictoryLossConditionsForPlayer(pack.player);
+}
+
+void CGameHandler::sendAndApply(NewStructures & pack)
+{
+	sendAndApply(static_cast<CPackForClient &>(pack));
+	checkVictoryLossConditionsForPlayer(gameInfo().getTown(pack.tid)->tempOwner);
+}
+
+bool CGameHandler::isPlayerOwns(GameConnectionID connectionID, const CPackForServer * pack, ObjectInstanceID id)
+{
+	return pack->player == gameState().getOwner(id) && hasPlayerAt(gameState().getOwner(id), connectionID);
+}
+
+void CGameHandler::throwNotAllowedAction(GameConnectionID connectionID)
+{
+	playerMessages->sendSystemMessage(connectionID, MetaString::createFromTextID("vcmi.server.errors.notAllowed"));
+
+	logNetwork->error("Player is not allowed to perform this action!");
+	throw ExceptionNotAllowedAction();
+}
+
+void CGameHandler::wrongPlayerMessage(GameConnectionID connectionID, const CPackForServer * pack, PlayerColor expectedplayer)
+{
+	auto str = MetaString::createFromTextID("vcmi.server.errors.wrongIdentified");
+	str.replaceName(pack->player);
+	str.replaceName(expectedplayer);
+	logNetwork->error("Expected player %s but got player %s!", expectedplayer.toString(), pack->player.toString());
+
+	playerMessages->sendSystemMessage(connectionID, str);
+}
+
+void CGameHandler::throwIfWrongOwner(GameConnectionID connectionID, const CPackForServer * pack, ObjectInstanceID id)
+{
+	if(!isPlayerOwns(connectionID, pack, id))
+	{
+		wrongPlayerMessage(connectionID, pack, gameState().getOwner(id));
+		throwNotAllowedAction(connectionID);
+	}
+}
+
+void CGameHandler::throwIfCanNotTakeTroops(GameConnectionID connectionID, const CPackForServer * pack, ObjectInstanceID id)
+{
+	throwIfWrongPlayer(connectionID, pack);
+
+	if(!canTakeTroopsFrom(pack->player, dynamic_cast<const CArmedInstance *>(gameInfo().getObj(id))))
+		throwNotAllowedAction(connectionID);
+}
+
+void CGameHandler::throwIfPlayerNotActive(GameConnectionID connectionID, const CPackForServer * pack)
+{
+	if (!vstd::contains(gs->actingPlayers, pack->player))
+		throwNotAllowedAction(connectionID);
+}
+
+void CGameHandler::throwIfCanNotTrade(GameConnectionID connectionID, const CPackForServer * pack, ObjectInstanceID id1, ObjectInstanceID id2)
+{
+	if(!isAllowedExchange(pack->player, id1, id2))
+		throwNotAllowedAction(connectionID);
+}
+
+void CGameHandler::throwIfWrongPlayer(GameConnectionID connectionID, const CPackForServer * pack)
+{
+	throwIfWrongPlayer(connectionID, pack, pack->player);
+}
+
+void CGameHandler::throwIfWrongPlayer(GameConnectionID connectionID, const CPackForServer * pack, PlayerColor player)
+{
+	if(!hasPlayerAt(player, connectionID) || pack->player != player)
+	{
+		wrongPlayerMessage(connectionID, pack, player);
+		throwNotAllowedAction(connectionID);
+	}
+}
+
+void CGameHandler::throwAndComplain(GameConnectionID connectionID, const std::string & txt)
+{
+	complain(txt);
+	throwNotAllowedAction(connectionID);
+}
+
+bool CGameHandler::responseStatistic(PlayerColor player)
+{
+	ResponseStatistic rs;
+	rs.statistic = *statistics;
+	rs.player = player;
+
+	const TeamState * team = gameState().getPlayerTeam(player);
+	rs.statistic.filterByTeam(team);
+
+	sendAndApply(rs);
+
+	return true;
+}
+
+namespace
+{
+struct AutosaveFile
+{
+	ResourcePath path;
+	std::time_t lastWrite;
+};
+
+std::string getDirectoryName(const std::string & path)
+{
+	const size_t separator = path.find_last_of("/\\");
+	return separator == std::string::npos ? std::string() : path.substr(0, separator);
+}
+
+void pruneAutosaves(const ResourcePath & currentAutosave, int countLimit)
+{
+	if(countLimit <= 0 || !SavegamePath::isAutosaveName(currentAutosave.getOriginalName()))
+		return;
+
+	const std::string gameDirectory = getDirectoryName(currentAutosave.getName());
+	auto * filesystem = CResourceHandler::get("local");
+	std::vector<AutosaveFile> autosaves;
+	const auto resources = filesystem->getFilteredFiles([&gameDirectory](const ResourcePath & resource)
+	{
+		return resource.getType() == EResType::SAVEGAME
+			&& getDirectoryName(resource.getName()) == gameDirectory
+			&& SavegamePath::isAutosaveName(resource.getOriginalName());
+	});
+
+	for(const auto & resource : resources)
+	{
+		try
+		{
+			autosaves.push_back({resource, filesystem->getLastWriteTime(resource)});
+		}
+		catch(const boost::filesystem::filesystem_error & e)
+		{
+			logGlobal->warn("Failed to get modification time of autosave %s: %s",
+				resource.getOriginalName(), e.what());
+		}
+	}
+
+	if(autosaves.size() <= static_cast<size_t>(countLimit))
+		return;
+
+	std::ranges::sort(autosaves, [&currentAutosave](const AutosaveFile & left, const AutosaveFile & right)
+	{
+		if(left.lastWrite != right.lastWrite)
+			return left.lastWrite < right.lastWrite;
+		if(left.path == currentAutosave)
+			return false;
+		if(right.path == currentAutosave)
+			return true;
+		return left.path < right.path;
+	});
+
+	const size_t filesToRemove = autosaves.size() - static_cast<size_t>(countLimit);
+	for(size_t index = 0; index < filesToRemove; ++index)
+	{
+		if(filesystem->removeResource(autosaves[index].path))
+			logGlobal->info("Removed old autosave %s", autosaves[index].path.getOriginalName());
+		else
+			logGlobal->warn("Failed to remove old autosave %s", autosaves[index].path.getOriginalName());
+	}
+}
+
+}
+
+void CGameHandler::save(const std::string & filename, PlayerColor playerToNotifyOnSuccess, int autosaveCountLimit)
+{
+	logGlobal->info("Saving to %s", filename);
+	ResourcePath savePath(filename, EResType::SAVEGAME);
+	const auto savefname = savePath.getOriginalName() + ".vsgm1";
+	CResourceHandler::get("local")->createResource(savefname);
+
+	std::string filenameWithoutPath;
+	auto pos = filename.find_last_of("/\\");
+	if (pos != std::string::npos)
+		filenameWithoutPath = filename.substr(pos + 1);
+	else
+		filenameWithoutPath = filename;
+	InfoWindow iw;
+	iw.player = playerToNotifyOnSuccess;
+
+	try
+	{
+		CMemorySerializer header;
+		gameState().saveHeader(header.oser);
+
+		CMemorySerializer game;
+		gameState().saveGame(game.oser);
+		logGlobal->info("Saving server state");
+		game.oser & *this;
+
+		CSaveFile save;
+		save.addChunk(SaveFileFormat::CHUNK_METADATA, SaveMetadata::create(gameState()).toBytes());
+		save.addChunk(SaveFileFormat::CHUNK_HEADER, header.extractBuffer());
+		save.addChunk(SaveFileFormat::CHUNK_GAMESTATE, game.extractBuffer());
+		const auto saveFile = *CResourceHandler::get("local")->getResourceName(savePath);
+		save.write(saveFile);
+
+		pruneAutosaves(savePath, autosaveCountLimit);
+
+		if(playerToNotifyOnSuccess.isValidPlayer())
+		{
+			iw.text = MetaString::createFromTextID("core.genrltxt.350");
+			iw.text.replaceRawString(filenameWithoutPath);
+			sendAndApply(iw);
+		}
+		logGlobal->info("Game has been successfully saved!");
+	}
+	catch(std::exception &e)
+	{
+		if(playerToNotifyOnSuccess.isValidPlayer())
+		{
+			iw.text = MetaString::createFromTextID("core.genrltxt.9");
+			iw.text.replaceRawString(filenameWithoutPath);
+			sendAndApply(iw);
+		}
+		logGlobal->error("Failed to save game: %s", e.what());
+	}
+}
+
+void CGameHandler::load(const StartInfo &info)
+{
+	logGlobal->info("Loading from %s", info.mapname);
+
+	const auto saveFileName = CResourceHandler::get()->getResourceName(ResourcePath(info.mapname, EResType::SAVEGAME));
+	if(!saveFileName)
+		throw std::runtime_error("Error: saved game '" + info.mapname + "' not found!");
+
+	const auto & saveFile = *saveFileName;
+	gs = std::make_shared<CGameState>();
+	randomizer = std::make_unique<GameRandomizer>(*gs);
+
+	if(CLoadFile::readVersion(saveFile) < ESerializationVersion::SAVE_CHUNKS)
+	{
+		CLegacyLoadFile lf(saveFile, gs.get());
+		BinaryDeserializer & game = lf.skipToGameState();
+		gs->loadGame(game);
+		logGlobal->info("Loading server state");
+		game & *this;
+	}
+	else
+	{
+		CLoadFile lf(saveFile);
+		SaveMetadata::verifyMods(SaveMetadata::parse(lf.readChunk(SaveFileFormat::CHUNK_METADATA), info.mapname));
+
+		auto game = lf.openChunk(SaveFileFormat::CHUNK_GAMESTATE, gs.get());
+		gs->loadGame(game->iser);
+		logGlobal->info("Loading server state");
+		game->iser & *this;
+		if(!game->isFullyRead())
+			throw std::runtime_error("Error: saved game '" + info.mapname + "' contains unexpected data after game state!");
+	}
+	logGlobal->info("Game has been successfully loaded!");
+
+	gs->preInit(LIBRARY);
+	gs->updateOnLoad(info);
+	auto * startInfo = gs->getStartInfo();
+	if(startInfo->campState && startInfo->campState->getStartTime() == 0)
+		startInfo->campState->setStartTime(startInfo->startTime);
+	gs->setSaveDirectory(SavegamePath::generateGameDirectoryName(*startInfo, *gs->getMapHeader()));
+
+	configureReplayLog(false);
+}
+
+void CGameHandler::configureReplayLog(bool gameIsNew)
+{
+	const int roundsKept = std::max(0, static_cast<int>(settings["server"]["replayRoundsKept"].Integer()));
+
+	// a loaded game keeps the recording mode it was started with
+	if(gameIsNew)
+		gs->replayLog.configure(gs->getStartInfo()->extraOptionsInfo.recordGame, roundsKept);
+	else
+		gs->replayLog.reconfigureOnLoad(roundsKept);
+}
+
+bool CGameHandler::bulkSplitStack(SlotID slotSrc, ObjectInstanceID srcOwner, si32 howMany)
+{
+	if(!slotSrc.validSlot() && complain(complainInvalidSlot))
+		return false;
+
+	const auto * army = getArmyOrThrow(srcOwner, "bulkSplitStack");
+	const CCreatureSet & creatureSet = *army;
+
+	if((!vstd::contains(creatureSet.stacks, slotSrc) && complain(complainNoCreatures))
+		|| (howMany < 1 && complain("Invalid split parameter!")))
+	{
+		return false;
+	}
+	auto actualAmount = army->getStackCount(slotSrc);
+
+	if(actualAmount <= howMany && complain(complainNotEnoughCreatures)) // '<=' because it's not intended just for moving a stack
+		return false;
+
+	auto freeSlots = creatureSet.getFreeSlots();
+
+	if(freeSlots.empty() && complain("No empty stacks"))
+		return false;
+
+	BulkRebalanceStacks bulkRS;
+
+	for(auto slot : freeSlots)
+	{
+		RebalanceStacks rs;
+		rs.srcArmy = army->id;
+		rs.dstArmy = army->id;
+		rs.srcSlot = slotSrc;
+		rs.dstSlot = slot;
+		rs.count = howMany;
+
+		bulkRS.moves.push_back(rs);
+		actualAmount -= howMany;
+
+		if(actualAmount <= howMany)
+			break;
+	}
+	sendAndApply(bulkRS);
+	return true;
+}
+
+bool CGameHandler::bulkMergeStacks(SlotID slotSrc, ObjectInstanceID srcOwner)
+{
+	if(!slotSrc.validSlot() && complain(complainInvalidSlot))
+		return false;
+
+	const auto * army = getArmyOrThrow(srcOwner, "bulkMergeStacks");
+	const CCreatureSet & creatureSet = *army;
+
+	if(!vstd::contains(creatureSet.stacks, slotSrc) && complain(complainNoCreatures))
+		return false;
+
+	auto actualAmount = creatureSet.getStackCount(slotSrc);
+
+	if(actualAmount < 1 && complain(complainNoCreatures))
+		return false;
+
+	const auto * currentCreature = creatureSet.getCreature(slotSrc);
+
+	if(!currentCreature && complain(complainNoCreatures))
+		return false;
+
+	auto creatureSlots = creatureSet.getCreatureSlots(currentCreature, slotSrc);
+
+	if(creatureSlots.empty())
+		return false;
+
+	BulkRebalanceStacks bulkRS;
+
+	for(auto slot : creatureSlots)
+	{
+		RebalanceStacks rs;
+		rs.srcArmy = army->id;
+		rs.dstArmy = army->id;
+		rs.srcSlot = slot;
+		rs.dstSlot = slotSrc;
+		rs.count = creatureSet.getStackCount(slot);
+		bulkRS.moves.push_back(rs);
+	}
+	sendAndApply(bulkRS);
+	return true;
+}
+
+bool CGameHandler::bulkMoveArmy(ObjectInstanceID srcArmy, ObjectInstanceID destArmy, SlotID srcSlot)
+{
+	if(!srcSlot.validSlot() && complain(complainInvalidSlot))
+		return false;
+
+	const auto * armySrc = getArmyOrThrow(srcArmy, "bulkMoveArmy");
+	const auto * armyDest = dynamic_cast<const CArmedInstance*>(gameInfo().getObjInstance(destArmy));
+
+	if(!armyDest)
+		COMPLAIN_RET("Object has no army!");
+
+	if(armySrc == armyDest)
+		COMPLAIN_RET("Cannot move army into itself!");
+
+	if(!vstd::contains(armySrc->stacks, srcSlot) && complain(complainNoCreatures))
+		return false;
+
+	if(armySrc->isLocked())
+		COMPLAIN_RET(complainNotRemovable);
+
+	auto freeSlots = armyDest->getFreeSlots();
+	bool allTroopsMoved = true;
+
+	BulkRebalanceStacks bulkRS;
+
+	for (const auto & slot : armySrc->Slots())
+	{
+		auto targetSlot = armyDest->getSlotFor(slot.second->getCreature());
+
+		if (armyDest->slotEmpty(targetSlot))
+		{
+			if (freeSlots.empty())
+			{
+				allTroopsMoved = false;
+				continue; // no more free slots, but we might still have units that are present in both armies
+			}
+
+			targetSlot = freeSlots.front();
+			freeSlots.erase(freeSlots.begin());
+		}
+
+		RebalanceStacks rs;
+		rs.srcArmy = armySrc->id;
+		rs.dstArmy = armyDest->id;
+		rs.srcSlot = slot.first;
+		rs.dstSlot = targetSlot;
+		rs.count = slot.second->getCount();
+
+		bulkRS.moves.push_back(rs);
+	}
+
+	// all troops were moved, but we can't leave source hero without troops - undo movement of 1 unit from srcSlot
+	if (allTroopsMoved && armySrc->needsLastStack())
+	{
+		if (armySrc->getStack(srcSlot).getCount() == 1)
+		{
+			// slot only had 1 unit - remove this move completely
+			vstd::erase_if(bulkRS.moves, [srcSlot](const RebalanceStacks & move)
+			{
+				return move.srcSlot == srcSlot;
+			});
+		}
+		else
+		{
+			// slot has multiple units - move all but one
+			for (auto & move : bulkRS.moves)
+			{
+				if (move.srcSlot == srcSlot)
+					move.count -= 1;
+			}
+		}
+	}
+
+	sendAndApply(bulkRS);
+	return true;
+}
+
+bool CGameHandler::bulkSplitAndRebalanceStack(SlotID slotSrc, ObjectInstanceID srcOwner)
+{
+	if(!slotSrc.validSlot() && complain(complainInvalidSlot))
+		return false;
+
+	const auto * army = getArmyOrThrow(srcOwner, "bulkSplitAndRebalanceStack");
+	const CCreatureSet & creatureSet = *army;
+
+	if(!vstd::contains(creatureSet.stacks, slotSrc) && complain(complainNoCreatures))
+		return false;
+
+	auto actualAmount = creatureSet.getStackCount(slotSrc);
+
+	if(actualAmount <= 1 && complain(complainNoCreatures))
+		return false;
+
+	auto freeSlot = creatureSet.getFreeSlot();
+	const auto * currentCreature = creatureSet.getCreature(slotSrc);
+
+	if(freeSlot == SlotID() && creatureSet.isCreatureBalanced(currentCreature))
+		return true;
+
+	auto creatureSlots = creatureSet.getCreatureSlots(currentCreature, slotSrc, 1); // Ignore slots where's only 1 creature
+	TQuantity totalCreatures = creatureSet.getStackCount(slotSrc);
+
+	for(auto slot : creatureSlots)
+		totalCreatures += creatureSet.getStackCount(slot);
+
+	if(totalCreatures <= 1 && complain("Total creatures number is invalid"))
+		return false;
+
+	BulkRebalanceStacks bulkSRS;
+
+	// 1) merge all but one creatures back into source slot
+	// single creature needs to be kept, to avoid stack artifact dropping to hero backpack
+	for(auto slot : creatureSlots)
+	{
+		RebalanceStacks rs;
+		rs.srcArmy = army->id;
+		rs.dstArmy = army->id;
+		rs.srcSlot = slot;
+		rs.dstSlot = slotSrc;
+		rs.count = creatureSet.getStackCount(slot) - 1;
+
+		if (rs.count > 0)
+			bulkSRS.moves.push_back(rs);
+	}
+
+	// 2) split off single creature into new slot, if any
+	// strictly speaking, not needed, but more convenient
+	if(freeSlot != SlotID())
+	{
+		RebalanceStacks rs;
+		rs.srcArmy = army->id;
+		rs.dstArmy = army->id;
+		rs.srcSlot = slotSrc;
+		rs.dstSlot = freeSlot;
+		rs.count = 1;
+		bulkSRS.moves.push_back(rs);
+
+		creatureSlots.push_back(freeSlot);
+	}
+
+	if(creatureSlots.empty() && complain("No available slots for smart rebalancing"))
+		return false;
+
+	int slotsLeft = creatureSlots.size() + 1; // + srcSlot
+	TQuantity unitsToMove = totalCreatures - slotsLeft;
+
+	// 3) re-split creatures in a balanced way
+	for(auto slot : creatureSlots)
+	{
+		RebalanceStacks rs;
+
+		rs.srcArmy = army->id;
+		rs.dstArmy = army->id;
+		rs.srcSlot = slotSrc;
+		rs.dstSlot = slot;
+		rs.count = vstd::divideAndCeil(unitsToMove, slotsLeft);
+		if (rs.count > 0)
+			bulkSRS.moves.push_back(rs);
+
+		unitsToMove -= rs.count;
+		slotsLeft -= 1;
+	}
+
+	sendAndApply(bulkSRS);
+	return true;
+}
+
+bool CGameHandler::arrangeStacks(ObjectInstanceID id1, ObjectInstanceID id2, ui8 what, SlotID p1, SlotID p2, si32 val, PlayerColor player)
+{
+	const auto * s1 = dynamic_cast<const CArmedInstance *>(gameInfo().tryGetObj(id1));
+	const auto * s2 = dynamic_cast<const CArmedInstance *>(gameInfo().tryGetObj(id2));
+
+	if (s1 == nullptr || s2 == nullptr)
+	{
+		complain("Cannot exchange stacks between non-existing objects!!\n");
+		return false;
+	}
+
+	const auto takingTroopsComplaint = [&]()
+	{
+		return boost::str(boost::format("Player %s can't take troops from another player! Armies: %s (owner %d, slot %d) and %s (owner %d, slot %d)")
+			% player.toString()
+			% s1->describeArmy() % s1->tempOwner.getNum() % p1.getNum()
+			% s2->describeArmy() % s2->tempOwner.getNum() % p2.getNum());
+	};
+
+	const CCreatureSet & S1 = *s1;
+	const CCreatureSet & S2 = *s2;
+	StackLocation sl1(s1->id, p1);
+	StackLocation sl2(s2->id, p2);
+
+	if (!sl1.slot.validSlot()  ||  !sl2.slot.validSlot())
+	{
+		complain(complainInvalidSlot);
+		return false;
+	}
+
+	if (sl1.army == sl2.army && sl1.slot == sl2.slot)
+		COMPLAIN_RET("Cannot arrange stacks - slots are the same!");
+
+	// We can always put stacks into locked garrison, but not take them out of it
+	auto notRemovable = [&](const CArmedInstance * army)
+	{
+		// Stack arrangement inside locked garrison is allowed
+		if (id1 != id2 && army->isLocked())
+		{
+			complain(complainNotRemovable);
+			return true;
+		}
+		return false;
+	};
+
+	if (what==1) //swap
+	{
+		if ((!canTakeTroopsFrom(player, s1) && s1->getStackCount(p1))
+		  || (!canTakeTroopsFrom(player, s2) && s2->getStackCount(p2)))
+		{
+			complain(takingTroopsComplaint());
+			return false;
+		}
+
+		if (s1->slotEmpty(p1) && s2->slotEmpty(p2))
+			COMPLAIN_RET("Cannot swap stacks - both slots are empty!");
+
+		if ((!s1->slotEmpty(p1) && notRemovable(s1)) || (!s2->slotEmpty(p2) && notRemovable(s2)))
+			return false;
+
+		return swapStacks(sl1, sl2);
+	}
+	else if (what==2)//merge
+	{
+		if ((s1->getCreature(p1) != s2->getCreature(p2) && complain("Cannot merge different creatures stacks!"))
+		|| (!canTakeTroopsFrom(player, s1) && complain(takingTroopsComplaint())))
+			return false;
+
+		if (s1->slotEmpty(p1) || s2->slotEmpty(p2))
+		{
+			complain("Cannot merge empty stack!");
+			return false;
+		}
+		else if (notRemovable(s1))
+			return false;
+
+		return moveStack(sl1, sl2);
+	}
+	else if (what==3) //split
+	{
+		const int countToMove = val - s2->getStackCount(p2);
+		const int countLeftOnSrc = s1->getStackCount(p1) - countToMove;
+
+		if (  (!canTakeTroopsFrom(player, s1) && countLeftOnSrc < s1->getStackCount(p1))
+			|| (!canTakeTroopsFrom(player, s2) && val < s2->getStackCount(p2)))
+		{
+			complain(takingTroopsComplaint());
+			return false;
+		}
+
+		//general conditions checking
+		if ((!vstd::contains(S1.stacks,p1) && complain(complainNoCreatures))
+			|| (val<1  && complain(complainNoCreatures)) )
+		{
+			return false;
+		}
+
+
+		if (vstd::contains(S2.stacks,p2))	 //dest. slot not free - it must be "rebalancing"...
+		{
+			int total = s1->getStackCount(p1) + s2->getStackCount(p2);
+			if ((total < val   &&   complain("Cannot split that stack, not enough creatures!"))
+				|| (s1->getCreature(p1) != s2->getCreature(p2) && complain("Cannot rebalance different creatures stacks!"))
+			)
+			{
+				return false;
+			}
+
+			if (countToMove > 0 && notRemovable(s1))
+				return false;
+			if (countToMove < 0 && notRemovable(s2))
+				return false;
+
+			// negative countToMove means creatures flow from dest to source - swap direction
+			// so RebalanceStacks always carries a positive count (and never the magic value -1)
+			if (countToMove > 0)
+				return moveStack(sl1, sl2, countToMove);
+			if (countToMove < 0)
+				return moveStack(sl2, sl1, -countToMove);
+		}
+		else //split one stack to the two
+		{
+			if (s1->getStackCount(p1) < val)//not enough creatures
+			{
+				complain(complainNotEnoughCreatures);
+				return false;
+			}
+
+			if (notRemovable(s1))
+				return false;
+
+			return moveStack(sl1, sl2, val);
+		}
+	}
+	else
+	{
+		COMPLAIN_RET("Unknown stack arrangement mode " + std::to_string(what));
+	}
+	return true;
+}
+
+bool CGameHandler::hasPlayerAt(PlayerColor player,  GameConnectionID connectionID) const
+{
+	return gameServer().hasPlayerAt(player, connectionID);
+}
+
+bool CGameHandler::hasBothPlayersAtSameConnection(PlayerColor left, PlayerColor right) const
+{
+	return gameServer().hasBothPlayersAtSameConnection(left, right);
+}
+
+bool CGameHandler::disbandCreature(ObjectInstanceID id, SlotID pos)
+{
+	const auto * s1 = dynamic_cast<const CArmedInstance *>(gameInfo().getObjInstance(id));
+	if (!s1)
+		COMPLAIN_RET("Object has no army!");
+
+	if (!vstd::contains(s1->stacks,pos))
+	{
+		complain("Illegal call to disbandCreature - no such stack in army!");
+		return false;
+	}
+
+	if (s1->isLocked())
+		COMPLAIN_RET(complainNotRemovable);
+
+	return eraseStack(StackLocation(s1->id, pos));
+}
+
+void CGameHandler::buildStructureForced(ObjectInstanceID townID, BuildingID building)
+{
+	buildStructure(townID, building, true);
+}
+
+bool CGameHandler::buildStructure(ObjectInstanceID tid, BuildingID requestedID, bool force)
+{
+	const CGTownInstance * t = gameInfo().getTown(tid);
+	if(!t)
+		COMPLAIN_RETF("No such town (ID=%s)!", tid);
+	if(!t->getTown()->buildings.count(requestedID))
+		COMPLAIN_RETF("Town of faction %s does not have info about building ID=%s!", t->getFaction()->getNameTranslated() % requestedID);
+	if(t->hasBuilt(requestedID))
+		COMPLAIN_RETF("Building %s is already built in %s", t->getTown()->buildings.at(requestedID)->getNameTranslated() % t->getNameTextID());
+
+	const auto & requestedBuilding = t->getTown()->buildings.at(requestedID);
+
+	//Vector with future list of built building and buildings in auto-mode that are not yet built.
+	std::vector<const CBuilding*> remainingAutoBuildings;
+	std::set<BuildingID> buildingsThatWillBe;
+
+	//Check validity of request
+	if(!force)
+	{
+		switch(requestedBuilding->mode)
+		{
+		case CBuilding::BUILD_NORMAL :
+			if (gameState().canBuildStructure(t, requestedID) != EBuildingState::ALLOWED)
+				COMPLAIN_RET("Cannot build that building!");
+			break;
+
+		case CBuilding::BUILD_AUTO   :
+		case CBuilding::BUILD_SPECIAL:
+			COMPLAIN_RET("This building can not be constructed normally!");
+
+		case CBuilding::BUILD_GRAIL  :
+			if(requestedBuilding->mode == CBuilding::BUILD_GRAIL) //needs grail
+			{
+				if(!t->getVisitingHero() || !t->getVisitingHero()->hasArt(ArtifactID::GRAIL))
+					COMPLAIN_RET("Cannot build this without grail!")
+				else if(!gameState().isGrailAllowed(t))
+					COMPLAIN_RET("Grail can not be built in this town!")
+				else
+					removeArtifact(ArtifactLocation(t->getVisitingHero()->id, t->getVisitingHero()->getArtPos(ArtifactID::GRAIL, false)));
+			}
+			break;
+		}
+	}
+
+	//Performs stuff that has to be done before new building is built
+	auto processBeforeBuiltStructure = [t, this](const BuildingID buildingID)
+	{
+		if(buildingID.isDwelling())
+		{
+			int level = BuildingID::getLevelIndexFromDwelling(buildingID);
+			int upgradeNumber = BuildingID::getUpgradeNoFromDwelling(buildingID);
+
+			if(upgradeNumber >= t->getTown()->creatures.at(level).size())
+			{
+				complain(boost::str(boost::format("Error encountered when building dwelling (bid=%s):"
+													"no creature found (upgrade number %d, level %d!")
+												% buildingID % upgradeNumber % level));
+				return;
+			}
+
+			const CCreature * crea = t->getTown()->creatures.at(level).at(upgradeNumber).toCreature();
+
+			SetAvailableCreatures ssi;
+			ssi.tid = t->id;
+			ssi.creatures = t->creatures;
+			if (ssi.creatures[level].second.empty()) // first creature in a dwelling
+				ssi.creatures[level].first = crea->getGrowth();
+			ssi.creatures[level].second.push_back(crea->getId());
+			sendAndApply(ssi);
+		}
+		if(t->getTown()->buildings.at(buildingID)->subId == BuildingSubID::PORTAL_OF_SUMMONING)
+		{
+			setPortalDwelling(t);
+		}
+	};
+
+	//Checks if all requirements will be met with expected building list "buildingsThatWillBe"
+	auto areRequirementsFulfilled = [&buildingsThatWillBe](const BuildingID & buildID)
+	{
+		return buildingsThatWillBe.count(buildID);
+	};
+
+	//Init the vectors
+	for(const auto & build : t->getTown()->buildings)
+	{
+		if(t->hasBuilt(build.first))
+		{
+			buildingsThatWillBe.insert(build.first);
+		}
+		else
+		{
+			if(build.second->mode == CBuilding::BUILD_AUTO) //not built auto building
+				remainingAutoBuildings.push_back(build.second.get());
+		}
+	}
+
+	//Prepare structure (list of building ids will be filled later)
+	NewStructures ns;
+	ns.tid = tid;
+	ns.built = force ? t->built : (t->built+1);
+
+	std::queue<const CBuilding*> buildingsToAdd;
+	buildingsToAdd.push(requestedBuilding.get());
+
+	while(!buildingsToAdd.empty())
+	{
+		const auto * b = buildingsToAdd.front();
+		buildingsToAdd.pop();
+
+		ns.bid.insert(b->bid);
+		buildingsThatWillBe.insert(b->bid);
+		remainingAutoBuildings -= b;
+
+		for(const auto * autoBuilding : remainingAutoBuildings)
+		{
+			auto actualRequirements = t->genBuildingRequirements(autoBuilding->bid);
+
+			if(actualRequirements.test(areRequirementsFulfilled))
+				buildingsToAdd.push(autoBuilding);
+		}
+	}
+
+	// FIXME: it's done before NewStructures applied because otherwise town window wont be properly updated on client. That should be actually fixed on client and not on server.
+	for(auto builtID : ns.bid)
+		processBeforeBuiltStructure(builtID);
+
+	//Take cost
+	if(!force)
+	{
+		const PlayerColor ownerBeforePay = t->tempOwner;
+		giveResources(ownerBeforePay, -requestedBuilding->resources);
+
+		// Only record statistics if the player is still a valid, in-game player.
+		// If they were eliminated during the resource deduction (rare but possible via custom
+		// map triggers), we skip the statistics update because the PlayerState no longer exists.
+		if(ownerBeforePay.isValidPlayer() && t->tempOwner == ownerBeforePay)
+			statistics->getPlayerAccumulator(ownerBeforePay).spentResourcesForBuildings += requestedBuilding->resources;
+	}
+
+	//We know what has been built, apply changes. Do this as final step to properly update town window
+	sendAndApply(ns);
+
+	//Other post-built events. To some logic like giving spells to work gamestate changes for new building must be already in place!
+	for(auto buildingID : ns.bid)
+	{
+		bool isMageGuild = buildingID <= BuildingID::MAGES_GUILD_5 && buildingID >= BuildingID::MAGES_GUILD_1;
+		bool isLibrary = t->getTown()->buildings.at(buildingID)->subId == BuildingSubID::LIBRARY;
+		bool isAurora = t->getTown()->buildings.at(buildingID)->subId == BuildingSubID::AURORA_BOREALIS;
+
+		if(isMageGuild || isLibrary || isAurora)
+		{
+			if(t->getVisitingHero())
+				giveSpells(t,t->getVisitingHero());
+			if(t->getGarrisonHero())
+				giveSpells(t,t->getGarrisonHero());
+		}
+	};
+
+	// now when everything is built - reveal tiles for lookout tower
+	// town may be neutral if building was built by a town event that affects neutral towns
+	if(t->getOwner().isValidPlayer())
+		changeFogOfWar(t->getSightCenter(), t->getSightRadius(), t->getOwner(), ETileVisibility::REVEALED);
+
+	if (!force)
+	{
+		//garrison hero first - consistent with original H3 Mana Vortex and Battle Scholar Academy levelup windows order
+		std::vector<const CGHeroInstance *> visitors;
+		if (t->getGarrisonHero())
+			visitors.push_back(t->getGarrisonHero());
+		if (t->getVisitingHero())
+			visitors.push_back(t->getVisitingHero());
+
+		if (!visitors.empty())
+			visitCastleObjects(t, visitors);
+	}
+
+	checkVictoryLossConditionsForPlayer(t->tempOwner);
+	return true;
+}
+
+bool CGameHandler::visitTownBuilding(ObjectInstanceID tid, BuildingID bid)
+{
+	const CGTownInstance * t = gameInfo().getTown(tid);
+
+	if(!t->hasBuilt(bid))
+		return false;
+
+	auto subID = t->getTown()->buildings.at(bid)->subId;
+
+	if(subID == BuildingSubID::EBuildingSubID::BANK)
+	{
+		TResources res;
+		res[EGameResID::GOLD] = 2500;
+		giveResources(t->getOwner(), res);
+
+		setObjPropertyValue(t->id, ObjProperty::BONUS_VALUE_SECOND, 2500);
+		return true;
+	}
+
+	if (t->rewardableBuildings.count(bid) && t->getVisitingHero() && t->getTown()->buildings.at(bid)->manualHeroVisit)
+	{
+		std::vector<BuildingID> buildingsToVisit;
+		std::vector<const CGHeroInstance*> visitors;
+		buildingsToVisit.push_back(bid);
+		visitors.push_back(t->getVisitingHero());
+		auto visitActivity = std::make_shared<TownBuildingVisitActivity>(this, t, visitors, buildingsToVisit);
+		activities->addActivity(visitActivity);
+		return true;
+	}
+
+	return true;
+}
+
+bool CGameHandler::razeStructure (ObjectInstanceID tid, BuildingID bid)
+{
+///incomplete, simply erases target building
+	const CGTownInstance * t = gameInfo().getTown(tid);
+	if(!t->hasBuilt(bid))
+		return false;
+	RazeStructures rs;
+	rs.tid = tid;
+	rs.bid.insert(bid);
+	rs.destroyed = t->destroyed + 1;
+	sendAndApply(rs);
+	return true;
+}
+
+bool CGameHandler::spellResearch(ObjectInstanceID tid, SpellID spellAtSlot, bool accepted)
+{
+	const CGTownInstance * t = gameState().getTown(tid);
+
+	if(!gameInfo().getSettings().getBoolean(EGameSettings::TOWNS_SPELL_RESEARCH) && complain("Spell research not allowed!"))
+		return false;
+	if (!t->spellResearchAllowed && complain("Spell research not allowed in this town!"))
+		return false;
+
+	int level = -1;
+	for(int i = 0; i < t->spells.size(); i++)
+		if(vstd::find_pos(t->spells[i], spellAtSlot) != -1)
+			level = i;
+
+	if(level == -1 && complain("Spell for replacement not found!"))
+		return false;
+
+	auto spells = t->spells.at(level);
+
+	bool researchLimitExceeded = t->spellResearchCounterDay >= gameInfo().getSettings().getValue(EGameSettings::TOWNS_SPELL_RESEARCH_PER_DAY).Vector()[level].Float();
+	if(researchLimitExceeded && complain("Already researched today!"))
+		return false;
+
+	ResourceSet costBase;
+	InstantIdentifierResolver resolver(*LIBRARY->identifiers());
+	costBase.resolveFromJson(gameInfo().getSettings().getValue(EGameSettings::TOWNS_SPELL_RESEARCH_COST).Vector()[level], resolver);
+	double pastResearchesCostMultiplier = gameInfo().getSettings().getValue(EGameSettings::TOWNS_SPELL_RESEARCH_COST_MULTIPLIER_PER_RESEARCH).Vector()[level].Float();
+	double pastRerollsCostMultiplier = gameInfo().getSettings().getValue(EGameSettings::TOWNS_SPELL_RESEARCH_COST_MULTIPLIER_PER_REROLL).Vector()[level].Float();
+	double pastResearchesCurrentMultiplier = std::pow(pastResearchesCostMultiplier, t->spellResearchAcceptedCounter);
+	double pastRerollsCurrentMultiplier = std::pow(pastRerollsCostMultiplier, t->spellResearchPendingRerollsCounters[level]);
+	ResourceSet cost = costBase.multipliedBy(pastResearchesCurrentMultiplier * pastRerollsCurrentMultiplier);
+
+	if(!gameInfo().getPlayerState(t->getOwner())->resources.canAfford(cost) && complain("Spell replacement cannot be afforded!"))
+		return false;
+
+	giveResources(t->getOwner(), -cost);
+
+	if(accepted)
+		std::swap(spells.at(t->spellsAtLevel(level, false)), spells.at(vstd::find_pos(spells, spellAtSlot)));
+
+	auto it = spells.begin() + t->spellsAtLevel(level, false);
+	std::rotate(it, it + 1, spells.end()); // move to end
+	setResearchedSpells(t, level, spells, accepted);
+
+	if(accepted)
+	{
+		if(t->getVisitingHero())
+			giveSpells(t, t->getVisitingHero());
+		if(t->getGarrisonHero())
+			giveSpells(t, t->getGarrisonHero());
+	}
+
+	return true;
+}
+
+bool CGameHandler::recruitCreatures(ObjectInstanceID objid, ObjectInstanceID dstid, CreatureID crid, int32_t cram, int32_t fromLvl, PlayerColor player)
+{
+	const auto * dwelling = dynamic_cast<const CGDwelling *>(gameInfo().tryGetObj(objid));
+	const auto * town = dynamic_cast<const CGTownInstance *>(gameInfo().tryGetObj(objid));
+	const auto * army = dynamic_cast<const CArmedInstance *>(gameInfo().tryGetObj(dstid));
+	const auto * hero = dynamic_cast<const CGHeroInstance *>(gameInfo().tryGetObj(dstid));
+
+	//TODO: check if hero is actually visiting object
+
+	COMPLAIN_RET_FALSE_IF(!dwelling || !army, "Cannot recruit: invalid object!");
+	COMPLAIN_RET_FALSE_IF(dwelling->getOwner() != player && dwelling->getOwner() != PlayerColor::UNFLAGGABLE, "Cannot recruit: dwelling not owned!");
+
+	if (town)
+	{
+		COMPLAIN_RET_FALSE_IF(town != army && !hero, "Cannot recruit: invalid destination!");
+		COMPLAIN_RET_FALSE_IF(hero != town->getGarrisonHero() && hero != town->getVisitingHero(), "Cannot recruit: can only recruit to town or hero in town!!");
+	}
+	else
+	{
+		COMPLAIN_RET_FALSE_IF(getVisitingHero(dwelling) != hero, "Cannot recruit: can only recruit by visiting hero!");
+		COMPLAIN_RET_FALSE_IF(!hero || hero->getOwner() != player, "Cannot recruit: can only recruit to owned hero!");
+	}
+
+	//verify
+	bool found = false;
+	int level = 0;
+
+	for (; level < dwelling->creatures.size(); level++) //iterate through all levels
+	{
+		if ((fromLvl != -1) && (level !=fromLvl))
+			continue;
+		const auto &cur = dwelling->creatures.at(level); //current level info <amount, list of cr. ids>
+		int i = 0;
+		for (; i < cur.second.size(); i++) //look for crid among available creatures list on current level
+			if (cur.second.at(i) == crid)
+				break;
+
+		if (i < cur.second.size())
+		{
+			found = true;
+			cram = std::min<int32_t>(cram, cur.first); //reduce recruited amount up to available amount
+			break;
+		}
+	}
+
+	COMPLAIN_RET_FALSE_IF(!found, "Cannot recruit: no such creatures!");
+
+	const auto * c = crid.toCreature();
+	const bool warMachine = c->warMachine != ArtifactID::NONE;
+
+	if (warMachine)
+	{
+		COMPLAIN_RET_FALSE_IF(!hero, "Only hero can buy war machines");
+		COMPLAIN_RET_FALSE_IF(!hero->canRecruitWarMachine(c->warMachine), "Hero can not recruit this war machine!");
+		// hero can only carry a single war machine of each type
+		vstd::amin(cram, 1);
+	}
+
+	SlotID slot = army->getSlotFor(crid);
+
+	if((cram > c->maxAmount(gameInfo().getPlayerState(army->tempOwner)->resources) && complain("Cannot recruit: lack of resources!"))
+		|| (cram <= 0 && complain("Cannot recruit: cram <= 0!"))
+		|| (!slot.validSlot() && !warMachine && complain("Cannot recruit: no available slot!")))
+	{
+		return false;
+	}
+
+	//recruit
+	TResources cost = (c->getFullRecruitCost() * cram);
+	giveResources(army->tempOwner, -cost);
+	statistics->getPlayerAccumulator(army->tempOwner).spentResourcesForArmy += cost;
+
+	SetAvailableCreatures sac;
+	sac.tid = objid;
+	sac.creatures = dwelling->creatures;
+	sac.creatures[level].first -= cram;
+	sendAndApply(sac);
+
+	if (warMachine)
+		return giveHeroWarMachine(hero, c->warMachine);
+
+	return addToSlot(StackLocation(army->id, slot), c, cram);
+}
+
+bool CGameHandler::upgradeCreature(ObjectInstanceID objid, SlotID pos, CreatureID upgID)
+{
+	const auto * obj = dynamic_cast<const CArmedInstance *>(gameInfo().getObjInstance(objid));
+	if (!obj)
+		COMPLAIN_RET("Object has no army!");
+
+	if (!obj->hasStackAtSlot(pos))
+	{
+		COMPLAIN_RET("Cannot upgrade, no stack at slot " + std::to_string(pos));
+	}
+	UpgradeInfo upgradeInfo(obj->getStackPtr(pos)->getId());
+	gameState().fillUpgradeInfo(obj, pos, upgradeInfo);
+	PlayerColor player = obj->tempOwner;
+	const PlayerState *p = gameInfo().getPlayerState(player);
+	int crQuantity = obj->stacks.at(pos)->getCount();
+
+	if (!vstd::contains(upgradeInfo.getAvailableUpgrades(), upgID))
+		COMPLAIN_RET("That upgrade is not possible!");
+
+	TResources totalCost = upgradeInfo.getUpgradeCostsFor(upgID) * crQuantity;
+
+	//check if player has enough resources
+	if (!p->resources.canAfford(totalCost))
+		COMPLAIN_RET("Cannot upgrade, not enough resources!");
+
+	//take resources
+	giveResources(player, -totalCost);
+	statistics->getPlayerAccumulator(player).spentResourcesForArmy += totalCost;
+
+	return changeStackType(StackLocation(obj->id, pos), upgID.toCreature());
+}
+
+bool CGameHandler::changeStackType(const StackLocation &sl, const CCreature *c)
+{
+	const auto * obj = getArmyOrThrow(sl.army, "changeStackType");
+
+	if (!obj->hasStackAtSlot(sl.slot))
+		throw std::runtime_error("changeStackType: " + obj->describeArmy() + " has no stack at slot " + std::to_string(sl.slot.getNum()));
+
+	if (!c)
+		throw std::runtime_error("changeStackType: no creature to change stack of " + obj->describeArmy() + " into");
+
+	SetStackType sst;
+	sst.army = obj->id;
+	sst.slot = sl.slot;
+	sst.type = c->getId();
+	sendAndApply(sst);
+	return true;
+}
+
+void CGameHandler::moveArmy(const CArmedInstance *src, const CArmedInstance *dst, bool allowMerging)
+{
+	assert(src->canBeMergedWith(*dst, allowMerging));
+	while(src->stacksCount())//while there are unmoved creatures
+	{
+		auto i = src->Slots().begin(); //iterator to stack to move
+		StackLocation sl(src->id, i->first); //location of stack to move
+
+		SlotID pos = dst->getSlotFor(i->second->getCreature());
+		if (!pos.validSlot())
+		{
+			//try to merge two other stacks to make place
+			std::pair<SlotID, SlotID> toMerge;
+			if (dst->mergeableStacks(toMerge, i->first) && allowMerging)
+			{
+				moveStack(StackLocation(dst->id, toMerge.first), StackLocation(dst->id, toMerge.second)); //merge toMerge.first into toMerge.second
+				assert(!dst->hasStackAtSlot(toMerge.first)); //we have now a new free slot
+				moveStack(sl, StackLocation(dst->id, toMerge.first)); //move stack to freed slot
+			}
+			else
+			{
+				throw std::runtime_error("moveArmy: no free slot to move army from " + src->describeArmy() + " to " + dst->describeArmy());
+			}
+		}
+		else
+		{
+			moveStack(sl, StackLocation(dst->id, pos));
+		}
+	}
+}
+
+bool CGameHandler::garrisonSwap(ObjectInstanceID tid)
+{
+	const CGTownInstance * town = gameInfo().getTown(tid);
+	if (!town->getGarrisonHero() && town->getVisitingHero()) //visiting => garrison, merge armies: town army => hero army
+	{
+
+		if (!town->getVisitingHero()->canBeMergedWith(*town))
+		{
+			complain("Cannot make garrison swap, not enough free slots!");
+			return false;
+		}
+
+		moveArmy(town, town->getVisitingHero(), true);
+
+		SetHeroesInTown intown;
+		intown.tid = tid;
+		intown.visiting = ObjectInstanceID();
+		intown.garrison = town->getVisitingHero()->id;
+		sendAndApply(intown);
+		return true;
+	}
+	else if (town->getGarrisonHero() && !town->getVisitingHero()) //move hero out of the garrison
+	{
+		int mapCap = gameInfo().getSettings().getInteger(EGameSettings::HEROES_PER_PLAYER_ON_MAP_CAP);
+		//check if moving hero out of town will break wandering heroes limit
+		if (gameInfo().getHeroCount(town->getGarrisonHero()->tempOwner,false) >= mapCap)
+		{
+			complain("Cannot move hero out of the garrison, there are already " + std::to_string(mapCap) + " wandering heroes!");
+			return false;
+		}
+
+		SetHeroesInTown intown;
+		intown.tid = tid;
+		intown.garrison = ObjectInstanceID();
+		intown.visiting =  town->getGarrisonHero()->id;
+		sendAndApply(intown);
+		return true;
+	}
+	else if (!!town->getGarrisonHero() && town->getVisitingHero()) //swap visiting and garrison hero
+	{
+		SetHeroesInTown intown;
+		intown.tid = tid;
+		intown.garrison = town->getVisitingHero()->id;
+		intown.visiting =  town->getGarrisonHero()->id;
+		sendAndApply(intown);
+		return true;
+	}
+	else
+	{
+		complain("Cannot swap garrison hero!");
+		return false;
+	}
+}
+
+// With the amount of changes done to the function, it's more like transferArtifacts.
+// Function moves artifact from src to dst. If dst is not a backpack and is already occupied, old dst art goes to backpack and is replaced.
+bool CGameHandler::moveArtifact(const PlayerColor & player, const ArtifactLocation & src, const ArtifactLocation & dst)
+{
+	const auto * srcArtSet = gameState().getArtSet(src);
+	const auto * dstArtSet = gameState().getArtSet(dst);
+	assert(srcArtSet);
+	assert(dstArtSet);
+
+	COMPLAIN_RET_FALSE_IF(!ArtifactUtils::checkIfSlotValid(*srcArtSet, src.slot), "moveArtifact: wrong artifact source slot");
+	const auto * srcArtifact = srcArtSet->getArt(src.slot);
+	auto dstSlot = dst.slot;
+	if(dstSlot == ArtifactPosition::FIRST_AVAILABLE)
+		dstSlot = ArtifactUtils::getArtAnyPosition(dstArtSet, srcArtifact->getTypeId());
+	if(!ArtifactUtils::checkIfSlotValid(*dstArtSet, dstSlot))
+		return true;
+	const auto * dstArtifact = dstArtSet->getArt(dstSlot);
+	const bool isDstSlotOccupied = dstArtSet->bearerType() == ArtBearer::ALTAR ? false : dstArtifact != nullptr;
+	const bool isDstSlotBackpack = dstArtSet->bearerType() == ArtBearer::HERO ? ArtifactUtils::isSlotBackpack(dstSlot) : false;
+
+	if(srcArtifact == nullptr)
+		COMPLAIN_RET("No artifact to move!");
+	if(isDstSlotOccupied && gameState().getOwner(src.artHolder) != gameState().getOwner(dst.artHolder) && !isDstSlotBackpack)
+		COMPLAIN_RET("Can't touch artifact on hero of another player!");
+
+	// Check if src/dest slots are appropriate for the artifacts exchanged.
+	// Moving to the backpack is always allowed.
+	if((!srcArtifact || !isDstSlotBackpack) && !srcArtifact->canBePutAt(dstArtSet, dstSlot, true))
+		COMPLAIN_RET("Cannot move artifact!");
+
+	const auto * srcSlotInfo = srcArtSet->getSlot(src.slot);
+	const auto * dstSlotInfo = dstArtSet->getSlot(dstSlot);
+
+	if((srcSlotInfo && srcSlotInfo->locked) || (dstSlotInfo && dstSlotInfo->locked))
+		COMPLAIN_RET("Cannot move artifact locks.");
+
+	if(isDstSlotBackpack && srcArtifact->getType()->isBig())
+		COMPLAIN_RET("Cannot put big artifacts in backpack!");
+	if(src.slot == ArtifactPosition::MACH4 || dstSlot == ArtifactPosition::MACH4)
+		COMPLAIN_RET("Cannot move catapult!");
+	if(isDstSlotBackpack && !ArtifactUtils::isBackpackFreeSlots(dstArtSet))
+		COMPLAIN_RET("Backpack is full!");
+
+	dstSlot = std::min(dstSlot, ArtifactPosition(ArtifactPosition::BACKPACK_START + dstArtSet->artifactsInBackpack.size()));
+
+	if(src.slot == dstSlot && src.artHolder == dst.artHolder)
+		COMPLAIN_RET("Won't move artifact: Dest same as source!");
+
+	BulkMoveArtifacts ma(player, src.artHolder, dst.artHolder, false);
+	ma.srcCreature = src.creature;
+	ma.dstCreature = dst.creature;
+
+	// Check if dst slot is occupied
+	if(!isDstSlotBackpack && isDstSlotOccupied)
+	{
+		// Previous artifact must be swapped
+		COMPLAIN_RET_FALSE_IF(!dstArtifact->canBePutAt(srcArtSet, src.slot, true), "Cannot swap artifacts!");
+		ma.artsPack1.emplace_back(dstSlot, src.slot);
+	}
+
+	const auto * hero = gameInfo().getHero(dst.artHolder);
+	if(ArtifactUtils::checkSpellbookIsNeeded(hero, srcArtifact->getTypeId(), dstSlot))
+		giveHeroNewArtifact(hero, ArtifactID::SPELLBOOK, ArtifactPosition::SPELLBOOK);
+
+	ma.artsPack0.emplace_back(src.slot, dstSlot);
+	if(src.artHolder != dst.artHolder && !isDstSlotBackpack)
+		ma.artsPack0.back().askAssemble = true;
+	sendAndApply(ma);
+	return true;
+}
+
+bool CGameHandler::bulkMoveArtifacts(const PlayerColor & player, ObjectInstanceID srcId, ObjectInstanceID dstId, bool swap, bool equipped, bool backpack)
+{
+	const auto * psrcSet = gameState().getArtSet(srcId);
+	const auto * pdstSet = gameState().getArtSet(dstId);
+	if((!psrcSet) || (!pdstSet))
+		COMPLAIN_RET("bulkMoveArtifacts: wrong hero's ID");
+
+	BulkMoveArtifacts ma(player, srcId, dstId, swap);
+	auto & slotsSrcDst = ma.artsPack0;
+	auto & slotsDstSrc = ma.artsPack1;
+
+	// Temporary fitting set for artifacts. Used to select available slots before sending data.
+	CArtifactFittingSet artFittingSet(&gameInfo(), pdstSet->bearerType());
+
+	auto moveArtifact = [this, &artFittingSet, dstId](const CArtifactInstance * artifact,
+		ArtifactPosition srcSlot, std::vector<MoveArtifactInfo> & slots) -> void
+	{
+		assert(artifact);
+		auto dstSlot = ArtifactUtils::getArtAnyPosition(&artFittingSet, artifact->getTypeId());
+		if(dstSlot != ArtifactPosition::PRE_FIRST)
+		{
+			artFittingSet.putArtifact(dstSlot, artifact);
+			slots.emplace_back(srcSlot, dstSlot);
+
+			// TODO Shouldn't be here. Possibly in callback after equipping the artifact
+			if(const auto * dstHero = gameInfo().getHero(dstId))
+			{
+				if(ArtifactUtils::checkSpellbookIsNeeded(dstHero, artifact->getTypeId(), dstSlot))
+					giveHeroNewArtifact(dstHero, ArtifactID::SPELLBOOK, ArtifactPosition::SPELLBOOK);
+			}
+		}
+	};
+
+	if(swap)
+	{
+		auto moveArtsWorn = [moveArtifact](const CArtifactSet * srcArtSet, std::vector<MoveArtifactInfo> & slots)
+		{
+			for(const auto & artifact : srcArtSet->artifactsWorn)
+			{
+				if(ArtifactUtils::isArtRemovable(artifact))
+					moveArtifact(artifact.second.getArt(), artifact.first, slots);
+			}
+		};
+		auto moveArtsInBackpack = [](const CArtifactSet * artSet,
+			std::vector<MoveArtifactInfo> & slots) -> void
+		{
+			for(const auto & slotInfo : artSet->artifactsInBackpack)
+			{
+				auto slot = artSet->getArtPos(slotInfo.getArt());
+				slots.emplace_back(slot, slot);
+			}
+		};
+		if(equipped)
+		{
+			// Move over artifacts that are worn srcHero -> dstHero
+			moveArtsWorn(psrcSet, slotsSrcDst);
+			artFittingSet.artifactsWorn.clear();
+			// Move over artifacts that are worn dstHero -> srcHero
+			moveArtsWorn(pdstSet, slotsDstSrc);
+		}
+		if(backpack)
+		{
+			// Move over artifacts that are in backpack srcHero -> dstHero
+			moveArtsInBackpack(psrcSet, slotsSrcDst);
+			// Move over artifacts that are in backpack dstHero -> srcHero
+			moveArtsInBackpack(pdstSet, slotsDstSrc);
+		}
+	}
+	else
+	{
+		artFittingSet.artifactsInBackpack = pdstSet->artifactsInBackpack;
+		artFittingSet.artifactsWorn = pdstSet->artifactsWorn;
+		if(equipped)
+		{
+			// Move over artifacts that are worn
+			for(const auto & artInfo : psrcSet->artifactsWorn)
+			{
+				if(ArtifactUtils::isArtRemovable(artInfo))
+				{
+					moveArtifact(psrcSet->getArt(artInfo.first), artInfo.first, slotsSrcDst);
+				}
+			}
+		}
+		if(backpack)
+		{
+			// Move over artifacts that are in backpack
+			for(const auto & slotInfo : psrcSet->artifactsInBackpack)
+			{
+				moveArtifact(psrcSet->getArt(psrcSet->getArtPos(slotInfo.getArt())),
+					psrcSet->getArtPos(slotInfo.getArt()), slotsSrcDst);
+			}
+		}
+	}
+	sendAndApply(ma);
+	return true;
+}
+
+bool CGameHandler::manageBackpackArtifacts(const PlayerColor & player, const ObjectInstanceID & heroID, const ManageBackpackArtifacts::ManageCmd & sortType)
+{
+	const auto * artSet = gameState().getArtSet(heroID);
+	COMPLAIN_RET_FALSE_IF(artSet == nullptr, "manageBackpackArtifacts: wrong hero's ID");
+
+	BulkMoveArtifacts bma(player, heroID, heroID, false);
+
+	const auto sortPack = [artSet](std::vector<MoveArtifactInfo> & pack)
+	{
+		// Each pack of artifacts is also sorted by ArtifactID. Scrolls by SpellID
+		std::sort(pack.begin(), pack.end(), [artSet](const auto & slots0, const auto & slots1) -> bool
+		{
+			const auto art0 = artSet->getArt(slots0.srcPos);
+			const auto art1 = artSet->getArt(slots1.srcPos);
+			if(art0->isScroll() && art1->isScroll())
+				return art0->getScrollSpellID() > art1->getScrollSpellID();
+			return art0->getTypeId().num > art1->getTypeId().num;
+		});
+	};
+
+	const auto buildAscendingOrder = [artSet, &sortPack](auto && getSortId)
+	{
+		std::map<int32_t, std::vector<MoveArtifactInfo>> packsSorted;
+		ArtifactPosition backpackSlot = ArtifactPosition::BACKPACK_START;
+
+		for(const auto & backpackSlotInfo : artSet->artifactsInBackpack)
+			packsSorted.try_emplace(getSortId(backpackSlotInfo)).first->second.emplace_back(backpackSlot++, ArtifactPosition::PRE_FIRST);
+
+		std::vector<MoveArtifactInfo> orderAsc;
+		for(auto & entry : packsSorted)
+		{
+		    auto & pack = entry.second;
+		    sortPack(pack);
+		    orderAsc.insert(orderAsc.end(), pack.begin(), pack.end());
+		}
+
+		return orderAsc;
+	};
+
+	const auto isAlreadyAscending = [artSet](const std::vector<MoveArtifactInfo> & orderAsc)
+	{
+		std::vector<ArtifactInstanceID> curIds;
+		curIds.reserve(artSet->artifactsInBackpack.size());
+		for(const auto & slotInfo : artSet->artifactsInBackpack)
+			curIds.push_back(slotInfo.getArt()->getId());
+
+		std::vector<ArtifactInstanceID> ascIds;
+		ascIds.reserve(orderAsc.size());
+		for(const auto & mi : orderAsc)
+			ascIds.push_back(artSet->getArt(mi.srcPos)->getId());
+
+		return curIds == ascIds;
+	};
+
+	const auto buildRequestFromOrder = [&bma](const std::vector<MoveArtifactInfo> & order, bool reverseAll)
+	{
+		if(!reverseAll)
+			bma.artsPack0.insert(bma.artsPack0.end(), order.begin(), order.end());
+		else
+			bma.artsPack0.insert(bma.artsPack0.end(), order.rbegin(), order.rend());
+
+		ArtifactPosition backpackSlot = ArtifactPosition::BACKPACK_START;
+		for(auto & slots : bma.artsPack0)
+			slots.dstPos = backpackSlot++;
+	};
+
+	const auto makeSortBackpackRequest = [&](auto && getSortId)
+	{
+		auto orderAsc = buildAscendingOrder(getSortId);
+		const bool reverseAll = isAlreadyAscending(orderAsc);
+		buildRequestFromOrder(orderAsc, reverseAll);
+	};
+
+	if(sortType == ManageBackpackArtifacts::ManageCmd::SORT_BY_SLOT)
+	{
+		makeSortBackpackRequest([](const ArtSlotInfo & inf) -> int32_t
+			{
+				auto possibleSlots = inf.getArt()->getType()->getPossibleSlots();
+				if (possibleSlots.find(ArtBearer::CREATURE) != possibleSlots.end() && !possibleSlots.at(ArtBearer::CREATURE).empty())
+				{
+					return -2;
+				}
+				else if (possibleSlots.find(ArtBearer::COMMANDER) != possibleSlots.end() && !possibleSlots.at(ArtBearer::COMMANDER).empty())
+				{
+					return -1;
+				}
+				else if (possibleSlots.find(ArtBearer::HERO) != possibleSlots.end() && !possibleSlots.at(ArtBearer::HERO).empty())
+				{
+					return inf.getArt()->getType()->getPossibleSlots().at(ArtBearer::HERO).front().num;
+				}
+				else
+				{
+					// for grail
+					return -3;
+				}
+			});
+	}
+	else if(sortType == ManageBackpackArtifacts::ManageCmd::SORT_BY_COST)
+	{
+		makeSortBackpackRequest([](const ArtSlotInfo & inf) -> int32_t
+			{
+				return inf.getArt()->getType()->getPrice();
+			});
+	}
+	else if(sortType == ManageBackpackArtifacts::ManageCmd::SORT_BY_CLASS)
+	{
+		makeSortBackpackRequest([](const ArtSlotInfo & inf) -> int32_t
+			{
+				return static_cast<int32_t>(inf.getArt()->getType()->aClass);
+			});
+	}
+	else
+	{
+		const auto backpackEnd = ArtifactPosition(ArtifactPosition::BACKPACK_START + artSet->artifactsInBackpack.size() - 1);
+		if(backpackEnd > ArtifactPosition::BACKPACK_START)
+		{
+			if(sortType == ManageBackpackArtifacts::ManageCmd::SCROLL_LEFT)
+				bma.artsPack0.emplace_back(backpackEnd, ArtifactPosition::BACKPACK_START);
+			else
+				bma.artsPack0.emplace_back(ArtifactPosition::BACKPACK_START, backpackEnd);
+		}
+	}
+	sendAndApply(bma);
+	return true;
+}
+
+bool CGameHandler::saveArtifactsCostume(const PlayerColor & player, const ObjectInstanceID & heroID, uint32_t costumeIdx)
+{
+	const auto * artSet = gameState().getArtSet(heroID);
+	COMPLAIN_RET_FALSE_IF(artSet == nullptr, "saveArtifactsCostume: wrong hero's ID");
+
+	ChangeArtifactsCostume costume(player, costumeIdx);
+	for(const auto & slot : ArtifactUtils::commonWornSlots())
+	{
+		if(const auto slotInfo = artSet->getSlot(slot); slotInfo != nullptr && !slotInfo->locked)
+			costume.costumeSet.emplace(slot, slotInfo->getArt()->getTypeId());
+	}
+
+	sendAndApply(costume);
+	return true;
+}
+
+bool CGameHandler::switchArtifactsCostume(const PlayerColor & player, const ObjectInstanceID & heroID, uint32_t costumeIdx)
+{
+	const auto * artSet = gameState().getArtSet(heroID);
+	COMPLAIN_RET_FALSE_IF(artSet == nullptr, "switchArtifactsCostume: wrong hero's ID");
+	const auto * playerState = gameInfo().tryGetPlayerState(player);
+	COMPLAIN_RET_FALSE_IF(playerState == nullptr, "switchArtifactsCostume: wrong player");
+
+	if(auto costume = playerState->costumesArtifacts.find(costumeIdx); costume != playerState->costumesArtifacts.end())
+	{
+		CArtifactFittingSet artFittingSet(*artSet);
+		BulkMoveArtifacts bma(player, heroID, heroID, false);
+		auto costumeArtMap = costume->second;
+		auto estimateBackpackSize = artSet->artifactsInBackpack.size();
+
+		// First, find those artifacts that are already in place
+		for(const auto & slot : ArtifactUtils::commonWornSlots())
+		{
+			if(const auto * slotInfo = artFittingSet.getSlot(slot); slotInfo != nullptr && !slotInfo->locked)
+				if(const auto artPos = costumeArtMap.find(slot); artPos != costumeArtMap.end() && artPos->second == slotInfo->getArt()->getTypeId())
+				{
+					costumeArtMap.erase(artPos);
+					artFittingSet.removeArtifact(slot);
+				}
+		}
+
+		// Second, find the necessary artifacts for the costume
+		for(const auto & artPos : costumeArtMap)
+		{
+			if(const auto slot = artFittingSet.getArtPos(artPos.second, false, false); slot != ArtifactPosition::PRE_FIRST)
+			{
+				bma.artsPack0.emplace_back(artSet->getArtPos(artFittingSet.getArt(slot)), artPos.first);
+				artFittingSet.removeArtifact(slot);
+				if(ArtifactUtils::isSlotBackpack(slot))
+					estimateBackpackSize--;
+			}
+		}
+
+		// Third, put unnecessary artifacts into backpack
+		for(const auto & slot : ArtifactUtils::commonWornSlots())
+			if(artFittingSet.getArt(slot))
+			{
+				bma.artsPack0.emplace_back(slot, ArtifactPosition::BACKPACK_START);
+				estimateBackpackSize++;
+			}
+
+		const auto backpackCap = gameInfo().getSettings().getInteger(EGameSettings::HEROES_BACKPACK_CAP);
+		if((backpackCap < 0 || estimateBackpackSize <= backpackCap) && !bma.artsPack0.empty())
+			sendAndApply(bma);
+	}
+	return true;
+}
+
+/**
+ * Assembles or disassembles a combination artifact.
+ * @param heroID ID of hero holding the artifact(s).
+ * @param artifactSlot The worn slot ID of the combination- or constituent artifact.
+ * @param assemble True for assembly operation, false for disassembly.
+ * @param assembleTo If assemble is true, this represents the artifact ID of the combination
+ * artifact to assemble to. Otherwise it's not used.
+ */
+bool CGameHandler::assembleArtifacts(ObjectInstanceID heroID, ArtifactPosition artifactSlot, bool assemble, ArtifactID assembleTo)
+{
+	const CGHeroInstance * hero = gameInfo().getHero(heroID);
+	const CArtifactInstance * destArtifact = hero->getArt(artifactSlot);
+
+	if(!destArtifact)
+		COMPLAIN_RET("assembleArtifacts: there is no such artifact instance!");
+
+	const auto dstLoc = ArtifactLocation(hero->id, artifactSlot);
+	if(assemble)
+	{
+		const CArtifact * combinedArt = assembleTo.toArtifact();
+		if(!combinedArt->isCombined())
+			COMPLAIN_RET("assembleArtifacts: Artifact being attempted to assemble is not a combined artifacts!");
+		if(!vstd::contains(ArtifactUtils::assemblyPossibilities(gameInfo().getSettings(), hero, destArtifact->getTypeId()), combinedArt))
+		{
+			COMPLAIN_RET("assembleArtifacts: It's impossible to assemble requested artifact!");
+		}
+		if(!destArtifact->canBePutAt(hero, artifactSlot, true)
+			&& !destArtifact->canBePutAt(hero, ArtifactPosition::BACKPACK_START, true))
+		{
+			COMPLAIN_RET("assembleArtifacts: It's impossible to give the artholder requested artifact!");
+		}
+
+		if(ArtifactUtils::checkSpellbookIsNeeded(hero, assembleTo, artifactSlot))
+			giveHeroNewArtifact(hero, ArtifactID::SPELLBOOK, ArtifactPosition::SPELLBOOK);
+
+		AssembledArtifact aa;
+		aa.al = dstLoc;
+		aa.artId = assembleTo;
+		sendAndApply(aa);
+	}
+	else
+	{
+		if(!destArtifact->isCombined())
+			COMPLAIN_RET("assembleArtifacts: Artifact being attempted to disassemble is not a combined artifact!");
+
+		if(!destArtifact->hasParts())
+			COMPLAIN_RET("assembleArtifacts: Artifact being attempted to disassemble is fused combined artifact!");
+
+		if(ArtifactUtils::isCombinationDisabled(gameInfo().getSettings(), destArtifact->getTypeId()))
+			COMPLAIN_RET("assembleArtifacts: Artifact being attempted to disassemble can not be assembled back on this map!");
+
+		if(ArtifactUtils::isSlotBackpack(artifactSlot)
+			&& !ArtifactUtils::isBackpackFreeSlots(hero, destArtifact->getType()->getConstituents().size() - 1))
+			COMPLAIN_RET("assembleArtifacts: Artifact being attempted to disassemble but backpack is full!");
+
+		DisassembledArtifact da;
+		da.al = dstLoc;
+		sendAndApply(da);
+	}
+
+	return true;
+}
+
+bool CGameHandler::eraseArtifactByClient(const ArtifactLocation & al)
+{
+	const auto * hero = gameInfo().getHero(al.artHolder);
+	if(hero == nullptr)
+		COMPLAIN_RET("eraseArtifactByClient: wrong hero's ID");
+
+	const auto * art = hero->getArt(al.slot);
+	if(art == nullptr)
+		COMPLAIN_RET("Cannot remove artifact!");
+
+	if(art->canBePutAt(hero) || al.slot != ArtifactPosition::TRANSITION_POS)
+		COMPLAIN_RET("Illegal artifact removal request");
+
+	removeArtifact(al);
+	return true;
+}
+
+bool CGameHandler::buyArtifact(ObjectInstanceID hid, ArtifactID aid)
+{
+	const CGHeroInstance * hero = gameInfo().getHero(hid);
+	COMPLAIN_RET_FALSE_IF(nullptr == hero, "Invalid hero index");
+	const CGTownInstance * town = hero->getVisitedTown();
+	COMPLAIN_RET_FALSE_IF(nullptr == town, "Hero not in town");
+
+	if (aid==ArtifactID::SPELLBOOK)
+	{
+		if ((!town->hasBuilt(BuildingID::MAGES_GUILD_1) && complain("Cannot buy a spellbook, no mage guild in the town!"))
+			|| (gameInfo().getResource(hero->getOwner(), EGameResID::GOLD) < GameConstants::SPELLBOOK_GOLD_COST && complain("Cannot buy a spellbook, not enough gold!"))
+		    || (hero->getArt(ArtifactPosition::SPELLBOOK) && complain("Cannot buy a spellbook, hero already has a one!"))
+		   )
+			return false;
+
+		giveResource(hero->getOwner(),EGameResID::GOLD,-GameConstants::SPELLBOOK_GOLD_COST);
+		giveHeroNewArtifact(hero, ArtifactID::SPELLBOOK, ArtifactPosition::SPELLBOOK);
+		assert(hero->getArt(ArtifactPosition::SPELLBOOK));
+		giveSpells(town,hero);
+		return true;
+	}
+	else
+	{
+		const CArtifact * art = aid.toArtifact();
+		COMPLAIN_RET_FALSE_IF(nullptr == art, "Invalid artifact index to buy");
+		COMPLAIN_RET_FALSE_IF(art->getWarMachine() == CreatureID::NONE, "War machine artifact required");
+		COMPLAIN_RET_FALSE_IF(!hero->canRecruitWarMachine(aid), "Hero can not buy this war machine!");
+		const int price = art->getPrice();
+		COMPLAIN_RET_FALSE_IF(gameInfo().getPlayerState(hero->getOwner())->resources[EGameResID::GOLD] < price, "Not enough gold!");
+
+		if(town->isWarMachineAvailable(aid))
+		{
+			giveResource(hero->getOwner(),EGameResID::GOLD,-price);
+			return giveHeroWarMachine(hero, aid);
+		}
+		else
+			COMPLAIN_RET("This machine is unavailable here!");
+	}
+}
+
+bool CGameHandler::giveHeroWarMachine(const CGHeroInstance * hero, const ArtifactID & warMachine)
+{
+	const ArtifactPosition slot = hero->getWarMachineSlot(warMachine);
+
+	if (hero->getArt(slot))
+		removeArtifact(ArtifactLocation(hero->id, slot));
+
+	return giveHeroNewArtifact(hero, warMachine, slot);
+}
+
+bool CGameHandler::buyArtifact(const IMarket *m, const CGHeroInstance *h, GameResID rid, ArtifactID aid)
+{
+	if(!h)
+		COMPLAIN_RET("Only hero can buy artifacts!");
+
+	if (!vstd::contains(m->availableItemsIds(EMarketMode::RESOURCE_ARTIFACT), aid))
+		COMPLAIN_RET("That artifact is unavailable!");
+
+	int b1;
+	int b2;
+	m->getOffer(rid, aid, b1, b2, EMarketMode::RESOURCE_ARTIFACT);
+
+	if (gameInfo().getResource(h->tempOwner, rid) < b1)
+		COMPLAIN_RET("You can't afford to buy this artifact!");
+
+	if(!aid.toArtifact()->canBePutAt(h))
+		COMPLAIN_RET("Hero has no slot for this artifact!");
+
+	giveResource(h->tempOwner, rid, -b1);
+
+	SetAvailableArtifacts saa;
+	if(dynamic_cast<const CGTownInstance *>(m))
+	{
+		saa.id = ObjectInstanceID::NONE;
+		saa.arts = gameState().getMap().townMerchantArtifacts;
+	}
+	else if(const auto *bm = dynamic_cast<const CGBlackMarket *>(m)) //black market
+	{
+		saa.id = bm->id;
+		saa.arts = bm->artifacts;
+	}
+	else
+		COMPLAIN_RET("Wrong marktet...");
+
+	bool found = false;
+	for (ArtifactID & art : saa.arts)
+	{
+		if (art == aid)
+		{
+			art = ArtifactID();
+			found = true;
+			break;
+		}
+	}
+
+	if (!found)
+		COMPLAIN_RET("Cannot find selected artifact on the list");
+
+	sendAndApply(saa);
+	giveHeroNewArtifact(h, aid, ArtifactPosition::FIRST_AVAILABLE);
+	return true;
+}
+
+bool CGameHandler::sellArtifact(const IMarket *m, const CGHeroInstance *h, ArtifactInstanceID aid, GameResID rid)
+{
+	COMPLAIN_RET_FALSE_IF((!h), "Only hero can sell artifacts!");
+	const CArtifactInstance *art = h->getArtByInstanceId(aid);
+	COMPLAIN_RET_FALSE_IF((!art), "There is no artifact to sell!");
+	COMPLAIN_RET_FALSE_IF((!art->getType()->isTradable()), "Cannot sell a war machine or spellbook!");
+
+	int resVal = 0;
+	int dump = 1;
+	m->getOffer(art->getType()->getId(), rid, dump, resVal, EMarketMode::ARTIFACT_RESOURCE);
+
+	removeArtifact(ArtifactLocation(h->id, h->getArtPos(art)));
+	giveResource(h->tempOwner, rid, resVal);
+	return true;
+}
+
+bool CGameHandler::buySecSkill(const IMarket *m, const CGHeroInstance *h, SecondarySkill skill)
+{
+	if (!h)
+		COMPLAIN_RET("You need hero to buy a skill!");
+
+	if (h->getSecSkillLevel(SecondarySkill(skill)))
+		COMPLAIN_RET("Hero already know this skill");
+
+	if (!h->canLearnSkill())
+		COMPLAIN_RET("Hero can't learn any more skills");
+
+	if (!h->canLearnSkill(skill))
+		COMPLAIN_RET("The hero can't learn this skill!");
+
+	if (!vstd::contains(m->availableItemsIds(EMarketMode::RESOURCE_SKILL), skill))
+		COMPLAIN_RET("That skill is unavailable!");
+
+	int goldCost = gameInfo().getSettings().getInteger(EGameSettings::MARKETS_UNIVERSITY_GOLD_COST);
+
+	if (gameInfo().getResource(h->tempOwner, EGameResID::GOLD) < goldCost)
+		COMPLAIN_RET("You can't afford to buy this skill");
+
+	giveResource(h->tempOwner, EGameResID::GOLD, -goldCost);
+
+	changeSecSkill(h, skill, 1, ChangeValueMode::ABSOLUTE);
+	return true;
+}
+
+bool CGameHandler::tradeResources(const IMarket *market, ui32 amountToSell, PlayerColor player, GameResID toSell, GameResID toBuy)
+{
+	const auto & tradeableResources = market->availableItemsIds(EMarketMode::RESOURCE_RESOURCE);
+	if(!vstd::contains(tradeableResources, TradeItemBuy(toSell)) || !vstd::contains(tradeableResources, TradeItemBuy(toBuy)))
+		COMPLAIN_RET("Market does not trade this resource!");
+
+	TResourceCap haveToSell = gameInfo().getPlayerState(player)->resources[toSell];
+
+	vstd::amin(amountToSell, haveToSell); //can't trade more resources than have
+
+	int b1; //base quantities for trade
+	int b2;
+	market->getOffer(toSell, toBuy, b1, b2, EMarketMode::RESOURCE_RESOURCE);
+	int amountToBuy = amountToSell / b1; //how many base quantities we trade
+
+	if (amountToSell % b1 != 0) //all offered units of resource should be used, if not -> somewhere in calculations must be an error
+	{
+		COMPLAIN_RET("Invalid deal, not all offered units of resource were used.");
+	}
+
+	giveResource(player, toSell, -b1 * amountToBuy);
+	giveResource(player, toBuy, b2 * amountToBuy);
+
+	statistics->getPlayerAccumulator(player).tradeVolume[toSell] += -b1 * amountToBuy;
+	statistics->getPlayerAccumulator(player).tradeVolume[toBuy] += b2 * amountToBuy;
+
+	return true;
+}
+
+bool CGameHandler::sellCreatures(ui32 count, const IMarket *market, const CGHeroInstance * hero, SlotID slot, GameResID resourceID)
+{
+	if(!hero)
+		COMPLAIN_RET("Only hero can sell creatures!");
+	if (!vstd::contains(hero->Slots(), slot))
+		COMPLAIN_RET("Hero doesn't have any creature in that slot!");
+
+	if (!vstd::contains(market->availableItemsIds(EMarketMode::CREATURE_RESOURCE), TradeItemBuy(resourceID)))
+		COMPLAIN_RET("Market does not trade this resource!");
+
+	const CStackInstance &s = hero->getStack(slot);
+
+	if (count == 0
+		|| static_cast<ui32>(s.getCount()) < count //can't sell more creatures than have
+		|| (hero->stacksCount() == 1 && hero->needsLastStack() && s.getCount() == count)) //can't sell last stack
+	{
+		COMPLAIN_RET("Not enough creatures in army!");
+	}
+
+	int b1; //base quantities for trade
+	int b2;
+	market->getOffer(s.getId(), resourceID, b1, b2, EMarketMode::CREATURE_RESOURCE);
+	int units = count / b1; //how many base quantities we trade
+
+	if (count % b1 != 0) //all offered units should be used
+		COMPLAIN_RET("Invalid deal, not all offered units were used.");
+
+	changeStackCount(StackLocation(hero->id, slot), -static_cast<int>(count), ChangeValueMode::RELATIVE);
+
+	giveResource(hero->tempOwner, resourceID, b2 * units);
+
+	return true;
+}
+
+bool CGameHandler::transformInUndead(const IMarket *market, const CGHeroInstance * hero, SlotID slot)
+{
+	const CArmedInstance *army = nullptr;
+	if (hero)
+		army = hero;
+	else
+		army = dynamic_cast<const CGTownInstance *>(market);
+
+	if (!army)
+		COMPLAIN_RET("Incorrect call to transform in undead!");
+	if (!army->hasStackAtSlot(slot))
+		COMPLAIN_RET("Army doesn't have any creature in that slot!");
+
+
+	const CStackInstance &s = army->getStack(slot);
+
+	//resulting creature - bone dragons or skeletons
+	CreatureID resCreature = CreatureID::SKELETON;
+
+	auto customTargerBonus = s.getBonusesOfType(BonusType::SKELETON_TRANSFORMER_TARGET);
+	if (!customTargerBonus->empty())
+		resCreature = customTargerBonus->front()->subtype.as<CreatureID>();
+
+	changeStackType(StackLocation(army->id, slot), resCreature.toCreature());
+	return true;
+}
+
+bool CGameHandler::sendResources(ui32 val, PlayerColor player, GameResID r1, PlayerColor r2)
+{
+	COMPLAIN_RET_FALSE_IF(!vstd::contains(LIBRARY->resourceTypeHandler->getAllObjects(), r1), "No such resource!");
+
+	const PlayerState *p2 = gameInfo().tryGetPlayerState(r2);
+	if (!p2  ||  p2->status != EPlayerStatus::INGAME)
+	{
+		complain("Dest player must be in game!");
+		return false;
+	}
+
+	TResourceCap curRes1 = gameInfo().getPlayerState(player)->resources[r1];
+
+	vstd::amin(val, curRes1);
+
+	giveResource(player, r1, -static_cast<int>(val));
+	giveResource(r2, r1, val);
+
+	return true;
+}
+
+void CGameHandler::informPlayerAboutSentResources(PlayerColor player, PlayerColor playerReceiver, const ResourceSet & resources)
+{
+	InfoWindow iw;
+	iw.player = playerReceiver;
+	iw.text = MetaString::createFromTextID("core.genrltxt.358");
+	iw.text.replaceName(player);
+	for(const auto & [resource, amount] : resources)
+	{
+		if(amount > 0)
+			iw.components.emplace_back(ComponentType::RESOURCE, resource, amount);
+	}
+	sendAndApply(iw);
+}
+
+bool CGameHandler::setFormation(ObjectInstanceID hid, EArmyFormation formation)
+{
+	const CGHeroInstance *h = gameInfo().getHero(hid);
+	if (!h)
+	{
+		logGlobal->error("Hero doesn't exist!");
+		return false;
+	}
+
+	ChangeFormation cf;
+	cf.hid = hid;
+	cf.formation = formation;
+	sendAndApply(cf);
+
+	return true;
+}
+
+bool CGameHandler::setTactics(ObjectInstanceID hid, bool enabled)
+{
+	const CGHeroInstance *h = gameInfo().getHero(hid);
+	if (!h)
+	{
+		logGlobal->error("Hero doesn't exist!");
+		return false;
+	}
+
+	ChangeTactics ct;
+	ct.hid = hid;
+	ct.enabled = enabled;
+	sendAndApply(ct);
+
+	return true;
+}
+
+bool CGameHandler::setTownName(ObjectInstanceID tid, std::string & name)
+{
+	const CGTownInstance *t = gameInfo().getTown(tid);
+	if (!t)
+	{
+		logGlobal->error("Town doesn't exist!");
+		return false;
+	}
+
+	ChangeTownName ctn;
+	ctn.tid = tid;
+	ctn.name = name;
+	sendAndApply(ctn);
+
+	return true;
+}
+
+bool CGameHandler::answerQuestion(QuestionID questionID, std::optional<int32_t> answer, PlayerColor player)
+{
+	if (answer)
+		logGlobal->trace("Player %s answers activity %d with %d", player, questionID, *answer);
+	else
+		logGlobal->trace("Player %s answers activity %d with no value", player, questionID);
+
+	// The reply names a question id, not a stack position. The client can not know what the
+	// server pushed since it was asked, so a reply for an activity that is no longer on top
+	// is valid and is stored to be resolved later.
+	switch(activities->submitReply(questionID, player, answer))
+	{
+		case ReplyOutcome::Accepted:
+			return true;
+
+		// Nothing removes a question without its answer, so both mean that the client answered twice
+		case ReplyOutcome::IgnoredAlreadyCompleted:
+			complain(boost::str(boost::format("Player %s replied to question %d that is already resolved") % player.toString() % questionID));
+			return true;
+
+		case ReplyOutcome::IgnoredAlreadyAnswered:
+			complain(boost::str(boost::format("Player %s replied to question %d more than once") % player.toString() % questionID));
+			return true;
+
+		case ReplyOutcome::RejectedWrongPlayer:
+			logGlobal->warn("Player %s replied to activity %d that does not affect them!\nActivities:\n%s", player, questionID, activities->describeStacks());
+			COMPLAIN_RET("Attempt to answer an activity of another player!");
+
+		case ReplyOutcome::RejectedMissingAnswer:
+			logGlobal->warn("Player %s replied to activity %d without an answer!\nActivities:\n%s", player, questionID, activities->describeStacks());
+			COMPLAIN_RET("This activity needs an answer!");
+
+		case ReplyOutcome::RejectedInvalidAnswer:
+			logGlobal->warn("Player %s replied to activity %d with an answer it was not offered!\nActivities:\n%s", player, questionID, activities->describeStacks());
+			COMPLAIN_RET("This answer was not offered!");
+
+		case ReplyOutcome::RejectedNotAnswerable:
+			logGlobal->warn("Player %s replied to activity %d that cannot be ended by an answer!\nActivities:\n%s", player, questionID, activities->describeStacks());
+			COMPLAIN_RET("This activity cannot be ended by player's answer!");
+
+		case ReplyOutcome::RejectedUnknownActivity:
+		default:
+			logGlobal->error("Player %s replied to unknown activity %d!\nActivities:\n%s", player, questionID, activities->describeStacks());
+			COMPLAIN_RET("Attempt to answer an activity that does not exist!");
+	}
+}
+
+bool CGameHandler::complain(const std::string &problem)
+{
+#ifndef ENABLE_GOLDMASTER
+	MetaString str;
+	str.appendTextID("vcmi.broadcast.serverProblem");
+	str.appendRawString(": ");
+	str.appendRawString(problem);
+	playerMessages->broadcastSystemMessage(str);
+#endif
+	logGlobal->error(problem);
+	return true;
+}
+
+void CGameHandler::showGarrisonDialog(ObjectInstanceID upobj, ObjectInstanceID hid, const MetaString & customTitle)
+{
+	const auto * upperArmy = dynamic_cast<const CArmedInstance*>(gameInfo().getObj(upobj));
+	const auto * lowerArmy = dynamic_cast<const CArmedInstance*>(gameInfo().getObj(hid));
+
+	assert(lowerArmy);
+	assert(upperArmy);
+
+	// The client shows the window only to the owner of the hero
+	auto garrisonActivity = std::make_shared<GarrisonDialogActivity>(this, lowerArmy->getOwner(), upperArmy, lowerArmy);
+	activities->addActivity(garrisonActivity);
+
+	GarrisonDialog gd;
+	gd.hid = hid;
+	gd.objid = upobj;
+	gd.customTitle = customTitle;
+	gd.questionID = garrisonActivity->askQuestion();
+	sendAndApply(gd);
+}
+
+void CGameHandler::showObjectWindow(const CGObjectInstance * object, EOpenWindowMode window, const CGHeroInstance * visitor, bool addActivity)
+{
+	OpenWindow pack;
+	pack.window = window;
+	pack.object = object->id;
+	pack.visitor = visitor->id;
+
+	if (addActivity)
+	{
+		auto windowActivity = std::make_shared<OpenWindowActivity>(this, visitor, window);
+		pack.questionID = windowActivity->askQuestion();
+		activities->addActivity(windowActivity);
+	}
+	sendAndApply(pack);
+}
+
+bool CGameHandler::isInGarrisonDialog(PlayerColor player, ObjectInstanceID army)
+{
+	const auto * exchange = activities->activityAs<GarrisonDialogActivity>(activities->topActivity(player));
+	return exchange && (army == exchange->exchangingArmies.at(0)->id || army == exchange->exchangingArmies.at(1)->id);
+}
+
+bool CGameHandler::canTakeTroopsFrom(PlayerColor player, const CArmedInstance * army)
+{
+	if (!army)
+		return false;
+
+	if (army->tempOwner == player)
+		return true;
+
+	// units left by a reward or a joining monster have no owner and are taken through the garrison window;
+	// armies of other players, allies included, only accept units
+	return army->tempOwner == PlayerColor::UNFLAGGABLE && isInGarrisonDialog(player, army->id);
+}
+
+bool CGameHandler::isAllowedExchange(PlayerColor player, ObjectInstanceID id1, ObjectInstanceID id2)
+{
+	// An exchange window lets everyone in it trade between its two armies, even an ally
+	// whose turn it is not
+	if(isInGarrisonDialog(player, id1) && isInGarrisonDialog(player, id2))
+		return true;
+
+	// Anything else needs no window, but only the acting player may do it
+	if(!vstd::contains(gs->actingPlayers, player))
+		return false;
+
+	if (id1 == id2)
+		return true;
+
+	const CGObjectInstance *o1 = gameInfo().tryGetObj(id1);
+	const CGObjectInstance *o2 = gameInfo().tryGetObj(id2);
+	if (!o1 || !o2)
+		return false;
+
+	if (o1->ID == Obj::TOWN)
+	{
+		const auto *t = dynamic_cast<const CGTownInstance*>(o1);
+		if (t->getVisitingHero() == o2  ||  t->getGarrisonHero() == o2)
+			return true;
+	}
+	if (o2->ID == Obj::TOWN)
+	{
+		const auto *t = dynamic_cast<const CGTownInstance*>(o2);
+		if (t->getVisitingHero() == o1  ||  t->getGarrisonHero() == o1)
+			return true;
+	}
+
+	const auto * market = gameState().getMarket(id1);
+	if(market == nullptr)
+		market = gameState().getMarket(id2);
+	if(market)
+		return market->allowsTrade(EMarketMode::ARTIFACT_EXP);
+
+	if (o1->ID == Obj::HERO && o2->ID == Obj::HERO)
+	{
+		const auto *h1 = dynamic_cast<const CGHeroInstance*>(o1);
+		const auto *h2 = dynamic_cast<const CGHeroInstance*>(o2);
+
+		// two heroes in same town (garrisoned and visiting)
+		if (h1->getVisitedTown() != nullptr && h2->getVisitedTown() != nullptr && h1->getVisitedTown() == h2->getVisitedTown())
+			return true;
+	}
+
+	return false;
+}
+
+void CGameHandler::objectVisited(const CGObjectInstance * visitedObject, const CGHeroInstance * h)
+{
+	using events::ObjectVisitStarted;
+
+	logGlobal->debug("%s visits %s (%d)", h->nodeName(), visitedObject->getObjectNameTextID(), visitedObject->ID);
+
+	if (getVisitingHero(visitedObject) != nullptr)
+	{
+		logGlobal->error("Attempt to visit object that is being visited by another hero!");
+		throw std::runtime_error("Can not visit object that is being visited");
+	}
+
+	if(visitedObject->ID == Obj::HERO)
+	{
+		const auto * visitedHero = dynamic_cast<const CGHeroInstance *>(visitedObject);
+		const auto * visitedTown = visitedHero->getVisitedTown();
+
+		if(visitedTown)
+		{
+			const bool isEnemy = gameInfo().getPlayerRelations(visitedHero->getOwner(), h->getOwner()) == PlayerRelations::ENEMIES;
+
+			if(isEnemy && !visitedTown->isBattleOutsideTown(visitedHero))
+				visitedObject = visitedTown;
+		}
+	}
+
+	// The visit runs as a routine: it starts the visit, passes control to the object, and
+	// finishes once the object and everything that it started are done.
+	activities->addActivity(std::make_shared<MapObjectVisitActivity>(this, visitedObject, h)); //TODO real visit pos
+}
+
+void CGameHandler::objectVisitEnded(const ObjectInstanceID & heroObjectID, PlayerColor player)
+{
+	HeroVisit hv;
+	hv.player = player;
+	hv.heroId = heroObjectID;
+	hv.starting = false;
+	sendAndApply(hv);
+}
+
+bool CGameHandler::buildBoat(ObjectInstanceID objid, PlayerColor playerID)
+{
+	const auto *obj = dynamic_cast<const IShipyard *>(gameInfo().getObj(objid));
+
+	if (obj->shipyardStatus() != IBoatGenerator::GOOD)
+	{
+		complain("Cannot build boat in this shipyard!");
+		return false;
+	}
+
+	TResources boatCost;
+	obj->getBoatCost(boatCost);
+	TResources available = gameInfo().getPlayerState(playerID)->resources;
+
+	if (!available.canAfford(boatCost))
+	{
+		complain("Not enough resources to build a boat!");
+		return false;
+	}
+
+	int3 tile = obj->bestLocation();
+	if (!gameState().getMap().isInTheMap(tile))
+	{
+		complain("Cannot find appropriate tile for a boat!");
+		return false;
+	}
+
+	giveResources(playerID, -boatCost);
+	createBoat(tile, obj->getBoatType(), playerID);
+	return true;
+}
+
+void CGameHandler::checkVictoryLossConditions(const std::set<PlayerColor> & playerColors)
+{
+	for (auto playerColor : playerColors)
+	{
+		if (gameInfo().tryGetPlayerState(playerColor))
+			checkVictoryLossConditionsForPlayer(playerColor);
+	}
+}
+
+void CGameHandler::checkVictoryLossConditionsForAll()
+{
+	std::set<PlayerColor> playerColors;
+	for (int i = 0; i < PlayerColor::PLAYER_LIMIT_I; ++i)
+	{
+		playerColors.insert(PlayerColor(i));
+	}
+	checkVictoryLossConditions(playerColors);
+}
+
+void CGameHandler::checkVictoryLossConditionsForPlayer(PlayerColor player)
+{
+	const PlayerState * p = gameInfo().tryGetPlayerState(player);
+
+	if(!p || p->status != EPlayerStatus::INGAME)
+		return;
+
+	if(activities->topActivity(player))
+		return;
+
+	if(gameState().getMap().battleOnly)
+	{
+		for(const auto & playerIt : gameState().players)
+		{
+			PlayerEndsGame peg;
+			peg.player = playerIt.first;
+			peg.silentEnd = true;
+			sendAndApply(peg);
+		}
+		gameServer().setState(EServerState::SHUTDOWN);
+		return;
+	}
+
+	auto victoryLossCheckResult = gameState().checkForVictoryAndLoss(player);
+
+	if (victoryLossCheckResult.victory() || victoryLossCheckResult.loss())
+	{
+		InfoWindow iw;
+		getVictoryLossMessage(player, victoryLossCheckResult, iw);
+		sendAndApply(iw);
+
+		PlayerEndsGame peg;
+		peg.player = player;
+		peg.victoryLossCheckResult = victoryLossCheckResult;
+		peg.statistic = *statistics;
+		addStatistics(peg.statistic); // add last turn befor win / loss
+		sendAndApply(peg);
+
+		turnOrder->removePlayer(player);
+
+		if (victoryLossCheckResult.victory())
+		{
+			//one player won -> all enemies lost
+			for (const auto & playerIt : gameState().players)
+			{
+				if (playerIt.first != player && gameInfo().getPlayerState(playerIt.first)->status == EPlayerStatus::INGAME)
+				{
+					peg.player = playerIt.first;
+					peg.victoryLossCheckResult = gameInfo().getPlayerRelations(player, playerIt.first) == PlayerRelations::ALLIES ?
+								victoryLossCheckResult : victoryLossCheckResult.invert(); // ally of winner
+
+					InfoWindow iwOthers;
+					getVictoryLossMessage(player, peg.victoryLossCheckResult, iwOthers);
+					iwOthers.player = playerIt.first;
+
+					sendAndApply(iwOthers);
+					sendAndApply(peg);
+				}
+			}
+
+			if(p->human)
+			{
+				gameServer().setState(EServerState::SHUTDOWN);
+			}
+		}
+		else
+		{
+			//copy heroes vector to avoid iterator invalidation as removal change PlayerState
+			auto hlp = p->getHeroes();
+			for (const auto * h : hlp) //eliminate heroes
+			{
+				if (h)
+					removeObject(h, player);
+			}
+
+			//player lost -> all his objects become unflagged (neutral)
+			for (const auto * obj : gameState().getMap().getObjects()) //unflag objs
+			{
+				if (obj && obj->tempOwner == player)
+					setOwner(obj, PlayerColor::NEUTRAL);
+			}
+
+			//eliminating one player may cause victory of another:
+			std::set<PlayerColor> playerColors;
+
+			//do not copy player state (CBonusSystemNode) by value
+			for (const auto &playerState : gameState().players) //players may have different colors, iterate over players and not integers
+			{
+				if (playerState.first != player)
+					playerColors.insert(playerState.first);
+			}
+
+			//notify all players
+			for (auto pc : playerColors)
+			{
+				if (gameInfo().getPlayerState(pc)->status == EPlayerStatus::INGAME)
+				{
+					InfoWindow iwOthers;
+					getVictoryLossMessage(player, victoryLossCheckResult.invert(), iwOthers);
+					iwOthers.player = pc;
+					sendAndApply(iwOthers);
+				}
+			}
+			checkVictoryLossConditions(playerColors);
+
+			bool hasAlivePlayers = false;
+			for (auto pc : playerColors)
+				if (gameInfo().getPlayerState(pc)->status == EPlayerStatus::INGAME)
+					hasAlivePlayers = true;
+
+			// everyone lost (e.g. time runs out)
+			if (!hasAlivePlayers)
+				gameServer().setState(EServerState::SHUTDOWN);
+
+			// give turn to next player(s)
+			// FIXME: this may cause multiple calls to resumeTurnOrder if multiple players lose in chain reaction
+			if(gameServer().getState() != EServerState::SHUTDOWN)
+				turnOrder->resumeTurnOrder();
+		}
+	}
+}
+
+void CGameHandler::getVictoryLossMessage(PlayerColor player, const EVictoryLossCheckResult & victoryLossCheckResult, InfoWindow & out) const
+{
+	out.player = player;
+	out.text = victoryLossCheckResult.messageToSelf;
+	out.text.replaceName(player);
+	out.components.emplace_back(ComponentType::FLAG, player);
+}
+
+bool CGameHandler::dig(const CGHeroInstance *h)
+{
+	if (h->diggingStatus() != EDiggingStatus::CAN_DIG) //checks for terrain and movement
+		COMPLAIN_RETF("Hero cannot dig (error code %d)!", static_cast<int>(h->diggingStatus()));
+
+	createHole(h->visitablePos(), h->getOwner());
+
+	//take MPs
+	SetMovePoints smp;
+	smp.hid = h->id;
+	smp.val = 0;
+	sendAndApply(smp);
+
+	InfoWindow iw;
+	iw.type = EInfoWindowMode::AUTO;
+	iw.player = h->tempOwner;
+	if (gameState().getMap().grailPos == h->visitablePos())
+	{
+		ArtifactID grail = ArtifactID::GRAIL;
+
+		iw.text.appendTextID("core.genrltxt.58"); //"Congratulations! After spending many hours digging here, your hero has uncovered the " ...
+		iw.text.appendName(grail); // ... " The Grail"
+		iw.soundID = soundBase::ULTIMATEARTIFACT;
+		giveHeroNewArtifact(h, grail, ArtifactPosition::FIRST_AVAILABLE); //give grail
+		sendAndApply(iw);
+
+		iw.soundID = soundBase::invalid;
+		iw.components.emplace_back(ComponentType::ARTIFACT, grail);
+		iw.text.clear();
+		iw.text.appendTextID(grail.toArtifact()->getDescriptionTextID());
+		sendAndApply(iw);
+	}
+	else
+	{
+		iw.text.appendTextID("core.genrltxt.59"); //"Nothing here. \n Where could it be?"
+		iw.soundID = soundBase::Dig;
+		sendAndApply(iw);
+	}
+
+	return true;
+}
+
+void CGameHandler::visitObjectOnTile(const TerrainTile &t, const CGHeroInstance * h)
+{
+	const ObjectInstanceID objectID = t.objectVisitedBy(h->id);
+	if (objectID.hasValue())
+		objectVisited(gameState().getObjInstance(objectID), h);
+}
+
+bool CGameHandler::sacrificeCreatures(const IMarket * market, const CGHeroInstance * hero, const std::vector<SlotID> & slot, const std::vector<ui32> & count)
+{
+	if (!hero)
+		COMPLAIN_RET("You need hero to sacrifice creature!");
+
+	int expSum = 0;
+	auto finish = [this, &hero, &expSum]()
+	{
+		giveExperience(hero, hero->calculateXp(expSum));
+	};
+
+	for(int i = 0; i < slot.size(); ++i)
+	{
+		int oldCount = hero->getStackCount(slot[i]);
+
+		if(count[i] == 0 || static_cast<ui32>(oldCount) < count[i])
+		{
+			finish();
+			COMPLAIN_RET("Not enough creatures to sacrifice!")
+		}
+		else if(oldCount == count[i] && hero->stacksCount() == 1 && hero->needsLastStack())
+		{
+			finish();
+			COMPLAIN_RET("Cannot sacrifice last creature!");
+		}
+
+		int crid = hero->getStack(slot[i]).getId();
+
+		changeStackCount(StackLocation(hero->id, slot[i]), -(TQuantity)count[i], ChangeValueMode::RELATIVE);
+
+		int dump;
+		int exp;
+		market->getOffer(crid, 0, dump, exp, EMarketMode::CREATURE_EXP);
+		exp *= count[i];
+		expSum += exp;
+	}
+
+	finish();
+
+	return true;
+}
+
+bool CGameHandler::sacrificeArtifact(const IMarket * market, const CGHeroInstance * hero, const std::vector<ArtifactInstanceID> & arts)
+{
+	if (!hero)
+		COMPLAIN_RET("You need hero to sacrifice artifact!");
+	if(hero->getAlignment() == EAlignment::EVIL)
+		COMPLAIN_RET("Evil hero can't sacrifice artifact!");
+
+	assert(market);
+	const auto * artSet = market->getArtifactsStorage();
+
+	int expSum = 0;
+	std::vector<ArtifactPosition> artPack;
+	auto finish = [this, &hero, &expSum, &artPack, market]()
+	{
+		removeArtifact(market->getObjInstanceID(), artPack);
+		giveExperience(hero, hero->calculateXp(expSum));
+	};
+
+	for(const auto & artInstId : arts)
+	{
+		if(const auto * art = artSet->getArtByInstanceId(artInstId))
+		{
+			if(art->getType()->isTradable())
+			{
+				int dmp;
+				int expToGive;
+				market->getOffer(art->getTypeId(), 0, dmp, expToGive, EMarketMode::ARTIFACT_EXP);
+				expSum += expToGive;
+				artPack.push_back(artSet->getArtPos(art));
+			}
+			else
+			{
+				COMPLAIN_RET("Cannot sacrifice not tradable artifact!");
+			}
+		}
+		else
+		{
+			finish();
+			COMPLAIN_RET("Cannot find artifact to sacrifice!");
+		}
+	}
+
+	finish();
+
+	return true;
+}
+
+bool CGameHandler::insertNewStack(const StackLocation &sl, const CCreature *c, TQuantity count)
+{
+	const auto * army = getArmyOrThrow(sl.army, "insertNewStack");
+
+	if (!sl.slot.validSlot() || army->hasStackAtSlot(sl.slot))
+		throw std::runtime_error("insertNewStack: slot " + std::to_string(sl.slot.getNum()) + " of " + army->describeArmy() + " is not available");
+
+	if (!c || count <= 0)
+		throw std::runtime_error("insertNewStack: can not insert " + std::to_string(count) + " units into " + army->describeArmy());
+
+	InsertNewStack ins;
+	ins.army = army->id;
+	ins.slot = sl.slot;
+	ins.type = c->getId();
+	ins.count = count;
+	sendAndApply(ins);
+	return true;
+}
+
+bool CGameHandler::eraseStack(const StackLocation &sl, bool forceRemoval)
+{
+	const auto * army = getArmyOrThrow(sl.army, "eraseStack");
+
+	if (!army->hasStackAtSlot(sl.slot))
+		throw std::runtime_error("eraseStack: " + army->describeArmy() + " has no stack at slot " + std::to_string(sl.slot.getNum()));
+
+	if (army->stacksCount() == 1 //from the last stack
+		&& army->needsLastStack() //that must be left
+		&& !forceRemoval) //ignore above conditions if we are forcing removal
+	{
+		COMPLAIN_RET("Cannot erase the last stack!");
+	}
+
+	EraseStack es;
+	es.army = army->id;
+	es.slot = sl.slot;
+	sendAndApply(es);
+	return true;
+}
+
+bool CGameHandler::changeStackCount(const StackLocation &sl, TQuantity count, ChangeValueMode mode)
+{
+	const auto * army = getArmyOrThrow(sl.army, "changeStackCount");
+
+	if (!army->hasStackAtSlot(sl.slot))
+		throw std::runtime_error("changeStackCount: " + army->describeArmy() + " has no stack at slot " + std::to_string(sl.slot.getNum()));
+
+	TQuantity currentCount = army->getStackCount(sl.slot);
+	if ((mode == ChangeValueMode::ABSOLUTE && count < 0)
+		|| (mode == ChangeValueMode::RELATIVE && -count > currentCount))
+	{
+		throw std::runtime_error("changeStackCount: cannot set " + std::to_string(currentCount) + " units at slot " + std::to_string(sl.slot.getNum()) + " of " + army->describeArmy() + " to " + std::to_string(count));
+	}
+
+	if ((currentCount == -count  &&  mode == ChangeValueMode::RELATIVE)
+	   || (count == 0 && mode == ChangeValueMode::ABSOLUTE))
+	{
+		return eraseStack(sl);
+	}
+	else
+	{
+		ChangeStackCount csc;
+		csc.army = army->id;
+		csc.slot = sl.slot;
+		csc.count = count;
+		csc.mode = mode;
+		sendAndApply(csc);
+	}
+	return true;
+}
+
+bool CGameHandler::addToSlot(const StackLocation &sl, const CCreature *c, TQuantity count)
+{
+	const auto * army = getArmyOrThrow(sl.army, "addToSlot");
+
+	const CCreature *slotC = army->getCreature(sl.slot);
+	if (!slotC) //slot is empty
+		return insertNewStack(sl, c, count);
+
+	if (c != slotC)
+		throw std::runtime_error("addToSlot: cannot add " + c->getJsonKey() + " to slot " + std::to_string(sl.slot.getNum()) + " of " + army->describeArmy() + " that has " + slotC->getJsonKey());
+
+	return changeStackCount(sl, count, ChangeValueMode::RELATIVE);
+}
+
+void CGameHandler::tryJoiningArmy(const CArmedInstance *src, const CArmedInstance *dst, bool removeObjWhenFinished, bool allowMerging)
+{
+	if (removeObjWhenFinished)
+		removeAfterVisit(src->id);
+
+	if (!src->canBeMergedWith(*dst, allowMerging))
+	{
+		if (allowMerging) //do that, add all matching creatures.
+		{
+			bool cont = true;
+			while (cont)
+			{
+				for (auto i = src->stacks.begin(); i != src->stacks.end(); i++)//while there are unmoved creatures
+				{
+					SlotID pos = dst->getSlotFor(i->second->getCreature());
+					if (pos.validSlot())
+					{
+						moveStack(StackLocation(src->id, i->first), StackLocation(dst->id, pos));
+						cont = true;
+						break; //or iterator crashes
+					}
+					cont = false;
+				}
+			}
+		}
+		showGarrisonDialog(src->id, dst->id, MetaString()); //show garrison window and optionally remove ourselves from map when player ends
+	}
+	else //merge
+	{
+		moveArmy(src, dst, allowMerging);
+	}
+}
+
+bool CGameHandler::moveStack(const StackLocation &src, const StackLocation &dst, TQuantity count)
+{
+	const auto * srcArmy = getArmyOrThrow(src.army, "moveStack");
+	const auto * dstArmy = getArmyOrThrow(dst.army, "moveStack");
+
+	const auto describe = [&](const std::string & problem)
+	{
+		return "moveStack: " + std::to_string(count) + " units from slot " + std::to_string(src.slot.getNum()) + " of " + srcArmy->describeArmy()
+			+ " to slot " + std::to_string(dst.slot.getNum()) + " of " + dstArmy->describeArmy() + ": " + problem;
+	};
+
+	if (!srcArmy->hasStackAtSlot(src.slot))
+		throw std::runtime_error(describe("no stack to move"));
+
+	if (!dst.slot.validSlot() || (srcArmy == dstArmy && src.slot == dst.slot))
+		throw std::runtime_error(describe("invalid destination"));
+
+	if (dstArmy->hasStackAtSlot(dst.slot) && dstArmy->getCreature(dst.slot) != srcArmy->getCreature(src.slot))
+		throw std::runtime_error(describe("stack of different type at destination"));
+
+	if (count == -1)
+		count = srcArmy->getStackCount(src.slot);
+
+	if (count <= 0 || count > srcArmy->getStackCount(src.slot))
+		throw std::runtime_error(describe("invalid amount"));
+
+	if (srcArmy != dstArmy  //moving away
+		&&  count == srcArmy->getStackCount(src.slot) //all creatures
+		&& srcArmy->stacksCount() == 1 //from the last stack
+		&& srcArmy->needsLastStack()) //that must be left
+	{
+		COMPLAIN_RET("Cannot move away the last creature!");
+	}
+
+	RebalanceStacks rs;
+	rs.srcArmy = srcArmy->id;
+	rs.dstArmy = dstArmy->id;
+	rs.srcSlot = src.slot;
+	rs.dstSlot = dst.slot;
+	rs.count = count;
+	sendAndApply(rs);
+	return true;
+}
+
+void CGameHandler::castSpell(const spells::Caster * caster, SpellID spellID, const int3 &pos)
+{
+	if (!spellID.hasValue())
+		return;
+
+	AdventureSpellCastParameters p;
+	p.caster = caster;
+	p.pos = pos;
+
+	const CSpell * s = spellID.toSpell();
+	s->adventureCast(spellEnv.get(), p);
+
+	// FIXME: hack to avoid attempts to use charges when spell is casted externally
+	// For example, town gates map object in hota/wog
+	// Proper fix would be to instead spend charges similar to existing caster::spendMana call
+	if (dynamic_cast<const spells::ExternalCaster*>(caster) == nullptr)
+	{
+		if(const auto * hero = caster->getHeroCaster())
+			useChargeBasedSpell(hero->id, spellID);
+	}
+}
+
+bool CGameHandler::swapStacks(const StackLocation & sl1, const StackLocation & sl2)
+{
+	const auto * army1 = getArmyOrThrow(sl1.army, "swapStacks");
+	const auto * army2 = getArmyOrThrow(sl2.army, "swapStacks");
+
+	if (army1 == army2 && sl1.slot == sl2.slot)
+		throw std::runtime_error("swapStacks: cannot swap slot " + std::to_string(sl1.slot.getNum()) + " of " + army1->describeArmy() + " with itself");
+
+	if(!army1->hasStackAtSlot(sl1.slot))
+	{
+		return moveStack(sl2, sl1);
+	}
+	else if(!army2->hasStackAtSlot(sl2.slot))
+	{
+		return moveStack(sl1, sl2);
+	}
+	else
+	{
+		SwapStacks ss;
+		ss.srcArmy = army1->id;
+		ss.dstArmy = army2->id;
+		ss.srcSlot = sl1.slot;
+		ss.dstSlot = sl2.slot;
+		sendAndApply(ss);
+		return true;
+	}
+}
+
+bool CGameHandler::putArtifact(const ArtifactLocation & al, const ArtifactInstanceID & id, std::optional<bool> askAssemble)
+{
+	const auto * artInst = gameInfo().getArtInstance(id);
+	assert(artInst && artInst->getType());
+	ArtifactLocation dst(al.artHolder, ArtifactPosition::PRE_FIRST);
+	dst.creature = al.creature;
+	const auto * putTo = gameState().getArtSet(al);
+	assert(putTo);
+
+	if(al.slot == ArtifactPosition::FIRST_AVAILABLE)
+	{
+		dst.slot = ArtifactUtils::getArtAnyPosition(putTo, artInst->getTypeId());
+	}
+	else if(ArtifactUtils::isSlotBackpack(al.slot) && !al.creature.has_value())
+	{
+		dst.slot = ArtifactUtils::getArtBackpackPosition(putTo, artInst->getTypeId());
+	}
+	else
+	{
+		dst.slot = al.slot;
+	}
+
+	if(!askAssemble.has_value())
+	{
+		if(!dst.creature.has_value() && ArtifactUtils::isSlotEquipment(dst.slot))
+			askAssemble = true;
+		else
+			askAssemble = false;
+	}
+
+	if(artInst->canBePutAt(putTo, dst.slot))
+	{
+		const auto * hero = gameInfo().getHero(dst.artHolder);
+		if(ArtifactUtils::checkSpellbookIsNeeded(hero, artInst->getTypeId(), dst.slot))
+			giveHeroNewArtifact(hero, ArtifactID::SPELLBOOK, ArtifactPosition::SPELLBOOK);
+
+		PutArtifact pa(id, dst, askAssemble.value());
+		sendAndApply(pa);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool CGameHandler::giveHeroNewArtifact(
+	const CGHeroInstance * h, const CArtifact * artType, const SpellID & spellId, const ArtifactPosition & pos)
+{
+	assert(artType);
+
+	NewArtifact na;
+	na.artHolder = h->id;
+	na.artId = artType->getId();
+	na.spellId = spellId;
+	na.pos = pos;
+
+	if(pos == ArtifactPosition::FIRST_AVAILABLE)
+	{
+		na.pos = ArtifactUtils::getArtAnyPosition(h, artType->getId());
+		// e.g. rewarded war machine that hero already has - lost, like grail in battle loot
+		if(!artType->canBePutAt(h, na.pos))
+		{
+			logGlobal->debug("Hero %s has no slot for artifact %s, artifact is lost", h->getNameTextID(), artType->getJsonKey());
+			return false;
+		}
+	}
+	else if(ArtifactUtils::isSlotBackpack(pos))
+	{
+		if(!artType->canBePutAt(h, ArtifactUtils::getArtBackpackPosition(h, artType->getId())))
+			COMPLAIN_RET("Cannot put artifact in that slot!");
+	}
+	else
+	{
+		COMPLAIN_RET_FALSE_IF(!artType->canBePutAt(h, pos, false), "Cannot put artifact in that slot!");
+	}
+	if(ArtifactUtils::checkSpellbookIsNeeded(h, artType->getId(), na.pos))
+		giveHeroNewArtifact(h, ArtifactID::SPELLBOOK, ArtifactPosition::SPELLBOOK);
+
+	sendAndApply(na);
+	return true;
+}
+
+bool CGameHandler::giveHeroNewArtifact(const CGHeroInstance * h, const ArtifactID & artId, const ArtifactPosition & pos)
+{
+	return giveHeroNewArtifact(h, artId.toArtifact(), SpellID::NONE, pos);
+}
+
+bool CGameHandler::giveHeroNewScroll(const CGHeroInstance * h, const SpellID & spellId, const ArtifactPosition & pos)
+{
+	return giveHeroNewArtifact(h, ArtifactID(ArtifactID::SPELL_SCROLL).toArtifact(), spellId, pos);
+}
+
+void CGameHandler::spawnWanderingMonsters(CreatureID creatureID)
+{
+	std::vector<int3>::iterator tile;
+	std::vector<int3> tiles;
+	gameState().getFreeTiles(tiles, true);
+	ui32 amount = tiles.size() / 200; //Chance is 0.5% for each tile
+
+	RandomGeneratorUtil::randomShuffle(tiles, getRandomGenerator());
+	logGlobal->trace("Spawning wandering monsters. Found %d free tiles. Creature type: %d", tiles.size(), creatureID.num);
+	const CCreature *cre = creatureID.toCreature();
+	for (int i = 0; i < amount; ++i)
+	{
+		tile = tiles.begin();
+		logGlobal->trace("\tSpawning monster at %s", tile->toString());
+		auto count = cre->getRandomAmount(getRandomGenerator());
+		createWanderingMonster(*tile, creatureID, count);
+		tiles.erase(tile); //not use it again
+	}
+}
+
+bool CGameHandler::isBlockedByActivities(const CPackForServer *pack, PlayerColor player)
+{
+	if(!player.isValidPlayer())
+		return false;
+
+	if (dynamic_cast<const PlayerMessage *>(pack) != nullptr)
+		return false;
+
+	if (dynamic_cast<const SaveLocalState *>(pack) != nullptr)
+		return false;
+
+	auto activity = activities->topActivity(player);
+	if (activity && activity->blocksPack(pack))
+	{
+		complain(boost::str(boost::format(
+			"\r\n| Player \"%s\" has to answer activities before attempting any further actions.\r\n| Top Activity: \"%s\"\r\n")
+			% boost::to_upper_copy<std::string>(player.toString())
+			% activity->toString()
+		));
+		return true;
+	}
+
+	return false;
+}
+
+void CGameHandler::removeAfterVisit(const ObjectInstanceID & id)
+{
+	//If the object is being visited, there must be a matching activity
+	auto * visit = activities->findVisit(id);
+	if(!visit)
+		throw std::runtime_error("This function needs to be called during the object visit!");
+
+	visit->removeObjectAfterVisit = true;
+}
+
+bool CGameHandler::isObjectBeingVisited(const ObjectInstanceID & id) const
+{
+	return activities->findVisit(id) != nullptr;
+}
+
+void CGameHandler::changeFogOfWar(int3 center, ui32 radius, PlayerColor player, ETileVisibility mode)
+{
+	FowTilesType tiles;
+
+	if (mode == ETileVisibility::HIDDEN)
+	{
+		gameInfo().getTilesInRange(tiles, center, radius, ETileVisibility::REVEALED, player);
+	}
+	else
+	{
+		gameInfo().getTilesInRange(tiles, center, radius, ETileVisibility::HIDDEN, player);
+	}
+	changeFogOfWar(tiles, player, mode);
+}
+
+void CGameHandler::changeFogOfWar(const FowTilesType &tiles, PlayerColor player, ETileVisibility mode)
+{
+	if (tiles.empty())
+		return;
+
+	FoWChange fow;
+	fow.tiles = tiles;
+	fow.player = player;
+	fow.mode = mode;
+
+	if (mode == ETileVisibility::HIDDEN)
+	{
+		// do not hide tiles observed by owned objects. May lead to disastrous AI problems
+		FowTilesType observedTiles;
+		const auto * p = gameInfo().getPlayerState(player);
+		for (const auto * obj : p->getOwnedObjects())
+			gameInfo().getTilesInRange(observedTiles, obj->getSightCenter(), obj->getSightRadius(), ETileVisibility::REVEALED, obj->getOwner());
+
+		for (auto tile : observedTiles)
+			vstd::erase_if_present (fow.tiles, tile);
+	}
+
+	if (!fow.tiles.empty())
+		sendAndApply(fow);
+}
+
+const CGHeroInstance * CGameHandler::getVisitingHero(const CGObjectInstance *obj)
+{
+	assert(obj);
+
+	const auto * visit = activities->findVisit(obj->id);
+	return visit ? gameInfo().getHero(visit->visitingHero) : nullptr;
+}
+
+void CGameHandler::setObjPropertyValue(ObjectInstanceID objid, ObjProperty prop, int32_t value)
+{
+	SetObjectProperty sob;
+	sob.id = objid;
+	sob.what = prop;
+	sob.identifier = NumericID(value);
+	sendAndApply(sob);
+}
+
+void CGameHandler::setObjPropertyID(ObjectInstanceID objid, ObjProperty prop, ObjPropertyID identifier)
+{
+	SetObjectProperty sob;
+	sob.id = objid;
+	sob.what = prop;
+	sob.identifier = identifier;
+	sendAndApply(sob);
+}
+
+void CGameHandler::setRewardableObjectConfiguration(ObjectInstanceID objid, const Rewardable::Configuration & configuration)
+{
+	SetRewardableConfiguration srb;
+	srb.objectID = objid;
+	srb.configuration = configuration;
+	sendAndApply(srb);
+}
+
+void CGameHandler::setRewardableObjectConfiguration(ObjectInstanceID townInstanceID, BuildingID buildingID, const Rewardable::Configuration & configuration)
+{
+	SetRewardableConfiguration srb;
+	srb.objectID = townInstanceID;
+	srb.buildingID = buildingID;
+	srb.configuration = configuration;
+	sendAndApply(srb);
+}
+
+void CGameHandler::showInfoDialog(InfoWindow * iw)
+{
+	sendAndApply(*iw);
+}
+
+vstd::RNG & CGameHandler::getRandomGenerator()
+{
+	return randomizer->getDefault();
+}
+
+std::shared_ptr<CGObjectInstance> CGameHandler::createNewObject(const int3 & visitablePosition, MapObjectID objectID, MapObjectSubID subID)
+{
+	TerrainId terrainType = ETerrainId::NONE;
+
+	if (!gameState().isInTheMap(visitablePosition))
+		throw std::runtime_error("Attempt to create object outside map at " + visitablePosition.toString());
+
+	const TerrainTile & t = gameState().getMap().getTile(visitablePosition);
+	terrainType = t.getTerrainID();
+
+	auto handler = LIBRARY->objtypeh->getHandlerFor(objectID, subID);
+
+	auto o = handler->create(&gameInfo(), nullptr);
+	handler->configureObject(o.get(), *randomizer);
+	assert(o->ID == objectID);
+	gs->getMap().generateUniqueInstanceName(o.get());
+
+	assert(!handler->getTemplates(terrainType).empty());
+	if (handler->getTemplates().empty())
+		throw std::runtime_error("Attempt to create object (" + std::to_string(objectID) + ", " + std::to_string(subID.getNum()) + ") with no templates!");
+
+	if (!handler->getTemplates(terrainType).empty())
+		o->appearance = handler->getTemplates(terrainType).front();
+	else
+		o->appearance = handler->getTemplates().front();
+
+	if (o->isVisitable())
+		o->setAnchorPos(visitablePosition + o->getVisitableOffset());
+	else
+		o->setAnchorPos(visitablePosition);
+
+	return o;
+}
+
+void CGameHandler::createWanderingMonster(const int3 & visitablePosition, CreatureID creature, int unitSize)
+{
+	auto createdObject = createNewObject(visitablePosition, Obj::MONSTER, creature);
+
+	auto cre = std::dynamic_pointer_cast<CGCreature>(createdObject);
+	assert(cre);
+	cre->notGrowingTeam = cre->neverFlees = false;
+	cre->initialCharacter = CGCreature::Character::AGGRESSIVE;
+	cre->gainedArtifact = ArtifactID::NONE;
+	cre->temppower = static_cast<int64_t>(unitSize) * 1000;
+	cre->addToSlot(SlotID(0), std::make_unique<CStackInstance>(&gameInfo(), creature, unitSize));
+
+	newObject(createdObject, PlayerColor::NEUTRAL);
+}
+
+void CGameHandler::createBoat(const int3 & visitablePosition, BoatId type, PlayerColor initiator)
+{
+	auto createdObject = createNewObject(visitablePosition, Obj::BOAT, type);
+	newObject(createdObject, initiator);
+}
+
+void CGameHandler::createHole(const int3 & visitablePosition, PlayerColor initiator)
+{
+	auto createdObject = createNewObject(visitablePosition, Obj::HOLE, 0);
+	newObject(createdObject, initiator);
+}
+
+void CGameHandler::newObject(std::shared_ptr<CGObjectInstance> object, PlayerColor initiator)
+{
+	object->initObj(*randomizer);
+
+	NewObject no;
+	no.newObject = object;
+	no.initiator = initiator;
+	sendAndApply(no);
+}
+
+void CGameHandler::startBattle(const CArmedInstance *army1, const CArmedInstance *army2, int3 tile, const CGHeroInstance *hero1, const CGHeroInstance *hero2, const BattleLayout & layout, const CGTownInstance *town)
+{
+	battles->startBattle(army1, army2, tile, hero1, hero2, layout, town);
+}
+
+void CGameHandler::startBattle(const CArmedInstance *army1, const CArmedInstance *army2 )
+{
+	battles->startBattle(army1, army2);
+}
+
+void CGameHandler::useChargeBasedSpell(const ObjectInstanceID & heroObjectID, const SpellID & spellID)
+{
+	const auto * hero = gameInfo().getHero(heroObjectID);
+	assert(hero);
+	assert(hero->canCastThisSpell(spellID.toSpell()));
+
+	// Check if hero used charge based spell
+	// Try to find other sources of the spell besides the charged artifacts. If there are any, we use them.
+	std::optional<std::tuple<ArtifactPosition, ArtifactInstanceID, uint16_t>> chargedArt;
+	for(const auto & source : hero->getSourcesForSpell(spellID))
+	{
+		if(const auto * artInst = hero->getArtByInstanceId(source.as<ArtifactInstanceID>()))
+		{
+			const auto * artType = artInst->getType();
+			const auto spellCost = artType->getChargeCost(spellID);
+			if(spellCost.has_value() && spellCost.value() <= artInst->getCharges() && artType->getDischargeCondition() == DischargeArtifactCondition::SPELLCAST)
+			{
+				chargedArt.emplace(hero->getArtPos(artInst), artInst->getId(), spellCost.value());
+			}
+			else
+			{
+				return;
+			}
+		}
+		else
+		{
+			return;
+		}
+	}
+
+	assert(chargedArt.has_value());
+	DischargeArtifact msg(std::get<1>(chargedArt.value()), std::get<2>(chargedArt.value()));
+	msg.artLoc.emplace(hero->id, std::get<0>(chargedArt.value()));
+	sendAndApply(msg);
+}

@@ -1,0 +1,6 @@
+{
+  "status": "passed",
+  "method": "Raw SHA256 plus Git index blobs and independent checkout with core.autocrlf=true; nested -text attributes retained",
+  "scope": "All final listed files; no old Git history included",
+  "limits": "Not a bit-identical clean rebuild certificate or device execution test"
+}

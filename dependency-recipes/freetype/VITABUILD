@@ -1,0 +1,21 @@
+pkgname=freetype
+pkgver=2.14.3
+pkgrel=1
+url="https://freetype.org/"
+source=("https://download-mirror.savannah.gnu.org/releases/freetype/freetype-${pkgver}.tar.xz")
+sha256sums=('36bc4f1cc413335368ee656c42afca65c5a3987e8768cc28cf11ba775e785a5f')
+depends=('bzip2' 'libpng' 'zlib')
+
+build() {
+  cd freetype-$pkgver
+  mkdir build && cd build
+  cmake .. -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$prefix -DBUILD_SHARED_LIBS=OFF -DFT_DISABLE_HARFBUZZ=TRUE \
+   -DCMAKE_C_FLAGS="-std=gnu11 -Wno-error=implicit-function-declaration -Wno-error=int-conversion -Wno-error=incompatible-pointer-types" \
+   -DCMAKE_CXX_FLAGS="-std=gnu++11 -Wno-error=implicit-function-declaration -Wno-error=int-conversion -Wno-error=incompatible-pointer-types"
+  make -j$(nproc)
+}
+
+package () {
+  cd freetype-$pkgver/build
+  make DESTDIR=$pkgdir install
+}

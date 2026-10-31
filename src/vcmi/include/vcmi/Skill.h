@@ -1,0 +1,24 @@
+/*
+ * Skill.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+
+#pragma once
+
+#include "Entity.h"
+#include "scripting/ApiTags.h"
+
+class SecondarySkill;
+
+class DLL_LINKAGE Skill : public EntityT<SecondarySkill>, public scripting::ApiRawPointer<Skill>
+{
+public:
+	virtual std::string getDescriptionTextID(int level) const = 0;
+	virtual std::string getDescriptionTranslated(int level) const = 0;
+};
+

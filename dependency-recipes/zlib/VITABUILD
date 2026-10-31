@@ -1,0 +1,26 @@
+pkgname=zlib
+pkgver=1.3.2
+pkgrel=2
+pkgdesc="A lossless data-compression library for Vita"
+arch=('vita')
+url="https://www.zlib.net/"
+license=('Zlib')
+source=("https://github.com/madler/zlib/releases/download/v$pkgver/$pkgname-$pkgver.tar.xz" "zlib-no-pic.diff")
+sha256sums=('d7a0654783a4da529d1bb793b7ad9c3318020af77667bcae35f95d0e42a792f3' '5880305adc815c4dd3de7d7c4883f3aca824fa9273cf6fa562e77e3dd5a00cef')
+
+prepare() {
+  cd zlib-$pkgver
+  patch -p1 < ../zlib-no-pic.diff
+}
+
+build() {
+  cd zlib-$pkgver
+  ./configure --prefix=$prefix \
+    CFLAGS="-std=gnu11 -Wno-error=implicit-function-declaration -Wno-error=int-conversion"
+  make -j$(nproc)
+}
+
+package () {
+  cd zlib-$pkgver
+  make DESTDIR=$pkgdir install
+}

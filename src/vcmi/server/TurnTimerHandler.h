@@ -1,0 +1,58 @@
+/*
+ * TurnTimerHandler.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+
+#pragma once
+
+#include "../lib/TurnTimerInfo.h"
+
+class CStack;
+class PlayerColor;
+class BattleID;
+
+class CGameHandler;
+
+class TurnTimerHandler
+{	
+	CGameHandler & gameHandler;
+	static constexpr int turnTimePropagateFrequency = 1000;
+	std::map<PlayerColor, TurnTimerInfo> timers;
+	std::map<PlayerColor, int> lastUpdate;
+	std::map<PlayerColor, bool> endTurnAllowed;
+	
+	void onPlayerMakingTurn(PlayerColor player, int waitTime);
+	void onBattleLoop(const BattleID & battleID, int waitTime);
+	
+	bool timerCountDown(int & timerToApply, int initialTimer, PlayerColor player, int waitTime);
+	bool isPvpBattle(const BattleID & battleID) const;
+	void sendTimerUpdate(PlayerColor player);
+	
+public:
+	TurnTimerHandler(CGameHandler &);
+	
+	void onGameplayStart(PlayerColor player);
+	void onPlayerGetTurn(PlayerColor player);
+	void onBattleStart(const BattleID & battle);
+	void onBattleNextStack(const BattleID & battle, const CStack & stack);
+	void onBattleEnd(const BattleID & battleID);
+	void update(int waitTimeMs);
+	void setTimerEnabled(PlayerColor player, bool enabled);
+	bool isTimerEnabled(PlayerColor player) const;
+	void setEndTurnAllowed(PlayerColor player, bool enabled);
+	void onEndTurn(PlayerColor player);
+
+	void prolongTimers(int durationMs);
+
+	template<typename Handler>
+	void serialize(Handler & h)
+	{
+		h & timers;
+		h & endTurnAllowed;
+	}
+};

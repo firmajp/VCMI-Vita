@@ -1,0 +1,74 @@
+/*
+ * FramerateManager.cpp, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+
+#include "StdInc.h"
+#include "FramerateManager.h"
+
+#include "../../lib/CConfigHandler.h"
+
+FramerateManager::FramerateManager(int targetFrameRate)
+	: targetFrameTime(Duration(std::chrono::seconds(1)) / targetFrameRate)
+	, lastFrameIndex(0)
+	, lastFrameTimes({})
+	, lastTimePoint(Clock::now())
+	, vsyncEnabled(settings["video"]["vsync"].Bool())
+{
+	std::ranges::fill(lastFrameTimes, targetFrameTime);
+}
+
+void FramerateManager::framerateDelay()
+{
+	Duration timeSpentBusy = Clock::now() - lastTimePoint;
+
+#ifdef VCMI_VITA
+	if(timeSpentBusy < targetFrameTime)
+#else
+	if(!vsyncEnabled && timeSpentBusy < targetFrameTime)
+#endif
+	{
+		// if FPS is higher than it should be, then wait some time
+		std::this_thread::sleep_for(targetFrameTime - timeSpentBusy);
+	}
+
+	// compute actual timeElapsed taking into account actual sleep interval
+	// limit it to 100 ms to avoid breaking animation in case of huge lag (e.g. triggered breakpoint)
+	TimePoint currentTicks = Clock::now();
+	Duration timeElapsed = currentTicks - lastTimePoint;
+	if(timeElapsed > std::chrono::milliseconds(100))
+		timeElapsed = std::chrono::milliseconds(100);
+
+	lastTimePoint = currentTicks;
+	lastFrameIndex = (lastFrameIndex + 1) % lastFrameTimes.size();
+	lastFrameTimes[lastFrameIndex] = timeElapsed;
+	elapsedSinceConsumed += timeElapsed;
+}
+
+ui32 FramerateManager::getElapsedMilliseconds() const
+{
+	return lastFrameTimes[lastFrameIndex] / std::chrono::milliseconds(1);
+}
+
+ui32 FramerateManager::consumeElapsedMilliseconds()
+{
+	ui32 result = elapsedSinceConsumed / std::chrono::milliseconds(1);
+	elapsedSinceConsumed -= std::chrono::milliseconds(result);
+	return result;
+}
+
+ui32 FramerateManager::getFramerate() const
+{
+	Duration accumulatedTime = std::accumulate(lastFrameTimes.begin(), lastFrameTimes.end(), Duration());
+
+	auto actualFrameTime = accumulatedTime / lastFrameTimes.size();
+	if(actualFrameTime == actualFrameTime.zero())
+		return 0;
+
+	return std::round(std::chrono::duration<double>(1) / actualFrameTime);
+};

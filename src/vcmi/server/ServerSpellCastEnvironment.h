@@ -1,0 +1,48 @@
+/*
+ * ServerSpellCastEnvironment.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#pragma once
+
+#include "../lib/spells/ISpellMechanics.h"
+
+class CGameHandler;
+
+class ServerSpellCastEnvironment : public SpellCastEnvironment
+{
+public:
+	ServerSpellCastEnvironment(CGameHandler * gh);
+	~ServerSpellCastEnvironment() = default;
+
+	void complain(const std::string & problem) override;
+	bool describeChanges() const override;
+
+	vstd::RNG * getRNG() override;
+	bool rollCombatAbility(const IBattleInfoCallback & battle, const battle::Unit & actor, int percentageChance) override;
+
+	void apply(CPackForClient & pack) override;
+
+	void apply(BattleLogMessage & pack) override;
+	void apply(BattleStackMoved & pack) override;
+	void apply(BattleUnitsChanged & pack) override;
+	void apply(SetStackEffect & pack) override;
+	void apply(StacksInjured & pack) override;
+	void apply(BattleObstaclesChanged & pack) override;
+	void apply(CatapultAttack & pack) override;
+
+	void spellHasHit(const CBattleInfoCallback & battle, const spells::Spell & spell, const battle::Unit * casterUnit, const std::vector<std::shared_ptr<const battle::CUnitState>> & unitsBefore) override;
+
+	const CMap * getMap() const override;
+	const IGameInfoCallback * getCb() const override;
+	bool moveHero(ObjectInstanceID hid, int3 dst, EMovementMode mode) override;
+	void createBoat(const int3 & visitablePosition, BoatId type, PlayerColor initiator) override;
+	void showGarrisonDialog(ObjectInstanceID upobj, ObjectInstanceID hid, const MetaString & customTitle) override;
+	void askToSelectTown(const MapObjectSelectDialog & request, SpellID spell, ObjectInstanceID caster) override;
+private:
+	CGameHandler * gh;
+};

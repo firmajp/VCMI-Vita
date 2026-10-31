@@ -1,0 +1,8 @@
+using gcc : arm : arm-vita-eabi-g++ : <compileflags>"-std=gnu++11" ;
+
+
+# Stop on first error
+option.set runtime-link : static ;
+option.set threading : multi ;
+option.set link : static ;
+option.set variant : release ;

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="server_name">VCMI Sunucu</string>
+    <string name="shortcut_play">VCMI Oyna</string>
+    <string name="shortcut_editor">VCMI Düzenleyicisini aç</string>
+</resources>

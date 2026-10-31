@@ -1,0 +1,120 @@
+/*
+ * mock_IGameEventCallback.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+
+#pragma once
+
+#include <vcmi/ServerCallback.h>
+
+#include "../../lib/callback/IGameEventCallback.h"
+#include "../../lib/int3.h"
+#include "../../lib/ResourceSet.h"
+#include "../../lib/json/JsonNode.h"
+#include "../../lib/networkPacks/PacksForClient.h"
+
+class GameEventCallbackMock : public IGameEventCallback
+{
+public:
+	using UpperCallback = ::ServerCallback;
+
+	GameEventCallbackMock(UpperCallback * upperCallback_);
+	virtual ~GameEventCallbackMock();
+
+	// Tests set this once gameState->init has populated CMap so the mock can
+	// resolve object identifiers without owning the gameState itself.
+	void setGameInfoCallback(IGameInfoCallback * cb) { infoCallback = cb; }
+
+	// ---- captured dialog queue (consumed by QuestTest::answerDialog etc.) --
+	// showBlockingDialog / showInfoDialog get pushed here instead of being
+	// dispatched to a UI. Tests inspect text / components and answer through
+	// QuestTest::answerDialog.
+	std::vector<BlockingDialog>         blockingDialogs;
+	std::vector<InfoWindow>             infoWindows;
+	std::vector<AddQuest>               addedQuests;
+	std::vector<Component>              questHintComponents; ///< components of the last setQuestHint()
+	JsonNode                            visitState; ///< last setVisitState(), handed back by QuestTest::answerDialog
+	bool                                experienceGranted = false; ///< giveExperience() owes the object experienceApplied()
+
+	// ---- captured mutations inspected by MapScriptTest -------------------
+	std::vector<std::pair<ObjectInstanceID, int>>        manaPointsSet;
+	std::vector<std::pair<ObjectInstanceID, int>>        movePointsSet;
+	std::vector<std::pair<ObjectInstanceID, BuildingID>> builtStructures;
+
+	// ---- non-empty overrides (defined in mock_IGameEventCallback.cpp) ----
+
+	void setObjPropertyValue(ObjectInstanceID objid, ObjProperty prop, int32_t value) override;
+	void setObjPropertyID(ObjectInstanceID objid, ObjProperty prop, ObjPropertyID identifier) override;
+	void showInfoDialog(InfoWindow * iw) override;
+	bool removeObject(const CGObjectInstance * obj, const PlayerColor & initiator) override;
+	void addQuest(const PlayerColor & player, const QuestInfo & quest) override;
+	void setQuestHint(ObjectInstanceID, const MetaString &, const std::vector<Component> & components) override { questHintComponents = components; }
+	void disableMapEvent(ObjectInstanceID, const std::string &) override {}
+	void giveExperience(const CGHeroInstance * hero, TExpType val) override;
+	void showBlockingDialog(BlockingDialog * iw) override;
+	void setVisitState(const CGHeroInstance * hero, const JsonNode & state) override { visitState = state; }
+	void showScriptDialog(BlockingDialog * iw) override;
+	void giveResource(PlayerColor player, GameResID which, int val) override;
+	void giveResources(PlayerColor player, const ResourceSet & resources) override;
+	void takeCreatures(ObjectInstanceID objid, const std::vector<CStackBasicDescriptor> & creatures, bool forceRemoval) override;
+	bool changeStackCount(const StackLocation & sl, TQuantity count, ChangeValueMode mode) override;
+	bool eraseStack(const StackLocation & sl, bool forceRemoval) override;
+	void removeAfterVisit(const ObjectInstanceID & id) override;
+	bool isObjectBeingVisited(const ObjectInstanceID &) const override { return false; }
+	void removeArtifact(const ArtifactLocation & al) override;
+	void sendAndApply(CPackForClient & pack) override;
+	vstd::RNG & getRandomGenerator() override;
+
+	// ---- no-op stubs ----------------------------------------------------
+
+	void setScriptVariable(const std::string &, const std::string &, const JsonNode &) override {}
+	void setRewardableObjectConfiguration(ObjectInstanceID, const Rewardable::Configuration &) override {}
+	void setRewardableObjectConfiguration(ObjectInstanceID, BuildingID, const Rewardable::Configuration &) override {}
+	void changeSpells(const CGHeroInstance *, bool, const std::set<SpellID> &) override {}
+	void setResearchedSpells(const CGTownInstance *, int, const std::vector<SpellID> &, bool) override {}
+	void buildStructureForced(ObjectInstanceID townID, BuildingID building) override { builtStructures.emplace_back(townID, building); }
+	void createBoat(const int3 &, BoatId, PlayerColor) override {}
+	void setOwner(const CGObjectInstance *, PlayerColor) override {}
+	void changePrimSkill(const CGHeroInstance *, PrimarySkill, si64, ChangeValueMode) override {}
+	void changeSecSkill(const CGHeroInstance *, SecondarySkill, int, ChangeValueMode) override {}
+	void showGarrisonDialog(ObjectInstanceID, ObjectInstanceID, const MetaString &) override {}
+	void showTeleportDialog(TeleportDialog *) override {}
+	void showObjectWindow(const CGObjectInstance *, EOpenWindowMode, const CGHeroInstance *, bool) override {}
+	void giveCreatures(const CGHeroInstance *, const CCreatureSet &) override {}
+	void giveCreatures(const CArmedInstance *, const CGHeroInstance *, const CCreatureSet &, bool) override {}
+	bool changeStackType(const StackLocation &, const CCreature *) override { return false; }
+	bool insertNewStack(const StackLocation & sl, const CCreature * c, TQuantity count) override;
+	bool swapStacks(const StackLocation &, const StackLocation &) override { return false; }
+	bool addToSlot(const StackLocation &, const CCreature *, TQuantity) override { return false; }
+	void tryJoiningArmy(const CArmedInstance *, const CArmedInstance *, bool, bool) override {}
+	bool moveStack(const StackLocation &, const StackLocation &, TQuantity) override { return false; }
+	bool giveHeroNewArtifact(const CGHeroInstance *, const ArtifactID &, const ArtifactPosition &) override { return false; }
+	bool giveHeroNewScroll(const CGHeroInstance *, const SpellID &, const ArtifactPosition &) override { return false; }
+	bool putArtifact(const ArtifactLocation &, const ArtifactInstanceID &, std::optional<bool>) override { return false; }
+	bool moveArtifact(const PlayerColor &, const ArtifactLocation &, const ArtifactLocation &) override { return false; }
+	void heroVisitCastle(const CGTownInstance *, const CGHeroInstance *) override {}
+	void stopHeroVisitCastle(const CGTownInstance *, const CGHeroInstance *) override {}
+	void visitCastleObjects(const CGTownInstance *, const CGHeroInstance *) override {}
+	void startBattle(const CArmedInstance *, const CArmedInstance *, int3, const CGHeroInstance *, const CGHeroInstance *, const BattleLayout &, const CGTownInstance *) override {}
+	void startBattle(const CArmedInstance *, const CArmedInstance *) override {}
+	bool moveHero(ObjectInstanceID, int3, EMovementMode, bool, PlayerColor, const EPathfindingLayer &) override { return false; }
+	void giveHeroBonus(GiveBonus *) override {}
+	void setMovePoints(SetMovePoints *) override {}
+	void setMovePoints(ObjectInstanceID hid, int val) override { movePointsSet.emplace_back(hid, val); }
+	void setManaPoints(ObjectInstanceID hid, int val) override { manaPointsSet.emplace_back(hid, val); }
+	void giveHero(ObjectInstanceID, PlayerColor, ObjectInstanceID) override {}
+	void changeObjPos(ObjectInstanceID, int3, const PlayerColor &) override {}
+	void heroExchange(ObjectInstanceID, ObjectInstanceID) override {}
+	void changeFogOfWar(int3, ui32, PlayerColor, ETileVisibility) override {}
+	void changeFogOfWar(const FowTilesType &, PlayerColor, ETileVisibility) override {}
+	void castSpell(const spells::Caster *, SpellID, const int3 &) override {}
+
+private:
+	UpperCallback *      upperCallback = nullptr;
+	IGameInfoCallback *  infoCallback  = nullptr;
+};

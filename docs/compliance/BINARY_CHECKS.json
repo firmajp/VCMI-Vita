@@ -1,0 +1,13 @@
+{
+  "elf_sha256": "6718f6eeaec9ea40ba8b895eb31fbf2015c3f239b5134fdab60935933c985e0f",
+  "eboot_sha256": "abe5b7d55ffb06ce314ed85fc232dd766044d1a1c5d5c5785ef2ba0a67d176aa",
+  "private_paths_in_ELF_and_SELF": "none detected",
+  "ELF_load_segments_checked": 2,
+  "SELF_valid_zlib_streams_checked": 3,
+  "shipped_SELF_equal_to_clean_build": true,
+  "indexed_LiveArea_dimensions_palette": "passed",
+  "boot_image_equality": true,
+  "OpenSSL_implementation_symbols": "none detected",
+  "modified_pthread_probe_absent_from_release": true,
+  "limits": "Technical pattern, format and equality checks; not a legal certificate or device execution test."
+}

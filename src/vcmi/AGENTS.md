@@ -1,0 +1,264 @@
+# Repository Guidelines
+
+## GitHub Contribution Policy
+
+- Do not open pull requests or issues, and do not write their descriptions. The contributor opens them and writes the description in their own words, as required by [`CONTRIBUTING.md`](CONTRIBUTING.md#use-of-ai).
+- Do not post comments (PR reviews, issue replies, etc.) on GitHub.
+
+## Important Patterns and Conventions
+
+### C++ style
+
+The repo's `.clang-format` and `.clang-tidy` configurations are recommended for formatting and static analysis, respectively. Neither is enforced. Where [`docs/developers/Coding_Guidelines.md`](docs/developers/Coding_Guidelines.md) conflicts with them, the configurations take precedence.
+
+### Comments
+
+Keep comments minimal because they take time to read and can become outdated. Two kinds are useful: documentation that describes what a class, method, or field does, and notes that explain why a corner case requires a complex solution instead of a simpler one - the ordering constraint, the H3 quirk. Do not use comments to restate what the code does, except for genuinely opaque constructs.
+
+Comments use plain, technical English. State the mechanism directly; do not narrate it:
+
+- Use the names the code uses - packs, bonuses, events, hexes, stacks. Do not paraphrase an event or a pack as an action someone takes.
+- Do not personify code or game entities. A unit is not "told", a battle does not "announce", a function does not "answer" - it returns.
+- Avoid the rhetorical constructions `which is what ...`, `X is what decides ...`, `what X is worth`, and `A rather than B` where plain `A instead of B` or a direct statement will do.
+- Keep the size the codebase uses: one line per method or field, a few lines per class or per script. An explanation that needs a paragraph belongs in `docs/modders/`, not above a declaration.
+- `///` documents the declaration that follows, `///<` the member on the same line. Never leave a `///` block attached to nothing; use `//` for a standalone note.
+
+Documentation under `docs/` follows [`docs/AGENTS.md`](docs/AGENTS.md).
+
+### Cross-DLL types (`DLL_LINKAGE`)
+
+For classes and structs that are serialized or otherwise shared across compile units, use the `DLL_LINKAGE` macro on the declaration:
+
+```cpp
+class DLL_LINKAGE CAddInfo {};
+struct DLL_LINKAGE Bonus {};
+```
+
+### Constants and identifiers
+
+Prefer existing constants over magic numbers or hard-coded strings:
+
+- **Numeric IDs** (creatures, buildings, and other entities): `lib/constants/EntityIdentifiers.h`
+- **String IDs** (configs, mods): `lib/constants/StringConstants.h`
+- **Sizes and counts** (gameplay-related): `lib/constants/NumericConstants.h`
+- **Game-related enums / mechanic states**: `lib/constants/Enumerations.h`
+
+### Serialization and state
+
+- **Serialization**: Use the custom serialization framework in `lib/serializer/`. Objects implement `h & object` pattern with serialization visitors. More details in [`docs/developers/Serialization.md`](docs/developers/Serialization.md).
+- **Game state modifications**: Only the server can modify the game state. The client can only send requests to the server. The server validates each request and sends the resulting game state changes to the clients.
+- **Save compatibility**: Changes to serialized data must not prevent older saves from loading. Add compatibility handling instead of only changing the layout. See `lib/serializer/ESerializationVersion.h` and the existing version-gated `h &` blocks for examples.
+
+### Error handling
+
+The correct response to an error depends on where the bad data originated:
+
+| Origin | Correct response |
+| --- | --- |
+| VCMI internal invariant (our own bug) | `throw`/`assert` — fail fast instead of trying to continue |
+| Mod / content JSON (modder's bug) | Log the **mod + entity + field** context, then use a default for an invalid optional field, or skip the entity if a required field is invalid — never prevent the game from starting because of one bad mod |
+| Saved game | Throw; `CVCMIServer::loadSavedGame` catches the exception and reports the failure to players |
+| Request received by the server | Reject it with one of the `CGameHandler::throw*` methods (`throwNotAllowedAction`, `throwAndComplain`, `throwIfWrongPlayer`, ...) or by returning `false` from the `CGameHandler` method that applies the request. Other exceptions are not caught and terminate the server |
+| Packet received by the client | Throw. The client only makes outgoing connections, so invalid data received by the client indicates a server bug |
+| Illegal player action | Block it at the source: disable or hide the illegal UI control, or show an information window. If an illegal *request* still reaches the server, the server logs it and returns an error to the client |
+
+Never silently swallow an error or `catch (...)` - address the problem explicitly.
+
+Prefer container and API methods that report invalid access instead of silently producing an incorrect result. For example, use `.at()` instead of `operator[]` for invalid reads from `std::vector` or `std::map`. Apply the general rule rather than this specific example: use the method that reports failure instead of returning a default, wrapping around, or reading out of bounds. At a trust boundary such as mod JSON or save data, use an explicit check and throw `std::runtime_error` that identifies the invalid data. A bare `.at()` exception does not provide enough context.
+
+### Avoiding scope creep
+
+- Before adding a method, search the whole local checkout for existing code that does the same, including files the change does not touch.
+- Do not add parameters, flags, or virtual methods for a single caller; enum values that are never constructed; or configuration options that nothing reads.
+- Do not add a test only to prevent a specific past coding mistake, such as a reversed comparison operator or misplaced enum value. The test must cover behavior that matters independently of the implementation error. If the scenario would not matter to someone who never saw the bug, the fix does not need a new test.
+- Rewriting existing code is fine when that's the point — plenty of the codebase is 10+ years old and poorly structured. Tell the contributor, so they can mention it in the pull request for reviewers; a rewrite isn't a problem in itself as long as the result is more maintainable.
+
+### Determinism
+
+Game logic must produce the same result for every client. Avoid: unseeded RNG, iteration over unordered containers where order affects gameplay outcome, and float math in gameplay-affecting logic.
+
+### Internationalization
+
+Every non-logging, human-readable string needs an i18n key, with English text supplied either in code (Editor/Launcher strings) or `english.json` (in-game strings); other languages follow later via Weblate.
+
+## Common Development Tasks
+
+### Adding a New Game Mechanic
+
+1. Add bonus type or modify `lib/bonuses/BonusEnum.h` if needed
+2. Implement logic in lib (typically in entity handlers or callback implementations)
+3. Add serialization support if it affects saved games
+4. Add serialization compatibility for older saves
+5. Update network packets if client-server communication is needed
+6. Add tests in `test/`
+7. Update client UI if player-visible changes needed
+
+### Modifying Battle Logic
+
+Battle logic is split:
+
+- `lib/battle/` - Core rules and state
+- `server/battles/` - Server-side processing
+- `client/battle/` - Rendering and UI
+
+Changes to rules should go in `lib/battle/` (especially `BattleInfo.h`, `CBattleInfoCallback.h`, etc.), except for how much damage an attack deals - that is a Lua script, `scripts/damage/damageCalculator.lua`. See [`docs/developers/Battlefield.md`](docs/developers/Battlefield.md) for details on the battle system.
+
+### Working with Configuration Files
+
+Game configuration uses JSON:
+
+- `config` directory contains configuration of all game entities and settings. It also contains JSON schemas for entities, under `config/schemas` path.
+- JSON parsing: `lib/json/JsonParser.h`, `lib/json/JsonNode.h`
+- JSON validation: `lib/json/JsonValidator.h`
+
+Configuration is loaded by handlers in `lib/entities/` (creature handler, spell handler, hero handler, etc.).
+
+## Code Architecture
+
+### Key Concepts
+
+#### Bonus System
+
+One of the most important systems. Every bonus (attribute, resistance, spell immunity, etc.) is stored in a bonus system that propagates through a DAG of nodes. Key files:
+
+- `lib/bonuses/Bonus.h` - Bonus structure
+- `lib/bonuses/CBonusSystemNode.h` - Node in the bonus graph
+- `lib/bonuses/IBonusBearer.h` - Interface for objects that can have bonuses
+
+Bonuses have:
+
+- **Propagators** - Rules for which ascendants receive the bonus
+- **Limiters** - Restrictions on which descendants receive the bonus (e.g., only griffins)
+- **Inheritance** is automatic through the DAG; propagation requires explicit propagators
+
+More details in [`docs/developers/Bonus_System.md`](docs/developers/Bonus_System.md).
+
+#### Game State
+
+Accessed through `CGameState` in `lib/gameState/CGameState.h`. Contains:
+
+- Map and all map objects
+- Player information
+- Heroes and their armies
+- Game settings and options
+
+See [`docs/developers/Code_Structure.md`](docs/developers/Code_Structure.md) for an overview of how game state fits into the overall architecture.
+
+#### Callbacks
+
+The lib exposes game state through callback interfaces:
+
+- `CGameInfoCallback` - Read-only game info
+- `CPlayerSpecificInfoCallback` - Player-specific visible state
+- `CBattleCallback` - Battle-specific state
+- `CCallback` - Server callback for client requests
+
+AI and player interfaces use these callbacks rather than directly accessing game state.
+
+#### Networking
+
+Network layer:
+
+- `lib/network/NetworkConnection.h` - Low-level connection
+- `lib/networkPacks/` - Serializable network packets
+
+All changes to game state must go through server via network packets. More details in [`docs/developers/Networking.md`](docs/developers/Networking.md).
+
+#### Threading Model
+
+- **MainGUI** - Main thread, input processing and rendering
+- **runNetwork** - Network thread, processes incoming packets, runs combat AI reactions
+- **runServer** - Server thread, processes requests and game state updates
+- **AI tasks** - TBB-based tasks for adventure AI (Nullkiller)
+
+See [`docs/developers/Code_Structure.md`](docs/developers/Code_Structure.md) for detailed threading information.
+
+### Directory Structure
+
+- **lib/** - Core static library `vcmiMain` with core game logic and data structures.
+  - Aggregated into the shipped shared library `vcmi` (`VCMI_lib.dll` / `libvcmi.so`) by the **libFacade/** target along with all AI implementations and `vcmiLua`. Consumers always link the facade target `vcmi`, not `vcmiMain` directly.
+  - **battle/** - Battle system (damage calculation, pathfinding, unit state)
+  - **bonuses/** - Bonus system (core mechanics for granting attributes to units/heroes)
+  - **callback/** - Interfaces for accessing game state (used by AI and client)
+  - **entities/** - Game objects (heroes, creatures, artifacts, spells, buildings)
+  - **gameState/** - CGameState and related classes
+  - **mapping/** - Map loading/saving
+  - **mapObjects/** - Adventure map objects (towns, dwellings, mines, etc.)
+  - **mapObjectConstructors/** - Constructors for map objects
+  - **network/** - Network layer (connection management)
+  - **networkPacks/** - Network packet definitions and serialization
+  - **json/** - JSON parsing/validation/writing
+  - **filesystem/** - Archive and file loading
+  - **spells/** - Spell definitions and casting logic
+  - **modding/** - Mod loading and content management
+  - **pathfinder/** - Hero pathfinding on adventure map
+  - **serializer/** - Serialization framework (save/load, network)
+  - **rmg/** - Random map generator
+  - **campaign/** - Campaign progression and scenario logic
+  - **texts/** - Text handling and localization support
+
+- **client/** - Game client (backend-agnostic UI, logic, and interfaces)
+  - **adventureMap/** - Adventure mode UI and logic
+  - **battle/** - Battle UI and rendering
+  - **gui/** - GUI framework (CIntObject base class and components)
+  - **lobby/** - Local game setup screens
+  - **globalLobby/** - Online/global lobby UI and client
+  - **mainmenu/** - Main menu and game selection
+  - **mapView/** - Map rendering
+  - **render/** - Rendering abstractions and interfaces (backend-agnostic)
+  - **widgets/** - Reusable UI widget components
+  - **windows/** - Game windows and dialogs
+
+- **clientsdl2/** - SDL2 rendering backend (events/, media/, render/)
+- **clientsdl3/** - SDL3/GPU rendering backend (events/, media/, render/)
+
+- **server/** - Game server (compiled as vcmiservercommon library, shared by serverapp)
+  - **battles/** - Battle flow processing
+  - **activities/** - Player-blocking activities, the questions they ask and the answers they get
+  - **processors/** - Game state processors (turns, heroes, etc.)
+
+- **serverapp/** - Standalone server executable entry point
+- **clientapp/** - Client executable entry point (also handles iOS/Android specifics)
+- **lobby/** - Standalone global lobby server (SQLite-backed, separate from game server)
+- **launcher/** - Qt-based game launcher
+- **mapeditor/** - Qt-based map editor
+- **luascript/** - Lua scripting host, built as the static library `vcmiLua` and aggregated into `vcmi` by libFacade
+- **libFacade/** - Tiny aggregator target that produces the shipped `vcmi` shared library by linking `vcmiMain` + `vcmiLua` + every enabled AI
+- **config/** - Game configuration file (json-with-comments format)
+- **scripts/** - Lua scripts used by the game
+- **AI/** - AI modules, each built as a static archive and linked into the `vcmi` facade. They are constructed by name through `AIFactory` in `lib/callback/AIFactory.h`; there is no dynamic library loading.
+  - **BattleAI/** - combat AI (default)
+  - **Nullkiller2/** - Modern adventure map AI (default)
+  - **MMAI/** - Machine-learning-based combat AI (experimental)
+  - **StupidAI/** - Minimal combat AI for neutral/passive players
+  - **EmptyAI/** - Stub AI (no-op, used for testing)
+
+## Project Overview
+
+VCMI is an engine for the game Heroes of Might and Magic III. The project is structured around a client-server architecture with a shared library. The codebase is primarily C++ with some CMake build configuration, Qt for UI (launcher and map editor), and Lua/ERM for scripting.
+
+**Architecture**: One server process handles game state and mechanics. One or more client processes display the game and collect player input. Both use the shared VCMI lib.
+
+## Build System
+
+### CMake
+
+The project uses CMake with Conan package manager for dependency management on Windows. On other platforms, system package managers are used. See [`docs/developers/CMake.md`](docs/developers/CMake.md) for all CMake options and [`docs/developers/Conan.md`](docs/developers/Conan.md) for Conan setup.
+
+### C++ standard
+
+VCMI is built as **C++20**: the root `CMakeLists.txt` sets `CMAKE_CXX_STANDARD` to `20` with `CMAKE_CXX_STANDARD_REQUIRED ON`. Treat C++20 as both the minimum supported language and the dialect to prefer for new code.
+
+For platform-specific build and test instructions see [`docs/developers/Building_Windows.md`](docs/developers/Building_Windows.md), [`docs/developers/Building_Linux.md`](docs/developers/Building_Linux.md), [`docs/developers/Building_macOS.md`](docs/developers/Building_macOS.md), [`docs/developers/Building_Android.md`](docs/developers/Building_Android.md), [`docs/developers/Building_iOS.md`](docs/developers/Building_iOS.md).
+
+## Logging
+
+- `lib/logging/CLogger.h` - Logger class
+- Logs are written to `vcmi.log`
+- Most subsystems have named loggers: `logGlobal`, `logNetwork`, `logAi`, etc.
+
+More details in [`docs/developers/Logging_API.md`](docs/developers/Logging_API.md).
+
+## Dependencies
+
+Major dependencies are managed by Conan — see `dependencies/conanfile.py` for the full list. Notably: Lua/LuaJIT scripting (optional), see [`docs/developers/Lua_Scripting_System.md`](docs/developers/Lua_Scripting_System.md).

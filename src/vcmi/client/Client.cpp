@@ -1,0 +1,692 @@
+/*
+ * Client.cpp, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#include "StdInc.h"
+#include "Global.h"
+#include "Client.h"
+
+#include "CPlayerInterface.h"
+#include "PlayerLocalState.h"
+#include "CServerHandler.h"
+#include "ClientNetPackVisitors.h"
+#include "adventureMap/AdventureMapInterface.h"
+#include "battle/BattleInterface.h"
+#include "GameEngine.h"
+#include "GameInstance.h"
+#include "gui/WindowHandler.h"
+#include "mapView/mapHandler.h"
+
+#include "../lib/CConfigHandler.h"
+#include "../lib/GameLibrary.h"
+#include "../lib/battle/BattleInfo.h"
+#include "../lib/battle/CPlayerBattleCallback.h"
+#include "../lib/callback/CCallback.h"
+#include "../lib/callback/AIFactory.h"
+#include "../lib/callback/CGlobalAI.h"
+#include "../lib/callback/IGameInfoCallback.h"
+#include "../lib/filesystem/Filesystem.h"
+#include "../lib/gameState/CGameState.h"
+#include "../lib/CPlayerState.h"
+#include "../lib/CThreadHelper.h"
+#include "../lib/VCMIDirs.h"
+#include "../lib/UnlockGuard.h"
+#include "../lib/mapObjects/army/CArmedInstance.h"
+#include "../lib/mapping/CMapService.h"
+#include "../lib/pathfinder/CGPathNode.h"
+#include "../lib/serializer/GameConnection.h"
+
+#include <memory>
+#include <vcmi/events/EventBus.h>
+
+
+#ifdef VCMI_ANDROID
+#include "lib/CAndroidVMHelper.h"
+#endif
+
+CPlayerEnvironment::CPlayerEnvironment(PlayerColor player_, CClient * cl_, std::shared_ptr<CCallback> mainCallback_)
+	: player(player_),
+	cl(cl_),
+	mainCallback(mainCallback_)
+{
+
+}
+
+const Services * CPlayerEnvironment::services() const
+{
+	return LIBRARY;
+}
+
+const CPlayerEnvironment::BattleCb * CPlayerEnvironment::battle(const BattleID & battleID) const
+{
+	return mainCallback->getBattle(battleID).get();
+}
+
+const CPlayerEnvironment::GameCb * CPlayerEnvironment::game() const
+{
+	return mainCallback.get();
+}
+
+CClient::CClient()
+{
+	waitingRequest.clear();
+}
+
+CClient::~CClient() = default;
+
+IGameInfoCallback & CClient::gameInfo()
+{
+	return *gamestate;
+}
+
+const Services * CClient::services() const
+{
+	return LIBRARY; //todo: this should be LIBRARY
+}
+
+const CClient::BattleCb * CClient::battle(const BattleID & battleID) const
+{
+	return nullptr; //todo?
+}
+
+const CClient::GameCb * CClient::game() const
+{
+	return gamestate.get();
+}
+
+void CClient::newGame(std::shared_ptr<CGameState> initializedGameState)
+{
+	GAME->server().th->update();
+	assert(initializedGameState);
+	gamestate = initializedGameState;
+	gamestate->preInit(LIBRARY);
+	logNetwork->trace("\tCreating gamestate: %i", GAME->server().th->getDiff());
+
+	initMapHandler();
+	initPlayerEnvironments();
+	initPlayerInterfaces();
+}
+
+void CClient::loadGame(std::shared_ptr<CGameState> initializedGameState)
+{
+	logNetwork->info("Loading procedure started!");
+
+	logNetwork->info("Game state was transferred over network, loading.");
+	gamestate = initializedGameState;
+	gamestate->preInit(LIBRARY);
+	gamestate->updateOnLoad(*GAME->server().si);
+	logNetwork->info("Game loaded, initialize interfaces.");
+
+	initMapHandler();
+	initPlayerEnvironments();
+	initPlayerInterfaces();
+}
+
+void CClient::endNetwork()
+{
+	GAME->map().endNetwork();
+
+	if (CPlayerInterface::battleInt)
+		CPlayerInterface::battleInt->endNetwork();
+
+	for(auto & i : playerint)
+	{
+		auto interface = std::dynamic_pointer_cast<CPlayerInterface>(i.second);
+		if (interface)
+			interface->endNetwork();
+	}
+}
+
+void CClient::finishGameplay()
+{
+	waitingRequest.requestTermination();
+
+	//suggest interfaces to finish their stuff (AI should interrupt any bg working threads)
+	for(auto & i : playerint)
+		i.second->finish();
+}
+
+void CClient::endGame()
+{
+	logNetwork->info("Ending current game!");
+	removeGUI();
+
+	GAME->setMapInstance(nullptr);
+
+	logNetwork->info("Deleted mapHandler and gameState.");
+
+	CPlayerInterface::battleInt.reset();
+	playerint.clear();
+	battleints.clear();
+	battleCallbacks.clear();
+	playerEnvironments.clear();
+
+	//FIXME: gamestate->currentBattles.clear() will use gamestate. So it shoule be callded before gamestate.reset()
+	gamestate->currentBattles.clear();
+	gamestate.reset();
+
+	logNetwork->info("Deleted playerInts.");
+	logNetwork->info("Client stopped.");
+}
+
+void CClient::initMapHandler()
+{
+	// TODO: CMapHandler initialization can probably go somewhere else
+	// It's can't be before initialization of interfaces
+	// During loading CPlayerInterface from serialized state it's depend on MH
+	GAME->setMapInstance(std::make_unique<CMapHandler>(&gameState().getMap()));
+	logNetwork->trace("Creating mapHandler: %d ms", GAME->server().th->getDiff());
+}
+
+void CClient::initPlayerEnvironments()
+{
+	playerEnvironments.clear();
+
+	auto allPlayers = GAME->server().getAllClientPlayers(GAME->server().logicConnection->connectionID);
+	bool hasHumanPlayer = false;
+	for(auto & color : allPlayers)
+	{
+		// getAllClientPlayers is derived from lobby StartInfo, which still lists players
+		// pruned during random map generation; skip those absent from the actual game
+		if(color.isValidPlayer() && !gameState().players.count(color))
+			continue;
+
+		logNetwork->info("Preparing environment for player %s", color.toString());
+		playerEnvironments[color] = std::make_shared<CPlayerEnvironment>(color, this, std::make_shared<CCallback>(gamestate, color, this));
+
+		if(color.isValidPlayer() && !hasHumanPlayer && gameState().players.at(color).isHuman())
+			hasHumanPlayer = true;
+	}
+
+	if(!hasHumanPlayer && !settings["session"]["headless"].Bool())
+	{
+		Settings session = settings.write["session"];
+		session["spectate"].Bool() = true;
+		session["spectate-skip-battle-result"].Bool() = true;
+		session["spectate-ignore-hero"].Bool() = true;
+	}
+	
+	if(settings["session"]["spectate"].Bool())
+	{
+		playerEnvironments[PlayerColor::SPECTATOR] = std::make_shared<CPlayerEnvironment>(
+			PlayerColor::SPECTATOR,
+			this,
+			std::make_shared<CCallback>(gamestate, findPlayerColorForSpectatorInterface(), this));
+	}
+}
+
+void CClient::initPlayerInterfaces()
+{
+	for(const auto & playerInfo : gameState().getStartInfo()->playerInfos)
+	{
+		PlayerColor color = playerInfo.first;
+		if(!vstd::contains(GAME->server().getAllClientPlayers(GAME->server().logicConnection->connectionID), color))
+			continue;
+
+		if(!vstd::contains(playerint, color))
+		{
+			logNetwork->info("Preparing interface for player %s", color.toString());
+			if(playerInfo.second.isControlledByAI() || settings["session"]["onlyai"].Bool())
+			{
+				bool alliedToHuman = false;
+				for(const auto & allyInfo : gameState().getStartInfo()->playerInfos)
+					if (gameState().getPlayerTeam(allyInfo.first) == gameState().getPlayerTeam(playerInfo.first) && allyInfo.second.isControlledByHuman())
+						alliedToHuman = true;
+
+				auto AiToGive = aiNameForPlayer(playerInfo.second, false, alliedToHuman);
+				logNetwork->info("Player %s will be lead by %s", color.toString(), AiToGive);
+				installNewPlayerInterface(AIFactory::createAdventureAI(AiToGive), color);
+			}
+			else
+			{
+				logNetwork->info("Player %s will be lead by human", color.toString());
+				installNewPlayerInterface(std::make_shared<CPlayerInterface>(color), color);
+			}
+		}
+	}
+
+	if(settings["session"]["spectate"].Bool())
+	{
+		const PlayerColor spectatorInterfacePlayer = findPlayerColorForSpectatorInterface().value_or(PlayerColor(0));
+		installNewPlayerInterface(std::make_shared<CPlayerInterface>(spectatorInterfacePlayer), PlayerColor::SPECTATOR, true);
+	}
+
+	if(GAME->server().getAllClientPlayers(GAME->server().logicConnection->connectionID).count(PlayerColor::NEUTRAL))
+		installNewBattleInterface(AIFactory::createBattleAI(settings["ai"]["combatNeutralAI"].String()), PlayerColor::NEUTRAL);
+
+	logNetwork->trace("Initialized player interfaces %d ms", GAME->server().th->getDiff());
+}
+
+std::optional<PlayerColor> CClient::findPlayerColorForSpectatorInterface() const
+{
+	// The adventure UI is not fully spectator-aware and still reads player-local state via CPlayerInterface::playerID.
+	for(const PlayerColor & color : gameState().actingPlayers)
+	{
+		if(color.isValidPlayer() && gameState().players.count(color))
+			return color;
+	}
+
+	for(const auto & playerState : gameState().players)
+	{
+		if(playerState.first.isValidPlayer())
+			return playerState.first;
+	}
+
+	return std::nullopt;
+}
+
+std::string CClient::aiNameForPlayer(const PlayerSettings & ps, bool battleAI, bool alliedToHuman) const
+{
+	if(ps.name.size() && AIFactory::isAvailableAdventureAI(ps.name))
+		return ps.name;
+
+	return aiNameForPlayer(battleAI, alliedToHuman);
+}
+
+std::string CClient::aiNameForPlayer(bool battleAI, bool alliedToHuman) const
+{
+	const int sensibleAILimit = settings["session"]["oneGoodAI"].Bool() ? 1 : PlayerColor::PLAYER_LIMIT_I;
+	std::string goodAdventureAI = alliedToHuman ? settings["ai"]["adventureAlliedAI"].String() : settings["ai"]["adventureEnemyAI"].String();
+	std::string goodBattleAI = settings["ai"]["combatNeutralAI"].String();
+	std::string goodAI = battleAI ? goodBattleAI : goodAdventureAI;
+	std::string badAI = battleAI ? "StupidAI" : "EmptyAI";
+
+	//TODO what about human players
+	if(battleints.size() >= sensibleAILimit)
+		return badAI;
+
+	return goodAI;
+}
+
+void CClient::installNewPlayerInterface(std::shared_ptr<CGameInterface> gameInterface, PlayerColor color, bool battlecb)
+{
+	playerint[color] = gameInterface;
+
+	logGlobal->trace("\tInitializing the interface for player %s", color.toString());
+	std::optional<PlayerColor> callbackPlayer = color;
+	if(color == PlayerColor::SPECTATOR)
+		callbackPlayer = findPlayerColorForSpectatorInterface();
+
+	auto cb = std::make_shared<CCallback>(gamestate, callbackPlayer, this);
+	battleCallbacks[color] = cb;
+	gameInterface->initGameInterface(playerEnvironments.at(color), cb);
+
+	installNewBattleInterface(gameInterface, color, battlecb);
+}
+
+void CClient::installNewBattleInterface(std::shared_ptr<CBattleGameInterface> battleInterface, PlayerColor color, bool needCallback)
+{
+	battleints[color] = battleInterface;
+
+	if(needCallback)
+	{
+		logGlobal->trace("\tInitializing the battle interface for player %s", color.toString());
+		auto cbc = std::make_shared<CBattleCallback>(color, this);
+		battleCallbacks[color] = cbc;
+		battleInterface->initBattleInterface(playerEnvironments.at(color), cbc);
+	}
+}
+
+void CClient::handlePack(CPackForClient & pack)
+{
+	ApplyClientNetPackVisitor afterVisitor(*this, gameState());
+	ApplyFirstClientNetPackVisitor beforeVisitor(*this, gameState());
+
+	pack.visit(beforeVisitor);
+	logNetwork->trace("\tMade first apply on cl: %s", typeid(pack).name());
+	{
+		std::unique_lock lock(CGameState::mutex);
+		gameState().apply(pack);
+	}
+	logNetwork->trace("\tApplied on gs: %s", typeid(pack).name());
+	pack.visit(afterVisitor);
+	logNetwork->trace("\tMade second apply on cl: %s", typeid(pack).name());
+}
+
+void CClient::applyPackSilently(CPackForClient & pack)
+{
+	std::unique_lock lock(CGameState::mutex);
+	gameState().apply(pack);
+}
+
+ClientSession CClient::swapSession(ClientSession replacement)
+{
+	return std::exchange(static_cast<ClientSession &>(*this), std::move(replacement));
+}
+
+void CClient::installObserverInterface(PlayerColor color)
+{
+	assert(gamestate);
+
+	playerEnvironments[color] = std::make_shared<CPlayerEnvironment>(color, this, std::make_shared<CCallback>(gamestate, color, this));
+
+	auto interfacePtr = std::make_shared<CPlayerInterface>(color);
+	installNewPlayerInterface(interfacePtr, color);
+}
+
+void CClient::installSpectatorInterface()
+{
+	assert(gamestate);
+
+	playerEnvironments[PlayerColor::SPECTATOR] = std::make_shared<CPlayerEnvironment>(
+		PlayerColor::SPECTATOR,
+		this,
+		std::make_shared<CCallback>(gamestate, findPlayerColorForSpectatorInterface(), this));
+
+	const PlayerColor spectatorInterfacePlayer = findPlayerColorForSpectatorInterface().value_or(PlayerColor(0));
+	installNewPlayerInterface(std::make_shared<CPlayerInterface>(spectatorInterfacePlayer), PlayerColor::SPECTATOR, true);
+}
+
+void CClient::removeSpectatorInterface()
+{
+	playerint.erase(PlayerColor::SPECTATOR);
+	battleints.erase(PlayerColor::SPECTATOR);
+	battleCallbacks.erase(PlayerColor::SPECTATOR);
+	playerEnvironments.erase(PlayerColor::SPECTATOR);
+}
+
+void CClient::giveTurnLocally(PlayerColor color)
+{
+	PlayerStartsTurn yt;
+	yt.player = color;
+	yt.questionID = QuestionID::NONE;
+
+	ApplyClientNetPackVisitor visitor(*this, gameState());
+	yt.visit(visitor);
+}
+
+void CClient::toggleAiSolo(EAiSoloMode mode, bool ownVision)
+{
+	Settings session = settings.write["session"];
+
+	const auto & playerInfos = gameInfo().getStartInfo()->playerInfos;
+
+	std::vector<PlayerColor> humanPlayers;
+	for(const auto & color : GAME->server().getAllClientPlayers(GAME->server().logicConnection->connectionID))
+		if(color.isValidPlayer() && playerInfos.count(color) && playerInfos.at(color).isControlledByHuman())
+			humanPlayers.push_back(color);
+
+	if(humanPlayers.empty())
+	{
+		logGlobal->warn("No human player on this client to hand over to an AI");
+		return;
+	}
+
+	// any further use of the cheat gives control back, whichever mode it asked for
+	const bool aiTakesOver = !session["aiSolo"].Bool();
+
+	if(aiTakesOver && !GAME->interface())
+	{
+		logGlobal->warn("No human player interface to replace with an AI");
+		return;
+	}
+
+	if(!aiTakesOver)
+	{
+		// the player acts again, so the spectator and everything set up for him has to go
+		removeGUI();
+		removeSpectatorInterface();
+
+		session["aiSolo"].Bool() = false;
+		session["aiSoloAskEachTurn"].Bool() = false;
+		session["aiSoloStopRequested"].Bool() = false;
+		session["spectate"].Bool() = false;
+		session["spectate-own-vision"].Bool() = false;
+		session["spectate-skip-battle"].Bool() = false;
+		session["spectate-skip-battle-result"].Bool() = false;
+
+		PlayerColor turnOwner = humanPlayers.front();
+		for(const auto & color : humanPlayers)
+		{
+			installNewPlayerInterface(std::make_shared<CPlayerInterface>(color), color);
+
+			if(gameState().actingPlayers.count(color))
+				turnOwner = color;
+		}
+
+		// giveTurnLocally puts the adventure map that removeGUI() dropped back onto the window stack
+		ENGINE->windows().totalRedraw();
+		giveTurnLocally(turnOwner);
+		return;
+	}
+
+	PlayerColor currentColor = GAME->interface()->playerID;
+
+	std::map<PlayerColor, std::string> aiForPlayer;
+	for(const auto & color : humanPlayers)
+	{
+		aiForPlayer[color] = aiNameForPlayer(*gameInfo().getPlayerSettings(color), false, false);
+		logGlobal->info("Player %s will be lead by %s", color.toString(), aiForPlayer[color]);
+	}
+
+	removeGUI();
+
+	for(const auto & [color, aiName] : aiForPlayer)
+		installNewPlayerInterface(AIFactory::createAdventureAI(aiName), color);
+
+	// set before the AI starts acting - the map renderer and battleStarted() read these right away
+	session["aiSolo"].Bool() = true;
+	session["aiSoloAskEachTurn"].Bool() = mode == EAiSoloMode::ASK_EACH_TURN;
+	session["aiSoloStopRequested"].Bool() = false;
+	session["spectate-own-vision"].Bool() = ownVision;
+	session["spectate-skip-battle"].Bool() = mode == EAiSoloMode::SKIP_BATTLES;
+	// the AI answers the battle end question, so a result window would only be in the way
+	session["spectate-skip-battle-result"].Bool() = true;
+
+	if(mode != EAiSoloMode::HIDDEN)
+	{
+		// without an interface of our own nothing would draw the game that the AI now plays
+		installSpectatorInterface();
+
+		ENGINE->windows().pushWindow(adventureInt);
+		adventureInt->onEnemyTurnStarted(currentColor, false);
+		adventureInt->onMapTilesChanged(std::nullopt);
+
+		// set last: it makes onEnemyTurnStarted a no-op, so the map stays in the state set above
+		session["spectate"].Bool() = true;
+	}
+
+	ENGINE->windows().totalRedraw();
+	giveTurnLocally(currentColor);
+}
+
+std::optional<BattleAction> CClient::makeSurrenderRetreatDecision(PlayerColor player, const BattleID & battleID, const BattleStateInfoForRetreat & battleState)
+{
+	return playerint[player]->makeSurrenderRetreatDecision(battleID, battleState);
+}
+
+int CClient::sendRequest(const CPackForServer & request, PlayerColor player, bool waitTillRealize)
+{
+	if(observerMode)
+	{
+		logNetwork->trace("Dropped request \"%s\" - a replay is in progress", typeid(request).name());
+		return 0;
+	}
+
+	ui32 requestID = requestCounter++;
+	logNetwork->trace("Sending a request \"%s\". It'll have an ID=%d.", typeid(request).name(), requestID);
+
+	waitingRequest.pushBack(requestID);
+	request.requestID = requestID;
+	request.player = player;
+	GAME->server().sendGamePack(request);
+	if(vstd::contains(playerint, player))
+		playerint[player]->requestSent(&request, requestID);
+
+	if(waitTillRealize)
+	{
+		logGlobal->trace("We'll wait till request %d is answered.\n", requestID);
+		auto gsUnlocker = vstd::makeUnlockSharedGuard(CGameState::mutex);
+		waitingRequest.waitWhileContains(requestID);
+	}
+
+	return requestID;
+}
+
+void CClient::battleStarted(const BattleID & battleID)
+{
+	const BattleInfo * info = gameState().getBattle(battleID);
+
+	std::shared_ptr<CPlayerInterface> att;
+	std::shared_ptr<CPlayerInterface> def;
+	const auto & leftSide = info->getSide(BattleSide::LEFT_SIDE);
+	const auto & rightSide = info->getSide(BattleSide::RIGHT_SIDE);
+
+	for(auto & battleCb : battleCallbacks)
+	{
+		if(!battleCb.first.isValidPlayer() || battleCb.first == leftSide.color || battleCb.first == rightSide.color)
+			battleCb.second->onBattleStarted(info);
+	}
+
+	//If quick combat is not, do not prepare interfaces for battleint
+	auto callBattleStart = [&](PlayerColor color, BattleSide side)
+	{
+		if(vstd::contains(battleints, color))
+			battleints[color]->battleStart(info->battleID, leftSide.getArmy(), rightSide.getArmy(), info->tile, leftSide.getHero(), rightSide.getHero(), side, info->replayAllowed);
+	};
+	
+	callBattleStart(leftSide.color, BattleSide::LEFT_SIDE);
+	callBattleStart(rightSide.color, BattleSide::RIGHT_SIDE);
+	callBattleStart(PlayerColor::UNFLAGGABLE, BattleSide::RIGHT_SIDE);
+	if(settings["session"]["spectate"].Bool() && !settings["session"]["spectate-skip-battle"].Bool())
+		callBattleStart(PlayerColor::SPECTATOR, BattleSide::RIGHT_SIDE);
+	
+	if(vstd::contains(playerint, leftSide.color) && playerint[leftSide.color]->human)
+		att = std::dynamic_pointer_cast<CPlayerInterface>(playerint[leftSide.color]);
+
+	if(vstd::contains(playerint, rightSide.color) && playerint[rightSide.color]->human)
+		def = std::dynamic_pointer_cast<CPlayerInterface>(playerint[rightSide.color]);
+	
+	//Remove player interfaces for auto battle (quickCombat option)
+	if((att && att->isAutoFightOn) || (def && def->isAutoFightOn))
+	{
+		auto endTacticPhaseIfEligible = [info](const CPlayerInterface * interface)
+		{
+			if (interface->cb->getBattle(info->battleID)->battleGetTacticDist())
+			{
+				auto side = interface->cb->getBattle(info->battleID)->playerToSide(interface->playerID);
+
+				if(interface->playerID == info->getSide(info->tacticsSide).color)
+				{
+					auto action = BattleAction::makeEndOFTacticPhase(side);
+					interface->cb->battleMakeTacticAction(info->battleID, action);
+				}
+			}
+		};
+
+		if(att && att->isAutoFightOn)
+			endTacticPhaseIfEligible(att.get());
+		else // def && def->isAutoFightOn
+			endTacticPhaseIfEligible(def.get());
+
+		att.reset();
+		def.reset();
+	}
+
+	if(!settings["session"]["headless"].Bool())
+	{
+		if(att || def)
+		{
+			CPlayerInterface::battleInt = std::make_shared<BattleInterface>(info->getBattleID(), leftSide.getArmy(), rightSide.getArmy(), leftSide.getHero(), rightSide.getHero(), att, def);
+		}
+		else if(settings["session"]["spectate"].Bool() && !settings["session"]["spectate-skip-battle"].Bool())
+		{
+			//TODO: This certainly need improvement
+			auto spectratorInt = std::dynamic_pointer_cast<CPlayerInterface>(playerint[PlayerColor::SPECTATOR]);
+
+			// under gosolo the spectator stands in for a real player: battles he has no side in are
+			// none of his business, and his callback could not tell which side he is watching from
+			const bool ownBattlesOnly = settings["session"]["spectate-own-vision"].Bool();
+			const bool isOwnBattle = spectratorInt->playerID == leftSide.color || spectratorInt->playerID == rightSide.color;
+
+			if(!ownBattlesOnly || isOwnBattle)
+			{
+				spectratorInt->cb->onBattleStarted(info);
+				CPlayerInterface::battleInt = std::make_shared<BattleInterface>(info->getBattleID(), leftSide.getArmy(), rightSide.getArmy(), leftSide.getHero(), rightSide.getHero(), att, def, spectratorInt);
+			}
+		}
+	}
+
+	if(info->tacticDistance)
+	{
+		auto tacticianColor = info->getSide(info->tacticsSide).color;
+
+		if (vstd::contains(battleints, tacticianColor))
+			battleints[tacticianColor]->yourTacticPhase(info->battleID, info->tacticDistance);
+	}
+}
+
+void CClient::battleFinished(const BattleID & battleID)
+{
+	// Mirror of battleStarted(): whoever was told that the battle started has to be told that it
+	// ended, or keeps a CPlayerBattleCallback pointing at the BattleInfo the gamestate now frees.
+	// Which callbacks those are depends on the spectate settings, so ask them instead of guessing.
+	for(auto & battleCb : battleCallbacks)
+		if(battleCb.second->getActiveBattles().count(battleID))
+			battleCb.second->onBattleEnded(battleID);
+
+	// the spectator interface holds a callback of its own, separate from battleCallbacks[SPECTATOR]
+	auto spectator = playerint.find(PlayerColor::SPECTATOR);
+	if(spectator != playerint.end())
+	{
+		auto spectatorInt = std::dynamic_pointer_cast<CPlayerInterface>(spectator->second);
+		if(spectatorInt && spectatorInt->cb->getActiveBattles().count(battleID))
+			spectatorInt->cb->onBattleEnded(battleID);
+	}
+}
+
+void CClient::startPlayerBattleAction(const BattleID & battleID, PlayerColor color)
+{
+	if (battleints.count(color) == 0)
+		return; // not our combat in MP
+
+	auto battleint = battleints.at(color);
+	auto activateStack = [&]()
+	{
+		battleint->activeStack(battleID, gameState().getBattle(battleID)->battleGetStackByID(gameState().getBattle(battleID)->activeStack, false));
+	};
+
+	if (!battleint->human)
+	{
+		// we want to avoid locking gamestate and causing UI to freeze while AI is making turn
+		if(ENGINE)
+		{
+			auto unlockInterface = vstd::makeUnlockGuard(ENGINE->interfaceMutex);
+			activateStack();
+		}
+		else
+		{
+			activateStack();
+		}
+	}
+	else
+	{
+		activateStack();
+	}
+}
+
+void CClient::removeGUI() const
+{
+	// CClient::endGame
+	if(ENGINE)
+		ENGINE->windows().clear();
+	adventureInt.reset();
+	logGlobal->info("Removed GUI.");
+
+	GAME->setInterfaceInstance(nullptr);
+}
+
+void CClient::registerBattleInterface(std::shared_ptr<IBattleEventsReceiver> battleEvents, PlayerColor color)
+{
+	additionalBattleInts[color].push_back(battleEvents);
+}
+
+void CClient::unregisterBattleInterface(std::shared_ptr<IBattleEventsReceiver> battleEvents, PlayerColor color)
+{
+	additionalBattleInts[color] -= battleEvents;
+}

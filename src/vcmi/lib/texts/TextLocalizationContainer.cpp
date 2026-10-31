@@ -1,0 +1,148 @@
+/*
+ * TextLocalizationContainer.cpp, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#include "StdInc.h"
+#include "TextLocalizationContainer.h"
+
+#include "texts/CGeneralTextHandler.h"
+#include "Languages.h"
+#include "TextOperations.h"
+
+#include "../json/JsonNode.h"
+
+void TextLocalizationContainer::registerStringOverride(const std::string & modContext, const TextIdentifier & UID, const std::string & localized, const std::string & language)
+{
+	assert(!modContext.empty());
+
+	// NOTE: implicitly creates entry, intended - strings added by maps, campaigns, vcmi and potentially - UI mods are not registered anywhere at the moment
+	auto & entry = stringsLocalizations[UID.get()];
+
+	// load string override only in following cases:
+	// a) string was not modified in another mod (e.g. rebalance mod gave skill new description)
+	// b) this string override is defined in the same mod as one that provided modified version of this string
+	if (entry.identifierModContext == entry.baseStringModContext || modContext == entry.baseStringModContext)
+	{
+		entry.translatedText = localized;
+		if (entry.identifierModContext.empty())
+		{
+			entry.identifierModContext = modContext;
+			entry.baseStringModContext = modContext;
+		}
+		else
+		{
+			if (language == CGeneralTextHandler::getPreferredLanguage())
+				entry.overriden = true;
+		}
+	}
+	else
+	{
+		logGlobal->debug("Skipping translation override for string %s: changed in a different mod", UID.get());
+	}
+}
+
+const std::string & TextLocalizationContainer::translateString(const TextIdentifier & identifier) const
+{
+	if(stringsLocalizations.count(identifier.get()) == 0)
+	{
+		logGlobal->error("Unable to find localization for string '%s'", identifier.get());
+		return identifier.get();
+	}
+
+	const auto & entry = stringsLocalizations.at(identifier.get());
+	return entry.translatedText;
+}
+
+void TextLocalizationContainer::registerString(const std::string & modContext, const TextIdentifier & inputUID, const JsonNode & localized)
+{
+	assert(localized.isNull() || !localized.getModScope().empty());
+
+	if (localized.isNull())
+		registerString(modContext, modContext, inputUID, localized.String());
+	else
+		registerString(modContext, localized.getModScope(), inputUID, localized.String());
+}
+
+void TextLocalizationContainer::registerString(const std::string & modContext, const TextIdentifier & UID, const std::string & localized)
+{
+	registerString(modContext, modContext, UID, localized);
+}
+
+void TextLocalizationContainer::registerString(const std::string & identifierModContext, const std::string & localizedStringModContext, const TextIdentifier & UID, const std::string & localized)
+{
+	assert(!identifierModContext.empty());
+	assert(!localizedStringModContext.empty());
+	assert(UID.get().find("..") == std::string::npos); // invalid identifier - there is section that was evaluated to empty string
+	// re-registering the same text is not a conflict - a spell effect defined in "base" is registered
+	// once per spell level, but its identifier does not include the level
+	assert(allowsStringOverride() || !identifierExists(UID) || stringsLocalizations.at(UID.get()).translatedText == localized);
+
+	if(stringsLocalizations.count(UID.get()) > 0)
+	{
+		auto & value = stringsLocalizations[UID.get()];
+		value.translatedText = localized;
+		value.identifierModContext = identifierModContext;
+		value.baseStringModContext = localizedStringModContext;
+	}
+	else
+	{
+		StringState value;
+		value.translatedText = localized;
+		value.identifierModContext = identifierModContext;
+		value.baseStringModContext = localizedStringModContext;
+
+		stringsLocalizations[UID.get()] = value;
+	}
+}
+
+void TextLocalizationContainer::loadTranslationOverrides(const std::string & modContext, const std::string & language, const JsonNode & config)
+{
+	for(const auto & node : config.Struct())
+		registerStringOverride(modContext, node.first, node.second.String(), language);
+}
+
+bool TextLocalizationContainer::identifierExists(const TextIdentifier & UID) const
+{
+	return stringsLocalizations.count(UID.get());
+}
+
+void TextLocalizationContainer::exportAllTexts(std::map<std::string, ExportedStrings> & storage, bool onlyMissing) const
+{
+	for (auto const & entry : stringsLocalizations)
+	{
+		if (onlyMissing && entry.second.overriden)
+			continue;
+
+		std::string textToWrite = entry.second.translatedText;
+		std::string modName = entry.second.baseStringModContext;
+		std::string originalMod = entry.second.identifierModContext;
+
+		if (modName != originalMod)
+		{
+			// this is string patching - one mod modified string from another mod
+			if (!vstd::contains(storage[modName].overridenMods, originalMod))
+				storage[modName].overridenMods.push_back(originalMod);
+		}
+		else
+		{
+			// move string to translation of base mod, for more convenient translation of scattered strings
+			// except for maps / compaigns - those are usually kept in separate submod, so keep translations separate to group maps and game translations separate
+			if (modName.find('.') != std::string::npos && !entry.first.starts_with("map.") && !entry.first.starts_with("campaign."))
+				modName = modName.substr(0, modName.find('.'));
+		}
+
+		if (!textToWrite.empty())
+			storage[modName].strings[entry.first] = textToWrite;
+	}
+}
+
+void TextLocalizationContainer::jsonSerialize(JsonNode & dest) const
+{
+	for(auto & s : stringsLocalizations)
+		dest.Struct()[s.first].String() = s.second.translatedText;
+}

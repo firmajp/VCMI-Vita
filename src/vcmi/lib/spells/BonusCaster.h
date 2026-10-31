@@ -1,0 +1,35 @@
+/*
+ * BonusCaster.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+
+#pragma once
+
+#include "ProxyCaster.h"
+
+struct Bonus;
+
+namespace spells
+{
+
+class DLL_LINKAGE BonusCaster : public ProxyCaster
+{
+public:
+	BonusCaster(const Caster * actualCaster_, std::shared_ptr<Bonus> bonus_);
+	virtual ~BonusCaster();
+
+	std::string getCasterNameTextID() const override;
+	void getCastDescription(const Spell * spell, const battle::Units & attacked, MetaString & text) const override;
+	void spendMana(ServerCallback * server, const int spellCost) const override;
+
+private:
+	std::shared_ptr<Bonus> bonus;
+};
+
+} // namespace spells
+

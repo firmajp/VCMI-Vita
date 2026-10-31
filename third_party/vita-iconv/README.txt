@@ -1,0 +1,2 @@
+Source: https://github.com/vitasdk/newlib/tree/fbb8375870d799758e0b4358d2f1708781aa26a6/newlib/libc/iconv
+Rebuilt to enable encoding tables omitted in VitaSDK libc. No modifications to upstream source files. Configure with VitaSDK toolchain; build static vcmi_vita_iconv and copy library into SDK arm-vita-eabi/lib. CMakeLists specifies enabled encodings. Original notices retained in source and COPYING.NEWLIB.

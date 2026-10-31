@@ -1,0 +1,25 @@
+/*
+* ShipyardInstanceConstructor.cpp, part of VCMI engine
+*
+* Authors: listed in file AUTHORS in main folder
+*
+* License: GNU General Public License v2.0 or later
+* Full text of license available in license.txt file, in main folder
+*
+*/
+#include "StdInc.h"
+#include "ShipyardInstanceConstructor.h"
+
+#include "../GameLibrary.h"
+#include "../mapObjects/MiscObjects.h"
+#include "../modding/IdentifierStorage.h"
+
+void ShipyardInstanceConstructor::initTypeData(LibraryLoadContext & context, const JsonNode & config)
+{
+	parameters = config;
+}
+
+void ShipyardInstanceConstructor::initializeObject(CGShipyard * shipyard) const
+{
+	shipyard->createdBoat = BoatId(*LIBRARY->identifiers()->getIdentifier("core:boat", parameters["boat"]));
+}

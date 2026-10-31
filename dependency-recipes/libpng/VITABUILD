@@ -1,0 +1,26 @@
+pkgname=libpng
+pkgver=1.6.58
+pkgrel=1
+url="http://www.libpng.org/pub/png/libpng.html"
+source=("git+https://github.com/pnggroup/libpng.git#tag=v$pkgver" "libpng.patch")
+sha256sums=('SKIP' 'e28a8b9653ffca10c7b0201e46863a57ddeb7abc1880fc840fa8ae5a374c62ac')
+depends=('zlib')
+
+prepare() {
+  cd $pkgname
+  patch -p1 < ../libpng.patch
+}
+
+build() {
+  cd $pkgname
+  mkdir build && cd build
+  cmake .. -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$prefix -DPNG_ARM_NEON=on -DPNG_SHARED=OFF -DSKIP_INSTALL_EXECUTABLES=ON \
+   -DCMAKE_C_FLAGS="-std=gnu11 -Wno-error=implicit-function-declaration -Wno-error=int-conversion" \
+   -DCMAKE_CXX_FLAGS="-std=gnu++11 -Wno-error=implicit-function-declaration -Wno-error=int-conversion"
+  make -j$(nproc)
+}
+
+package () {
+  cd $pkgname/build
+  make DESTDIR=$pkgdir install
+}

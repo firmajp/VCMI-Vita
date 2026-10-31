@@ -1,0 +1,163 @@
+{
+  "SDL2": {
+    "url": "https://github.com/libsdl-org/SDL/releases/download/release-2.32.8/SDL2-2.32.8.tar.gz",
+    "archive_sha256": "0ca83e9c9b31e18288c7ec811108e58bac1f1bb5ec6577ad386830eac51c787e",
+    "bytes": 7627356,
+    "local_changes_included": true
+  },
+  "SDL2_image": {
+    "url": "https://www.libsdl.org/projects/SDL_image/release/SDL2_image-2.8.12.tar.gz",
+    "archive_sha256": "393f5efb50536ec13ca4f4affb69cc9966d3c3f969e6c5e701faddf9f9785381",
+    "bytes": 6874993
+  },
+  "SDL2_mixer": {
+    "url": "https://github.com/libsdl-org/SDL_mixer/releases/download/release-2.8.2/SDL2_mixer-2.8.2.tar.gz",
+    "archive_sha256": "938dff531d00ace2296557a6599abe6f34599e2f34f0a4a08a397e2ccac8b8f7",
+    "bytes": 6000649
+  },
+  "SDL2_ttf": {
+    "url": "https://github.com/libsdl-org/SDL_ttf/releases/download/release-2.24.0/SDL2_ttf-2.24.0.tar.gz",
+    "archive_sha256": "0b2bf1e7b6568adbdbc9bb924643f79d9dedafe061fa1ed687d1d9ac4e453bfd",
+    "bytes": 13335900
+  },
+  "zlib": {
+    "url": "https://github.com/madler/zlib/releases/download/v1.3.2/zlib-1.3.2.tar.xz",
+    "archive_sha256": "d7a0654783a4da529d1bb793b7ad9c3318020af77667bcae35f95d0e42a792f3",
+    "bytes": 1320064
+  },
+  "libwebp": {
+    "url": "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.6.0.tar.gz",
+    "archive_sha256": "e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564",
+    "bytes": 4296070
+  },
+  "opus": {
+    "url": "https://downloads.xiph.org/releases/opus/opus-1.6.1.tar.gz",
+    "archive_sha256": "6ffcb593207be92584df15b32466ed64bbec99109f007c82205f0194572411a1",
+    "bytes": 10472813
+  },
+  "opusfile": {
+    "url": "https://downloads.xiph.org/releases/opus/opusfile-0.12.tar.gz",
+    "archive_sha256": "118d8601c12dd6a44f52423e68ca9083cc9f2bfe72da7a8c1acb22a80ae3550b",
+    "bytes": 471354
+  },
+  "libogg": {
+    "url": "https://downloads.xiph.org/releases/ogg/libogg-1.3.6.tar.xz",
+    "archive_sha256": "5c8253428e181840cd20d41f3ca16557a9cc04bad4a3d04cce84808677fa1061",
+    "bytes": 439952
+  },
+  "libvorbis": {
+    "url": "https://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.gz",
+    "archive_sha256": "0e982409a9c3fc82ee06e08205b1355e5c6aa4c36bca58146ef399621b0ce5ab",
+    "bytes": 1658963
+  },
+  "libmodplug": {
+    "url": "https://codeload.github.com/Konstanty/libmodplug/tar.gz/d1b97ed0020bc620a059d3675d1854b40bd2608d",
+    "archive_sha256": "d145910ca10c3ecab0019d45be7e31ea6be1d1ee951ef0e1f747c9752d20f043",
+    "bytes": 223775
+  },
+  "libxmp-lite": {
+    "url": "https://github.com/libxmp/libxmp/releases/download/libxmp-4.7.2/libxmp-lite-4.7.2.tar.gz",
+    "archive_sha256": "bace7f53248a2cd5adcf77f9402a8858fc0fec05f4e6d6436e3d2a28d68f640e",
+    "bytes": 262039
+  },
+  "freetype": {
+    "url": "https://download-mirror.savannah.gnu.org/releases/freetype/freetype-2.14.3.tar.xz",
+    "archive_sha256": "36bc4f1cc413335368ee656c42afca65c5a3987e8768cc28cf11ba775e785a5f",
+    "bytes": 2670220
+  },
+  "libpng": {
+    "url": "https://codeload.github.com/pnggroup/libpng/tar.gz/refs/tags/v1.6.58",
+    "archive_sha256": "a9d4df463d36a6e5f9c29bd6f4967312d17e996c1854f3511f833924eb1993cf",
+    "bytes": 1592190
+  },
+  "bzip2": {
+    "url": "https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz",
+    "archive_sha256": "ab5a03176ee106d3f0fa90e381da478ddae405918153cca248e682cd0c4a2269",
+    "bytes": 810029
+  },
+  "LuaJIT-Vita": {
+    "url": "https://codeload.github.com/SonicMastr/LuaJIT-Vita/tar.gz/c329ddd10691c1875f26087ba23c2ae278515e24",
+    "archive_sha256": "936c7426ff21f4e50a827fba40f478f6cb2ffc9e30bea1eeb8471d1166b2a975",
+    "bytes": 1075532
+  },
+  "vita-rss-libdl": {
+    "url": "https://codeload.github.com/isage/vita-rss-libdl/tar.gz/refs/tags/0.3.2",
+    "archive_sha256": "5cdc75fe45eb285e48a69f12268488a4de77c8117e54eb327b013d568353fa9c",
+    "bytes": 21719
+  },
+  "taiHEN": {
+    "url": "https://codeload.github.com/yifanlu/taiHEN/tar.gz/refs/tags/v0.11",
+    "archive_sha256": "1512be64de88a92eace8ad8f21676883e2e4325fed58f8afecd7725181296571",
+    "bytes": 76316
+  },
+  "boost-filesystem": {
+    "url": "https://codeload.github.com/boostorg/filesystem/tar.gz/refs/tags/boost-1.78.0",
+    "archive_sha256": "cc659b09fb197763115d59f5223f343ccf1894361de27f70551a7aa66f186346",
+    "bytes": 256344
+  },
+  "boost-atomic": {
+    "url": "https://codeload.github.com/boostorg/atomic/tar.gz/refs/tags/boost-1.78.0",
+    "archive_sha256": "587d28eb0fad01a9f38be654aaead88ef28f8e7fc43806469a6b80d7bf0ec818",
+    "bytes": 195452
+  },
+  "boost-program_options": {
+    "url": "https://codeload.github.com/boostorg/program_options/tar.gz/refs/tags/boost-1.78.0",
+    "archive_sha256": "4cf8367fb4dff020ac076c258a31f27d557b9b5b349fed257d9bb585e4c27d88",
+    "bytes": 133480
+  },
+  "VCMI": {
+    "base_commit": "abe535c4418b66bae8cdb56fee1473b109e8c55e",
+    "local_changes_included": true
+  },
+  "oneTBB": {
+    "base_commit": "f1862f38f83568d96e814e469ab61f88336cc595",
+    "local_changes_included": true
+  },
+  "libsquish": {
+    "base_commit": "c763145a30512c10450954b7a2b5b3a2f9a94e00",
+    "local_changes_included": true
+  },
+  "minizip": {
+    "base_commit": "7b2387161c542fa9f427352dcdef76097d0d692b",
+    "local_changes_included": false
+  },
+  "pthread-embedded": {
+    "base_commit": "11d2e5722d98c86f33c908fc47b2cf6e55205db5",
+    "local_changes_included": false
+  },
+  "package-recipes": {
+    "base_commit": "de769c80482cc3e53cc16b71cb4bb27a323e5a31",
+    "local_changes_included": false
+  },
+  "vita-iconv": {
+    "upstream": "https://github.com/vitasdk/newlib",
+    "commit": "fbb8375870d799758e0b4358d2f1708781aa26a6",
+    "source_path": "newlib/libc/iconv",
+    "configuration": "third_party/vita-iconv/CMakeLists.txt"
+  },
+  "boost-headers": {
+    "version": "1.78.0",
+    "origin": "Installed VitaSDK package; original notices preserved",
+    "license": "BSL-1.0"
+  },
+  "livearea": {
+    "license": "CC0-1.0 (design), SIL-OFL-1.1 (Noto fonts)",
+    "created": "2026-10-31",
+    "source": "packaging/generate-boot.ps1 and packaging/generate-livearea.ps1",
+    "excluded_previous_supplied_images": true
+  },
+  "FFmpeg": {
+    "version": "7.1.2",
+    "upstream": "https://ffmpeg.org/releases/ffmpeg-7.1.2.tar.xz",
+    "source": "third_party/FFmpeg",
+    "configuration": "scripts/build-ffmpeg.ps1",
+    "installed_header_changes": "scripts/normalize_ffmpeg_headers.py",
+    "license": "LGPL-2.1-or-later; GPL/nonfree disabled"
+  },
+  "release": {
+    "version": "1.0.0-rc.1",
+    "baseline": "v038 / 0.1.25",
+    "complete_modified_files": true,
+    "new_repository_no_old_history": true
+  }
+}

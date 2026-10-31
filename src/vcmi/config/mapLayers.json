@@ -1,0 +1,18 @@
+{
+    "surface":
+    {
+        "index": 0,
+        "text" : "Surface"
+    },
+    "underground":
+    {
+        "index": 1,
+        "text" : "Underground",
+        "defaultTerrain" : "rock"
+    },
+    "unknown":
+    {
+        "index": 2,
+        "text" : "Unknown"
+    }
+}

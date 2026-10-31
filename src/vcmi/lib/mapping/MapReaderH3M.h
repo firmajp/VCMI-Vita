@@ -1,0 +1,124 @@
+/*
+ * MapReaderH3M.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+
+#pragma once
+
+#include "../GameConstants.h"
+#include "../ResourceSet.h"
+#include "MapFeaturesH3M.h"
+#include "MapIdentifiersH3M.h"
+
+class CBinaryReader;
+class CInputStream;
+struct MapFormatFeaturesH3M;
+class int3;
+enum class EMapFormat : uint8_t;
+
+class MapReaderH3M
+{
+public:
+	MapReaderH3M(CInputStream * stream, const std::string & mapName);
+
+	void setFormatLevel(const MapFormatFeaturesH3M & features);
+	void setIdentifierRemapper(const MapIdentifiersH3M & remapper);
+
+	ArtifactID readArtifact();
+	ArtifactID readArtifact8();
+	ArtifactID readArtifact32();
+	BuildingID readBuilding32(std::optional<FactionID> faction);
+	CreatureID readCreature32(const std::string & context = {});
+	CreatureID readCreature(const std::string & context = {});
+	HeroTypeID readHero();
+	HeroTypeID readHero32();
+	HeroTypeID readHeroPortrait();
+	HeroClassID readHeroClass32();
+	FactionID readFaction32();
+	TerrainId readTerrain();
+	RoadId readRoad();
+	RiverId readRiver();
+	PrimarySkill readPrimary();
+	PrimarySkill readPrimary32();
+	SecondarySkill readSkill();
+	SecondarySkill readSkill32();
+	SpellID readSpell();
+	SpellID readSpell16();
+	SpellID readSpell32();
+	GameResID readGameResID();
+	GameResID readGameResID32();
+	PlayerColor readPlayer();
+
+	PlayerColor readPlayer32();
+
+	/// validate and remap already read raw value, for fields that may contain garbage depending on other fields
+	ArtifactID toArtifact(int32_t raw);
+	SpellID toSpell(int32_t raw);
+	GameResID toGameResID(int32_t raw);
+	FactionID toFaction(int32_t raw);
+	/// faction of nullopt means building id that is common to all factions
+	BuildingID toBuilding(int32_t raw, std::optional<FactionID> faction);
+
+	void readBitmaskBuildings(std::set<BuildingID> & dest, std::optional<FactionID> faction);
+	void readBitmaskFactions(std::set<FactionID> & dest, bool invert);
+	/// Returns all factions that this map format can refer to
+	std::set<FactionID> getFormatFactions();
+	void readBitmaskPlayers(std::set<PlayerColor> & dest, bool invert);
+	void readBitmaskResources(std::set<GameResID> & dest, bool invert);
+	void readBitmaskHeroClassesSized(std::set<HeroClassID> & dest, bool invert);
+	void readBitmaskHeroes(std::set<HeroTypeID> & dest, bool invert);
+	void readBitmaskHeroesSized(std::set<HeroTypeID> & dest, bool invert);
+	void readBitmaskArtifacts(std::set<ArtifactID> & dest, bool invert);
+	void readBitmaskArtifactsSized(std::set<ArtifactID> & dest, bool invert);
+	void readBitmaskSpells(std::set<SpellID> & dest, bool invert);
+	void readBitmaskSkills(std::set<SecondarySkill> & dest, bool invert);
+
+	int3 readInt3();
+
+	std::shared_ptr<ObjectTemplate> readObjectTemplate();
+	void remapTemplate(ObjectTemplate & tmpl);
+
+	void skipUnused(size_t amount);
+	void skipZero(size_t amount);
+
+	void readResources(TResources & resources);
+
+	bool readBool();
+
+	uint8_t readUInt8();
+	int8_t readInt8();
+	/// clamps out of range value with a warning
+	int8_t readInt8Checked(int8_t lowerLimit, int8_t upperLimit);
+	/// throws on out of range value, for values that define layout of following data
+	int8_t readInt8Strict(int8_t lowerLimit, int8_t upperLimit);
+
+	int16_t readInt16();
+	uint16_t readUInt16();
+
+	uint32_t readUInt32();
+	int32_t readInt32();
+	int32_t readInt32Checked(int32_t lowerLimit, int32_t upperLimit);
+
+	std::string readBaseString();
+
+private:
+	template<class Identifier>
+	Identifier remapIdentifier(const Identifier & identifier);
+
+	template<class Identifier>
+	Identifier validateIdentifier(const Identifier & identifier, int32_t count, const std::string & typeName);
+
+	template<class Identifier>
+	void readBitmask(std::set<Identifier> & dest, int bytesToRead, int objectsToRead, bool invert);
+
+	MapFormatFeaturesH3M features;
+	MapIdentifiersH3M remapper;
+
+	std::unique_ptr<CBinaryReader> reader;
+	std::string mapName;
+};

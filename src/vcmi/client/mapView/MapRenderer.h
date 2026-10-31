@@ -1,0 +1,239 @@
+/*
+ * MapRenderer.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#pragma once
+
+#include "../../lib/int3.h"
+#include "../../lib/Point.h"
+#include "../../lib/filesystem/ResourcePath.h"
+
+class ObjectInstanceID;
+class CGObjectInstance;
+
+class CAnimation;
+class IImage;
+class Canvas;
+class IMapRendererContext;
+struct CGPath;
+struct NeighborTilesInfo;
+enum class EImageBlitMode : uint8_t;
+
+class MapTileStorage
+{
+	using TerrainAnimation = std::array<std::shared_ptr<CAnimation>, 4>;
+	std::vector<TerrainAnimation> animations;
+
+	/// Memo for groupCount(), which walks CAnimation::size() - a map lookup each. Depends only on
+	/// the loaded animations, so it is computed once per key. -1 means "not yet known".
+	using GroupCounts = std::array<std::vector<int>, 4>;
+	std::vector<GroupCounts> groupCounts;
+
+	int computeGroupCount(size_t fileIndex, size_t rotationIndex, size_t imageIndex) const;
+
+public:
+	explicit MapTileStorage(size_t capacity);
+	void load(size_t index, const AnimationPath & filename, EImageBlitMode blitMode);
+	std::shared_ptr<IImage> find(size_t fileIndex, size_t rotationIndex, size_t imageIndex, size_t groupIndex = 0);
+	int groupCount(size_t fileIndex, size_t rotationIndex, size_t imageIndex);
+};
+
+class MapRendererTerrain
+{
+	MapTileStorage storage;
+
+public:
+	MapRendererTerrain();
+
+	uint8_t checksum(IMapRendererContext & context, const int3 & coordinates);
+	void renderTile(IMapRendererContext & context, Canvas & target, const int3 & coordinates);
+};
+
+class MapRendererRiver
+{
+	MapTileStorage storage;
+
+public:
+	MapRendererRiver();
+
+	uint8_t checksum(IMapRendererContext & context, const int3 & coordinates);
+	void renderTile(IMapRendererContext & context, Canvas & target, const int3 & coordinates);
+};
+
+class MapRendererRoad
+{
+	MapTileStorage storage;
+
+public:
+	MapRendererRoad();
+
+	uint8_t checksum(IMapRendererContext & context, const int3 & coordinates);
+	void renderTile(IMapRendererContext & context, Canvas & target, const int3 & coordinates);
+};
+
+class MapRendererObjects
+{
+	std::map<std::pair<AnimationPath, EImageBlitMode>, std::shared_ptr<CAnimation>> animations;
+	mutable std::map<ImagePath, std::shared_ptr<IImage>> images;
+
+	/// Everything the checksum needs to know about one object in one animation group:
+	/// whether it animates at all, and how large its sprite is.
+	struct ObjectChecksumInfo
+	{
+		bool baseAnimated = false;
+		bool flagAnimated = false;
+		Point baseDimensions = Point(0, 0);
+		Point flagDimensions = Point(0, 0);
+	};
+
+	/// Memo for the above, valid for a single update pass only: the answer costs a string-keyed
+	/// animation lookup plus an image, and is asked once per tile the object covers, every frame.
+	/// Cleared by prepareFrame(), and nothing it depends on can change within a pass.
+	/// Keyed by object and animation group, packed into one integer.
+	std::unordered_map<uint64_t, ObjectChecksumInfo> checksumInfoCache;
+
+	/// The images an object contributes this pass, in draw order. Resolving them costs a lookup
+	/// each and is asked once per tile it covers. Cleared by prepareFrame().
+	/// Like in H3 the shadow is drawn on its own, before the bodies of everything on the tile, so
+	/// it never darkens another object. Heroes and boats keep the shadow in their body image.
+	enum ObjectImageLayer
+	{
+		LAYER_SHADOW,
+		LAYER_BODY,
+		LAYER_COLOR_OVERLAY, // player color of flaggable objects
+		LAYER_FLAG,
+		LAYER_OVERLAY,
+		LAYER_COUNT
+	};
+	using ObjectImages = std::array<std::shared_ptr<IImage>, LAYER_COUNT>;
+	std::unordered_map<int32_t, ObjectImages> renderImageCache;
+
+	const ObjectImages & getObjectImages(IMapRendererContext & context, const CGObjectInstance * object);
+
+	const ObjectChecksumInfo & getChecksumInfo(IMapRendererContext & context, const CGObjectInstance * object, size_t groupIndex);
+
+	std::shared_ptr<CAnimation> getBodyAnimation(const CGObjectInstance * obj);
+	std::shared_ptr<CAnimation> getShadowAnimation(const CGObjectInstance * obj);
+	std::shared_ptr<CAnimation> getColorOverlayAnimation(const CGObjectInstance * obj);
+	std::shared_ptr<CAnimation> getFlagAnimation(const CGObjectInstance * obj);
+	std::shared_ptr<CAnimation> getOverlayAnimation(const CGObjectInstance * obj);
+
+	std::shared_ptr<CAnimation> getAnimation(const AnimationPath & filename, bool generateMovementGroups, EImageBlitMode mode);
+	std::shared_ptr<IImage> getImage(const ImagePath & filename) const;
+
+	std::shared_ptr<IImage> getImageToRender(const IMapRendererContext & context, const CGObjectInstance * obj, const std::shared_ptr<CAnimation> & animation) const;
+
+	void renderImage(IMapRendererContext & context, Canvas & target, const int3 & coordinates, const CGObjectInstance * object, const std::shared_ptr<IImage> & image, double transparencyFactor = 1.0, bool applyOwnerColor = true);
+	void renderShadow(IMapRendererContext & context, Canvas & target, const int3 & coordinates, const CGObjectInstance * object);
+	void renderObject(IMapRendererContext & context, Canvas & target, const int3 & coordinates, const CGObjectInstance * obj, double transparencyFactor = 1.0);
+
+	/// transparency of the second, always-on-top copy of the active hero
+	static constexpr double activeHeroTransparency = 0.5;
+public:
+	/// Special ground objects, which are drawn before the rivers and roads
+	void renderGround(IMapRendererContext & context, Canvas & target, const int3 & coordinates);
+
+	/// Must be called once per update pass before any checksum() call
+	void prepareFrame();
+
+	uint8_t checksum(IMapRendererContext & context, const int3 & coordinates);
+	void renderTile(IMapRendererContext & context, Canvas & target, const int3 & coordinates);
+};
+
+class MapRendererBorder
+{
+	std::shared_ptr<CAnimation> animation;
+
+	size_t getIndexForTile(IMapRendererContext & context, const int3 & coordinates);
+
+public:
+	MapRendererBorder();
+
+	uint8_t checksum(IMapRendererContext & context, const int3 & coordinates);
+	void renderTile(IMapRendererContext & context, Canvas & target, const int3 & coordinates);
+};
+
+class MapRendererFow
+{
+	std::shared_ptr<CAnimation> fogOfWarFullHide;
+	std::shared_ptr<CAnimation> fogOfWarPartialHide;
+
+public:
+	MapRendererFow();
+
+	/// Both take the neighbour visibility that the caller has already computed - it costs
+	/// eight visibility queries and the caller needs it anyway to reach this point.
+	uint8_t checksum(IMapRendererContext & context, const int3 & coordinates, const NeighborTilesInfo & neighborInfo);
+	void renderTile(IMapRendererContext & context, Canvas & target, const int3 & coordinates, const NeighborTilesInfo & neighborInfo);
+};
+
+class MapRendererPath
+{
+	std::shared_ptr<CAnimation> pathNodes;
+
+	/// Frame-scoped snapshot of the hero path, refreshed by prepareFrame(). Resolving it costs
+	/// three lookups plus a linear scan, otherwise repeated for every visible tile every frame.
+	const CGPath * cachedPath = nullptr;
+	/// Sorted coordinates of cachedPath, for rejecting the vast majority of tiles in
+	/// logarithmic time instead of scanning the whole node list
+	std::vector<int3> cachedPathTiles;
+
+	size_t selectImageReachability(bool reachableToday, size_t imageIndex);
+	size_t selectImageCross(bool reachableToday, const int3 & curr);
+	size_t selectImageArrow(bool reachableToday, const int3 & curr, const int3 & prev, const int3 & next);
+	size_t selectImage(IMapRendererContext & context, const int3 & coordinates);
+
+public:
+	MapRendererPath();
+
+	/// Must be called once per frame before any checksum() or renderTile() call
+	void prepareFrame(IMapRendererContext & context);
+
+	uint8_t checksum(IMapRendererContext & context, const int3 & coordinates);
+	void renderTile(IMapRendererContext & context, Canvas & target, const int3 & coordinates);
+};
+
+class MapRendererOverlay
+{
+	std::shared_ptr<IImage> imageGrid;
+	std::shared_ptr<IImage> imageVisitable;
+	std::shared_ptr<IImage> imageBlocked;
+	std::shared_ptr<IImage> imageSpellRange;
+	std::shared_ptr<IImage> imageEvent;
+	std::shared_ptr<IImage> imageGrail;
+
+	int3 grailPos;
+public:
+	MapRendererOverlay();
+
+	uint8_t checksum(IMapRendererContext & context, const int3 & coordinates);
+	void renderTile(IMapRendererContext & context, Canvas & target, const int3 & coordinates);
+};
+
+class MapRenderer
+{
+	MapRendererTerrain rendererTerrain;
+	MapRendererRiver rendererRiver;
+	MapRendererRoad rendererRoad;
+	MapRendererBorder rendererBorder;
+	MapRendererFow rendererFow;
+	MapRendererObjects rendererObjects;
+	MapRendererPath rendererPath;
+	MapRendererOverlay rendererOverlay;
+
+public:
+	using TileChecksum = std::array<uint8_t, 8>;
+
+	/// Refreshes state that is constant for the whole frame. Must be called before the
+	/// per-tile getTileChecksum() / renderTile() calls of that frame.
+	void prepareFrame(IMapRendererContext & context);
+
+	TileChecksum getTileChecksum(IMapRendererContext & context, const int3 & coordinates);
+
+	void renderTile(IMapRendererContext & context, Canvas & target, const int3 & coordinates, bool withOverlays);
+};

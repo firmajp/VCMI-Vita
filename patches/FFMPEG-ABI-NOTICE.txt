@@ -1,0 +1,2 @@
+FFmpeg 7.1.2 remains under its original licenses. This build disables GPL/nonfree options.
+Vita adaptation dated 2026-10-30: scripts/normalize_ffmpeg_headers.py annotates named public enum definitions in installed headers with mode(SI). The implementation is compiled with -fno-short-enums. This permits calls from the engine's short-enum ABI. The original source and notices are retained in third_party/FFmpeg. Rebuild using scripts/build-ffmpeg.ps1; modifications to the library may be debugged and relinked using the supplied application source.

@@ -1,0 +1,505 @@
+set(vcmiclientcommon_SRCS
+	StdInc.cpp
+
+	adventureMap/AdventureMapInterface.cpp
+	adventureMap/AdventureMapShortcuts.cpp
+	adventureMap/AdventureMapWidget.cpp
+	adventureMap/AdventureOptions.cpp
+	adventureMap/CInGameConsole.cpp
+	adventureMap/CInfoBar.cpp
+	adventureMap/CList.cpp
+	adventureMap/CMinimap.cpp
+	adventureMap/CResDataBar.cpp
+	adventureMap/MapAudioPlayer.cpp
+	adventureMap/TurnTimerWidget.cpp
+
+	battle/BattleActionsController.cpp
+	battle/BattleAnimationClasses.cpp
+	battle/BattleConsole.cpp
+	battle/BattleEffectsController.cpp
+	battle/BattleFieldController.cpp
+	battle/BattleHero.cpp
+	battle/BattleInterface.cpp
+	battle/BattleObstacleController.cpp
+	battle/BattleOverlayLogVisualizer.cpp
+	battle/BattleProjectileController.cpp
+	battle/BattleRenderer.cpp
+	battle/BattleResultWindow.cpp
+	battle/BattleSiegeController.cpp
+	battle/BattleStacksController.cpp
+	battle/BattleWindow.cpp
+	battle/ClientCommandEntries.cpp
+	battle/CreatureAnimation.cpp
+	battle/HeroInfoWindow.cpp
+	battle/LibActionEntry.cpp
+	battle/QuickSpellPanel.cpp
+	battle/StackInfoBasicPanel.cpp
+	battle/StackQueue.cpp
+	battle/UnitActionPanel.cpp
+
+	gui/CIntObject.cpp
+	gui/CursorHandler.cpp
+	gui/EventDispatcher.cpp
+	gui/EventsReceiver.cpp
+	gui/InterfaceObjectConfigurable.cpp
+	gui/FramerateManager.cpp
+	gui/ShortcutHandler.cpp
+	gui/WindowHandler.cpp
+
+	lobby/BattleOnlyModeTab.cpp
+	lobby/CBonusSelection.cpp
+	lobby/CCampaignInfoScreen.cpp
+	lobby/CLobbyScreen.cpp
+	lobby/CSavingScreen.cpp
+	lobby/CScenarioInfoScreen.cpp
+	lobby/CSelectionBase.cpp
+	lobby/TurnOptionsTab.cpp
+	lobby/ExtraOptionsTab.cpp
+	lobby/OptionsTab.cpp
+	lobby/OptionsTabBase.cpp
+	lobby/RandomMapTab.cpp
+	lobby/SelectionTab.cpp
+
+	mainmenu/CCampaignScreen.cpp
+	mainmenu/CMainMenu.cpp
+	mainmenu/CPrologEpilogVideo.cpp
+	mainmenu/CreditsScreen.cpp
+	mainmenu/CHighScoreScreen.cpp
+	mainmenu/CStatisticScreen.cpp
+
+	mapView/MapRenderer.cpp
+	mapView/MapRendererContext.cpp
+	mapView/MapRendererContextState.cpp
+	mapView/MapView.cpp
+	mapView/MapViewActions.cpp
+	mapView/MapViewCache.cpp
+	mapView/MapViewController.cpp
+	mapView/MapViewModel.cpp
+	mapView/mapHandler.cpp
+	mapView/MapOverlayLogVisualizer.cpp
+
+	netlag/NetworkLagCompensator.cpp
+	netlag/PackRollbackGeneratorVisitor.cpp
+
+	replay/GameplayReplayer.cpp
+	replay/ReplayAbortOverlay.cpp
+	replay/ReplaySelectionWindow.cpp
+
+	render/AssetGenerator.cpp
+	render/CAnimation.cpp
+	render/CDefFile.cpp
+	render/ColorFilter.cpp
+	render/Colors.cpp
+	render/Graphics.cpp
+	render/IFont.cpp
+	render/ImageLocator.cpp
+	render/hdEdition/HdImageLoader.cpp
+	render/hdEdition/PakLoader.cpp
+	render/hdEdition/DdsFormat.cpp
+
+	globalLobby/GlobalLobbyAddChannelWindow.cpp
+	globalLobby/GlobalLobbyClient.cpp
+	globalLobby/GlobalLobbyInviteWindow.cpp
+	globalLobby/GlobalLobbyLoginWindow.cpp
+	globalLobby/GlobalLobbyRoomWindow.cpp
+	globalLobby/GlobalLobbyServerSetup.cpp
+	globalLobby/GlobalLobbyWidget.cpp
+	globalLobby/GlobalLobbyWindow.cpp
+
+	widgets/Buttons.cpp
+	widgets/CComponent.cpp
+	widgets/CComponentHolder.cpp
+	widgets/CExchangeController.cpp
+	widgets/CGarrisonInt.cpp
+	widgets/CreatureCostBox.cpp
+	widgets/ComboBox.cpp
+	widgets/ControllerPrompt.cpp
+	widgets/ControllerActionButton.cpp
+	widgets/CTextInput.cpp
+	widgets/GraphicalPrimitiveCanvas.cpp
+	widgets/Images.cpp
+	widgets/MiscWidgets.cpp
+	widgets/CViewport.cpp
+	widgets/ObjectLists.cpp
+	widgets/TextControls.cpp
+	widgets/Scrollable.cpp
+	widgets/Slider.cpp
+	widgets/CArtifactsOfHeroBase.cpp
+	widgets/CArtifactsOfHeroMain.cpp
+	widgets/CArtifactsOfHeroKingdom.cpp
+	widgets/CArtifactsOfHeroAltar.cpp
+	widgets/CArtifactsOfHeroMarket.cpp
+	widgets/CArtifactsOfHeroBackpack.cpp
+	widgets/RadialMenu.cpp
+	widgets/VideoWidget.cpp
+	widgets/markets/CAltarArtifacts.cpp
+	widgets/markets/CAltarCreatures.cpp
+	widgets/markets/CArtifactsBuying.cpp
+	widgets/markets/CArtifactsSelling.cpp
+	widgets/markets/CFreelancerGuild.cpp
+	widgets/markets/CMarketResources.cpp
+	widgets/markets/CTransferResources.cpp
+	widgets/markets/CMarketBase.cpp
+	widgets/markets/TradePanels.cpp
+
+	windows/CCastleInterface.cpp
+	windows/CCreatureWindow.cpp
+	windows/CStackExperienceDetailsWindow.cpp
+	windows/CExchangeWindow.cpp
+	windows/CHeroOverview.cpp
+	windows/CHeroWindow.cpp
+	windows/CKingdomInterface.cpp
+	windows/CMapOverview.cpp
+	windows/CMarketWindow.cpp
+	windows/CMessage.cpp
+	windows/CPuzzleWindow.cpp
+	windows/CJournalWindow.cpp
+	windows/CQuestLog.cpp
+	windows/CScenarioEventJournal.cpp
+	windows/CSpellWindow.cpp
+	windows/CTutorialWindow.cpp
+	windows/wiki/WikiCommon.cpp
+	windows/wiki/WikiWindow.cpp
+	windows/wiki/WikiMarkdown.cpp
+	windows/wiki/markdown/MDParser.cpp
+	windows/wiki/markdown/MDRenderer.cpp
+	windows/wiki/markdown/MDWidgets.cpp
+	windows/wiki/WikiCreatureContent.cpp
+	windows/wiki/WikiHeroContent.cpp
+	windows/wiki/WikiArtifactContent.cpp
+	windows/wiki/WikiModContent.cpp
+	windows/wiki/WikiTownContent.cpp
+	windows/CWindowObject.cpp
+	windows/CreaturePurchaseCard.cpp
+	windows/GUIClasses.cpp
+	windows/InfoWindows.cpp
+	windows/QuickRecruitmentWindow.cpp
+	windows/CHeroBackpackWindow.cpp
+	windows/CWindowWithArtifacts.cpp
+	windows/settings/GeneralOptionsTab.cpp
+	windows/settings/OtherOptionsTab.cpp
+	windows/settings/SettingsMainWindow.cpp
+	windows/settings/BattleOptionsTab.cpp
+	windows/settings/AdventureOptionsTab.cpp
+	windows/settings/KeyBindingsWindow.cpp
+
+	filters/xBRZ/xbrz.cpp
+
+	filters/FSR/fsr_rcas.cpp
+
+	ArtifactsUIController.cpp
+	GameEngine.cpp
+	GameInstance.cpp
+	Translator.cpp
+	CPlayerInterface.cpp
+	PlayerLocalState.cpp
+	CServerHandler.cpp
+	Client.cpp
+	ClientCommandManager.cpp
+	GameChatHandler.cpp
+	HeroMovementController.cpp
+	NetPacksClient.cpp
+	NetPacksLobbyClient.cpp
+	ServerRunner.cpp
+	UIHelper.cpp
+	Discord.cpp
+)
+
+set(vcmiclientcommon_HEADERS
+	StdInc.h
+
+	adventureMap/AdventureMapInterface.h
+	adventureMap/AdventureMapShortcuts.h
+	adventureMap/AdventureMapWidget.h
+	adventureMap/AdventureState.h
+	adventureMap/AdventureOptions.h
+	adventureMap/CInGameConsole.h
+	adventureMap/CInfoBar.h
+	adventureMap/CList.h
+	adventureMap/CMinimap.h
+	adventureMap/CResDataBar.h
+	adventureMap/MapAudioPlayer.h
+	adventureMap/TurnTimerWidget.h
+
+	battle/BattleActionEntry.h
+	battle/BattleActionsController.h
+	battle/BattleAnimationClasses.h
+	battle/BattleConsole.h
+	battle/BattleEffectsController.h
+	battle/BattleFieldController.h
+	battle/BattleHero.h
+	battle/BattleInterface.h
+	battle/BattleObstacleController.h
+	battle/BattleOverlayLogVisualizer.h
+	battle/BattleProjectileController.h
+	battle/BattleRenderer.h
+	battle/BattleResultWindow.h
+	battle/BattleSidePanel.h
+	battle/BattleSiegeController.h
+	battle/BattleStacksController.h
+	battle/BattleWindow.h
+	battle/ClientCommandEntries.h
+	battle/CreatureAnimation.h
+	battle/HeroInfoWindow.h
+	battle/LibActionEntry.h
+	battle/QuickSpellPanel.h
+	battle/StackInfoBasicPanel.h
+	battle/StackQueue.h
+	battle/UnitActionPanel.h
+
+	gui/CIntObject.h
+	gui/ControllerPromptFamily.h
+	gui/CursorHandler.h
+	gui/EventDispatcher.h
+	gui/EventsReceiver.h
+	gui/InterfaceObjectConfigurable.h
+	gui/FramerateManager.h
+	gui/MouseButton.h
+	gui/Shortcut.h
+	gui/ShortcutHandler.h
+	gui/TextAlignment.h
+	gui/WindowHandler.h
+
+	lobby/BattleOnlyModeTab.h
+	lobby/CBonusSelection.h
+	lobby/CCampaignInfoScreen.h
+	lobby/CLobbyScreen.h
+	lobby/CSavingScreen.h
+	lobby/CScenarioInfoScreen.h
+	lobby/CSelectionBase.h
+	lobby/TurnOptionsTab.h
+	lobby/ExtraOptionsTab.h
+	lobby/OptionsTab.h
+	lobby/OptionsTabBase.h
+	lobby/RandomMapTab.h
+	lobby/SelectionTab.h
+
+	mainmenu/CCampaignScreen.h
+	mainmenu/CMainMenu.h
+	mainmenu/CPrologEpilogVideo.h
+	mainmenu/CreditsScreen.h
+	mainmenu/CHighScoreScreen.h
+	mainmenu/CStatisticScreen.h
+
+	mapView/IMapRendererContext.h
+	mapView/IMapRendererObserver.h
+	mapView/MapRenderer.h
+	mapView/MapRendererContext.h
+	mapView/MapRendererContextState.h
+	mapView/MapView.h
+	mapView/MapViewActions.h
+	mapView/MapViewCache.h
+	mapView/MapViewController.h
+	mapView/MapViewModel.h
+	mapView/mapHandler.h
+	mapView/MapOverlayLogVisualizer.h
+
+	netlag/NetworkLagCompensator.h
+	netlag/NetworkLagPredictedPack.h
+	netlag/NetworkLagPredictionTestVisitor.h
+	netlag/NetworkLagReplyPrediction.h
+	netlag/PackRollbackGeneratorVisitor.h
+
+	replay/GameplayReplayer.h
+	replay/ReplayAbortOverlay.h
+	replay/ReplayPackFilter.h
+	replay/ReplaySelectionWindow.h
+
+	render/AssetGenerator.h
+	render/CAnimation.h
+	render/CBitmapHandler.h
+	render/CDefFile.h
+	render/ColorFilter.h
+	render/Colors.h
+	render/EFont.h
+	render/Graphics.h
+	render/ICacheableAsset.h
+	render/ICursor.h
+	render/IFont.h
+	render/IImageLoader.h
+	render/ImageLocator.h
+	render/IRenderHandler.h
+	render/hdEdition/HdImageLoader.h
+	render/hdEdition/PakLoader.h
+	render/hdEdition/DdsFormat.h
+
+	globalLobby/GlobalLobbyClient.h
+	globalLobby/GlobalLobbyDefines.h
+	globalLobby/GlobalLobbyAddChannelWindow.h
+	globalLobby/GlobalLobbyInviteWindow.h
+	globalLobby/GlobalLobbyLoginWindow.h
+	globalLobby/GlobalLobbyRoomWindow.h
+	globalLobby/GlobalLobbyServerSetup.h
+	globalLobby/GlobalLobbyObserver.h
+	globalLobby/GlobalLobbyWidget.h
+	globalLobby/GlobalLobbyWindow.h
+
+	widgets/Buttons.h
+	widgets/CComponent.h
+	widgets/CComponentHolder.h
+	widgets/CExchangeController.h
+	widgets/CGarrisonInt.h
+	widgets/CreatureCostBox.h
+	widgets/ComboBox.h
+	widgets/ControllerPrompt.h
+	widgets/ControllerActionButton.h
+	widgets/CTextInput.h
+	widgets/GraphicalPrimitiveCanvas.h
+	widgets/Images.h
+	widgets/MiscWidgets.h
+	widgets/CViewport.h
+	widgets/ObjectLists.h
+	widgets/TextControls.h
+	widgets/Scrollable.h
+	widgets/Slider.h
+	widgets/CArtifactsOfHeroBase.h
+	widgets/CArtifactsOfHeroMain.h
+	widgets/CArtifactsOfHeroKingdom.h
+	widgets/CArtifactsOfHeroAltar.h
+	widgets/CArtifactsOfHeroMarket.h
+	widgets/CArtifactsOfHeroBackpack.h
+	widgets/IVideoHolder.h
+	widgets/RadialMenu.h
+	widgets/VideoWidget.h
+	widgets/markets/CAltarArtifacts.h
+	widgets/markets/CAltarCreatures.h
+	widgets/markets/CArtifactsBuying.h
+	widgets/markets/CArtifactsSelling.h
+	widgets/markets/CFreelancerGuild.h
+	widgets/markets/CMarketResources.h
+	widgets/markets/CTransferResources.h
+	widgets/markets/CMarketBase.h
+	widgets/markets/TradePanels.h
+
+	windows/CCastleInterface.h
+	windows/CCreatureWindow.h
+	windows/CStackExperienceDetailsWindow.h
+	windows/CExchangeWindow.h
+	windows/CHeroOverview.h
+	windows/CHeroWindow.h
+	windows/CKingdomInterface.h
+	windows/CMessage.h
+	windows/CMapOverview.h
+	windows/CMarketWindow.h
+	windows/CPuzzleWindow.h
+	windows/CJournalWindow.h
+	windows/CQuestLog.h
+	windows/CScenarioEventJournal.h
+	windows/CSpellWindow.h
+	windows/CTutorialWindow.h
+	windows/wiki/WikiCommon.h
+	windows/wiki/WikiWindow.h
+	windows/wiki/WikiMarkdown.h
+	windows/wiki/markdown/MDParser.h
+	windows/wiki/markdown/MDRenderer.h
+	windows/wiki/markdown/MDWidgets.h
+	windows/wiki/WikiCreatureContent.h
+	windows/wiki/WikiHeroContent.h
+	windows/wiki/WikiArtifactContent.h
+	windows/wiki/WikiModContent.h
+	windows/wiki/WikiTownContent.h
+	windows/CWindowObject.h
+	windows/CreaturePurchaseCard.h
+	windows/GUIClasses.h
+	windows/InfoWindows.h
+	windows/QuickRecruitmentWindow.h
+	windows/CHeroBackpackWindow.h
+	windows/CWindowWithArtifacts.h
+	windows/settings/GeneralOptionsTab.h
+	windows/settings/OtherOptionsTab.h
+	windows/settings/SettingsMainWindow.h
+	windows/settings/BattleOptionsTab.h
+	windows/settings/AdventureOptionsTab.h
+	windows/settings/KeyBindingsWindow.h
+
+	filters/xBRZ/xbrz.h
+	filters/xBRZ/xbrz_tools.h
+
+	filters/FSR/fsr_rcas.h
+
+	ArtifactsUIController.h
+	CMT.h
+	CPlayerInterface.h
+	GameEngine.h
+	GameEngineUser.h
+	GameInstance.h
+	Translator.h
+	PlayerLocalState.h
+	CServerHandler.h
+	Client.h
+	ClientCommandManager.h
+	ClientNetPackVisitors.h
+	HeroMovementController.h
+	GameChatHandler.h
+	LobbyClientNetPackVisitors.h
+	ServerRunner.h
+	resource.h
+	UIHelper.h
+	Discord.h
+)
+
+if(IOS)
+	set(vcmiclientcommon_SRCS ${vcmiclientcommon_SRCS}
+		ios/utils.mm
+	)
+	set(vcmiclientcommon_HEADERS ${vcmiclientcommon_HEADERS}
+		ios/utils.h
+	)
+endif()
+
+assign_source_group(${vcmiclientcommon_SRCS} ${vcmiclientcommon_HEADERS})
+add_library(vcmiclientcommon STATIC ${vcmiclientcommon_SRCS} ${vcmiclientcommon_HEADERS})
+
+if(WIN32)
+	set_target_properties(vcmiclientcommon
+		PROPERTIES
+			OUTPUT_NAME "VCMI_vcmiclientcommon"
+			PROJECT_LABEL "VCMI_vcmiclientcommon"
+	)
+	set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT vcmiclientcommon)
+	target_compile_definitions(vcmiclientcommon PRIVATE WINDOWS_IGNORE_PACKING_MISMATCH)
+elseif(IOS)
+	target_link_libraries(vcmiclientcommon PRIVATE
+		iOS_utils
+	)
+endif()
+
+target_link_libraries(vcmiclientcommon PRIVATE vcmiservercommon)
+
+target_link_libraries(vcmiclientcommon PUBLIC
+		vcmi ${VCMI_MEDIA_BACKEND}
+)
+
+# render/ holds the parts both backends share, and the few SDL calls that were renamed
+# between SDL2 and SDL3 are selected there with #ifdef VCMI_SDL3
+if(ENABLE_SDL3)
+	target_compile_definitions(vcmiclientcommon PUBLIC VCMI_SDL3)
+endif()
+
+if(ENABLE_VIDEO)
+	target_compile_definitions(vcmiclientcommon PRIVATE ENABLE_VIDEO)
+endif()
+
+target_include_directories(vcmiclientcommon PUBLIC
+	${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+if(VCMI_PORTMASTER)
+	target_compile_definitions(vcmiclientcommon PRIVATE VCMI_PORTMASTER)
+endif()
+
+if (ENABLE_DISCORD)
+	if(USING_CONAN)
+		# don't search for libs in system locations
+		set(findOptions NO_CMAKE_SYSTEM_PATH NO_SYSTEM_ENVIRONMENT_PATH)
+	endif()
+	find_package(fmt ${findOptions})
+	find_package(glaze ${findOptions})
+
+	add_subdirectory(lib/discord-presence)
+	target_link_libraries(vcmiclientcommon PRIVATE discord-rpc)
+	target_compile_definitions(vcmiclientcommon PRIVATE ENABLE_DISCORD)
+endif()
+
+vcmi_set_output_dir(vcmiclientcommon "")
+enable_pch(vcmiclientcommon)

@@ -1,0 +1,589 @@
+/*
+ * ISpellMechanics.cpp, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+
+#include "StdInc.h"
+#include "ISpellMechanics.h"
+
+#include "BattleSpellMechanics.h"
+#include "TargetCondition.h"
+#include "Problem.h"
+#include "CSpell.h"
+
+#include "adventure/AdventureSpellMechanics.h"
+#include "effects/Effects.h"
+
+#include "../GameLibrary.h"
+#include "../bonuses/Bonus.h"
+#include "../battle/CBattleInfoCallback.h"
+#include "../battle/IBattleState.h"
+#include "../battle/Unit.h"
+#include "../mapObjects/CGHeroInstance.h"
+#include "../modding/LibraryLoadContext.h"
+#include "../serializer/JsonDeserializer.h"
+#include "../serializer/JsonSerializer.h"
+#include "../BattleFieldHandler.h"
+
+#include <vstd/RNG.h>
+
+namespace spells
+{
+
+static std::shared_ptr<TargetCondition> makeCondition(LibraryLoadContext & context, const CSpell * s)
+{
+	auto res = std::make_shared<TargetCondition>();
+
+	JsonDeserializer deser(nullptr, context.resolver, s->targetCondition);
+	res->serializeJson(deser, TargetConditionItemFactory::getDefault());
+
+	return res;
+}
+
+class CustomMechanicsFactory : public ISpellMechanicsFactory
+{
+public:
+	std::unique_ptr<Mechanics> create(const IBattleCast * event) const override
+	{
+		auto * ret = new BattleSpellMechanics(event, effects, targetCondition);
+		return std::unique_ptr<Mechanics>(ret);
+	}
+protected:
+	std::shared_ptr<effects::Effects> effects;
+
+	CustomMechanicsFactory(LibraryLoadContext & context, const CSpell * s)
+		: ISpellMechanicsFactory(s), effects(new effects::Effects)
+	{
+		targetCondition = makeCondition(context, s);
+	}
+
+	void loadEffects(LibraryLoadContext & context, const JsonNode & config, const int level)
+	{
+		effects->data.at(level) = effects::Effects::loadJson(context, config, spell->modScope, spell->identifier);
+	}
+private:
+	std::shared_ptr<IReceptiveCheck> targetCondition;
+};
+
+class ConfigurableMechanicsFactory : public CustomMechanicsFactory
+{
+public:
+	ConfigurableMechanicsFactory(LibraryLoadContext & context, const CSpell * s)
+		: CustomMechanicsFactory(context, s)
+	{
+		for(int level = 0; level < GameConstants::SPELL_SCHOOL_LEVELS; level++)
+			loadEffects(context, s->getLevelInfo(level).battleEffects, level);
+	}
+};
+
+
+//to be used for spells configured with old format
+class FallbackMechanicsFactory : public CustomMechanicsFactory
+{
+	JsonNode usePowerAsVal(const JsonNode & effectsNode, si32 power) const
+	{
+		JsonNode result = effectsNode;
+		for(auto & [name, bonusNode] : result.Struct())
+			if(bonusNode["val"].isNull())
+				bonusNode["val"].Integer() = power;
+		return result;
+	}
+
+public:
+	FallbackMechanicsFactory(LibraryLoadContext & context, const CSpell * s)
+		: CustomMechanicsFactory(context, s)
+	{
+		for(int level = 0; level < GameConstants::SPELL_SCHOOL_LEVELS; level++)
+		{
+			const CSpell::LevelInfo & levelInfo = s->getLevelInfo(level);
+			assert(levelInfo.battleEffects.isNull());
+
+			if(!levelInfo.effects.Struct().empty())
+			{
+				JsonNode config;
+				config["timed"]["type"].String() = "core:timed";
+				config["timed"]["bonus"] = usePowerAsVal(levelInfo.effects, levelInfo.power);
+				config.setModScope(s->modScope);
+				loadEffects(context, config, level);
+			}
+			else if(!levelInfo.cumulativeEffects.Struct().empty())
+			{
+				JsonNode config;
+				config["timed"]["type"].String() = "core:timed";
+				config["timed"]["cumulative"].Bool() = true;
+				config["timed"]["bonus"] = usePowerAsVal(levelInfo.cumulativeEffects, levelInfo.power);
+				config.setModScope(s->modScope);
+				loadEffects(context, config, level);
+			}
+		}
+	}
+};
+
+BattleCast::BattleCast(const CBattleInfoCallback * cb_, const Caster * caster_, const Mode mode_, const CSpell * spell_):
+	spell(spell_),
+	cb(cb_),
+	caster(caster_),
+	mode(mode_)
+{
+}
+
+BattleCast::~BattleCast() = default;
+
+const CSpell * BattleCast::getSpell() const
+{
+	return spell;
+}
+
+Mode BattleCast::getMode() const
+{
+	return mode;
+}
+
+const Caster * BattleCast::getCaster() const
+{
+	return caster;
+}
+
+const CBattleInfoCallback * BattleCast::getBattle() const
+{
+	return cb;
+}
+
+BattleCast::OptionalValue BattleCast::getSpellLevel() const
+{
+	return magicSkillLevel;
+}
+
+BattleCast::OptionalValue BattleCast::getEffectPower() const
+{
+	return effectPower;
+}
+
+BattleCast::OptionalValue BattleCast::getEffectDuration() const
+{
+	return effectDuration;
+}
+
+BattleCast::OptionalValue64 BattleCast::getEffectValue() const
+{
+	return effectValue;
+}
+
+bool BattleCast::isForceMassive() const
+{
+	return forceMassive;
+}
+
+void BattleCast::setSpellLevel(BattleCast::Value value)
+{
+	magicSkillLevel = std::make_optional(value);
+}
+
+void BattleCast::setEffectPower(BattleCast::Value value)
+{
+	effectPower = std::make_optional(value);
+}
+
+void BattleCast::setEffectDuration(BattleCast::Value value)
+{
+	effectDuration = std::make_optional(value);
+}
+
+void BattleCast::setEffectValue(BattleCast::Value64 value)
+{
+	effectValue = std::make_optional(value);
+}
+
+void BattleCast::applyEffects(ServerCallback * server, const Target & target, bool indirect, bool ignoreImmunity) const
+{
+	auto m = spell->battleMechanics(this);
+
+	m->applyEffects(server, target, indirect, ignoreImmunity);
+}
+
+void BattleCast::cast(ServerCallback * server, Target target)
+{
+	if(target.empty())
+		target.emplace_back();
+
+	auto m = spell->battleMechanics(this);
+
+	m->cast(server, target);
+}
+
+void BattleCast::castEval(ServerCallback * server, Target target)
+{
+	//TODO: make equivalent to normal cast
+	if(target.empty())
+		target.emplace_back();
+	auto m = spell->battleMechanics(this);
+
+	//TODO: reflection
+	//TODO: random effects evaluation
+
+	m->castEval(server, target);
+}
+
+bool BattleCast::castIfPossible(ServerCallback * server, Target target)
+{
+	if(spell->canBeCast(cb, mode, caster))
+	{
+		cast(server, std::move(target));
+		return true;
+	}
+	return false;
+}
+
+///ISpellMechanicsFactory
+ISpellMechanicsFactory::ISpellMechanicsFactory(const CSpell * s)
+	: spell(s)
+{
+
+}
+
+//must be instantiated in .cpp file for access to complete types of all member fields
+ISpellMechanicsFactory::~ISpellMechanicsFactory() = default;
+
+std::unique_ptr<ISpellMechanicsFactory> ISpellMechanicsFactory::get(LibraryLoadContext & context, const CSpell * s)
+{
+	if(s->hasBattleEffects())
+		return std::make_unique<ConfigurableMechanicsFactory>(context, s);
+	else
+		return std::make_unique<FallbackMechanicsFactory>(context, s);
+}
+
+///Mechanics
+Mechanics::Mechanics()
+	: caster(nullptr),
+	casterSide(BattleSide::NONE)
+{
+
+}
+
+Mechanics::~Mechanics() = default;
+
+BaseMechanics::BaseMechanics(const IBattleCast * event):
+	owner(event->getSpell()),
+	mode(event->getMode()),
+	forceMassive(event->isForceMassive()),
+	cb(event->getBattle())
+{
+	caster = event->getCaster();
+
+	casterSide = cb->playerToSide(caster->getCasterOwner());
+
+	{
+		auto value = event->getSpellLevel();
+		rangeLevel = value.value_or(caster->getSpellSchoolLevel(owner));
+		vstd::abetween(rangeLevel, 0, 3);
+	}
+	{
+		auto value = event->getSpellLevel();
+		effectLevel = value.value_or(caster->getEffectLevel(owner));
+		vstd::abetween(effectLevel, 0, 3);
+	}
+	{
+		auto value = event->getEffectPower();
+		effectPower = value.value_or(caster->getEffectPower(owner));
+		vstd::amax(effectPower, 0);
+	}
+	{
+		auto value = event->getEffectDuration();
+		effectDuration = value.value_or(caster->getEnchantPower(owner));
+		vstd::amax(effectDuration, 0); //???
+	}
+	{
+		auto value = event->getEffectValue();
+		auto casterValue = caster->getEffectValue(owner) ? caster->getEffectValue(owner) : owner->calculateRawEffectValue(effectLevel, effectPower, 1);
+		effectValue = value.value_or(casterValue);
+		vstd::amax(effectValue, 0);
+	}
+}
+
+BaseMechanics::~BaseMechanics() = default;
+
+bool BaseMechanics::adaptGenericProblem(Problem & target) const
+{
+	MetaString text;
+	// %s recites the incantations but they seem to have no effect.
+	text.appendTextID("core.genrltxt.541");
+	assert(caster);
+	text.replaceTextID(caster->getCasterNameTextID());
+
+	target.add(std::move(text), spells::Problem::NORMAL);
+	return false;
+}
+
+void BaseMechanics::describeSpellLevelLimit(const Caster * caster, Problem & target)
+{
+	MetaString text;
+	const auto * hero = dynamic_cast<const CGHeroInstance *>(caster);
+	//Recanter's Cloak or similar effect. Try to retrieve bonus
+	const auto b = hero ? hero->getFirstBonus(Selector::type()(BonusType::BLOCK_MAGIC_ABOVE)) : nullptr;
+
+	//TODO what about other values and non-artifact sources?
+	if(b && b->val == 2 && b->source == BonusSource::ARTIFACT)
+	{
+		//The %s prevents %s from casting 3rd level or higher spells.
+		text.appendTextID("core.genrltxt.536");
+		text.replaceName(b->sid.as<ArtifactID>());
+		text.replaceTextID(caster->getCasterNameTextID());
+	}
+	else if(b && b->source == BonusSource::TERRAIN_OVERLAY && LIBRARY->battlefields()->getById(b->sid.as<BattleField>())->identifier == "cursed_ground")
+	{
+		text.appendTextID("core.genrltxt.537");
+	}
+	else
+	{
+		// %s recites the incantations but they seem to have no effect.
+		text.appendTextID("core.genrltxt.541");
+		text.replaceTextID(caster->getCasterNameTextID());
+	}
+	target.add(std::move(text), spells::Problem::NORMAL);
+}
+
+bool BaseMechanics::adaptProblem(ESpellCastProblem source, Problem & target) const
+{
+	if(source == ESpellCastProblem::OK)
+		return true;
+
+	switch(source)
+	{
+	case ESpellCastProblem::SPELL_LEVEL_LIMIT_EXCEEDED:
+		describeSpellLevelLimit(caster, target);
+		break;
+	case ESpellCastProblem::WRONG_SPELL_TARGET:
+	case ESpellCastProblem::STACK_IMMUNE_TO_SPELL:
+	case ESpellCastProblem::NO_APPROPRIATE_TARGET:
+		{
+			MetaString text;
+			text.appendTextID("core.genrltxt.185");
+			target.add(std::move(text), spells::Problem::NORMAL);
+		}
+		break;
+	case ESpellCastProblem::INVALID:
+		{
+			MetaString text;
+			text.appendRawString("Internal error during check of spell cast.");
+			target.add(std::move(text), spells::Problem::CRITICAL);
+		}
+		break;
+	default:
+		return adaptGenericProblem(target);
+	}
+
+	return false;
+}
+
+int32_t BaseMechanics::getSpellIndex() const
+{
+	return getSpellId().toEnum();
+}
+
+SpellID BaseMechanics::getSpellId() const
+{
+	return owner->getId();
+}
+
+std::string BaseMechanics::getSpellName() const
+{
+	return owner->getNameTranslated();
+}
+
+std::string BaseMechanics::getCasterNameTextID() const
+{
+	return caster->getCasterNameTextID();
+}
+
+int32_t BaseMechanics::getSpellLevel() const
+{
+	return owner->getLevel();
+}
+
+bool BaseMechanics::isSmart() const
+{
+	const CSpell::TargetInfo targetInfo(owner, getRangeLevel(), mode);
+	return targetInfo.smart;
+}
+
+bool BaseMechanics::isMassive() const
+{
+	if(forceMassive)
+		return true;
+
+	const CSpell::TargetInfo targetInfo(owner, getRangeLevel(), mode);
+	return targetInfo.massive;
+}
+
+bool BaseMechanics::requiresClearTiles() const
+{
+	const CSpell::TargetInfo targetInfo(owner, getRangeLevel(), mode);
+	return targetInfo.clearAffected;
+}
+
+bool BaseMechanics::alwaysHitFirstTarget() const
+{
+	return mode == Mode::SPELL_LIKE_ATTACK;
+}
+
+bool BaseMechanics::isNegativeSpell() const
+{
+	return owner->isNegative();
+}
+
+bool BaseMechanics::isPositiveSpell() const
+{
+	return owner->isPositive();
+}
+
+bool BaseMechanics::isNeutralSpell() const
+{
+	return owner->isNeutral();
+}
+
+bool BaseMechanics::isMagicalEffect() const
+{
+	return owner->isMagical();
+}
+
+int64_t BaseMechanics::adjustEffectValue(const battle::Unit * target) const
+{
+	return owner->adjustRawDamage(caster, target, getEffectValue());
+}
+
+int64_t BaseMechanics::applySpellBonus(int64_t value, const battle::Unit * target) const
+{
+	return caster->getSpellBonus(owner, value, target);
+}
+
+int64_t BaseMechanics::applySpecificSpellBonus(int64_t value) const
+{
+	return caster->getSpecificSpellBonus(owner, value);
+}
+
+int64_t BaseMechanics::calculateRawEffectValue(int32_t basePowerMultiplier, int32_t levelPowerMultiplier) const
+{
+	return owner->calculateRawEffectValue(getEffectLevel(), basePowerMultiplier, levelPowerMultiplier);
+}
+
+Target BaseMechanics::canonicalizeTarget(const Target & aim) const
+{
+	return aim;
+}
+
+bool BaseMechanics::ownerMatches(const battle::Unit * unit) const
+{
+	if(owner->isNeutral())
+		return true; // neutral spell: no ownership filtering
+
+	return ownerMatches(unit, owner->isPositive());
+}
+
+bool BaseMechanics::ownerMatches(const battle::Unit * unit, const bool sameOwner) const
+{
+	return cb->battleMatchOwner(caster->getCasterOwner(), unit, sameOwner);
+}
+
+IBattleCast::Value BaseMechanics::getEffectLevel() const
+{
+	return effectLevel;
+}
+
+IBattleCast::Value BaseMechanics::getRangeLevel() const
+{
+	return rangeLevel;
+}
+
+IBattleCast::Value BaseMechanics::getEffectPower() const
+{
+	return effectPower;
+}
+
+IBattleCast::Value BaseMechanics::getEffectDuration() const
+{
+	return effectDuration;
+}
+
+IBattleCast::Value64 BaseMechanics::getEffectValue() const
+{
+	return effectValue;
+}
+
+PlayerColor BaseMechanics::getCasterColor() const
+{
+	return caster->getCasterOwner();
+}
+
+const CGHeroInstance * BaseMechanics::getHeroCaster() const
+{
+	return caster->getHeroCaster();
+}
+
+const battle::Unit * BaseMechanics::getUnitCaster() const
+{
+	if (caster->getHeroCaster() != nullptr)
+		return nullptr;
+	return battle()->battleGetUnitByID(static_cast<uint32_t>(caster->getCasterUnitId()));
+}
+
+std::vector<AimType> BaseMechanics::getTargetTypes() const
+{
+	std::vector<AimType> ret;
+
+	auto spellTargetType = owner->getTargetType();
+
+	if(isMassive())
+		spellTargetType = AimType::NOTHING;
+	else if(spellTargetType == AimType::OBSTACLE)
+		spellTargetType = AimType::LOCATION;
+
+	ret.push_back(spellTargetType);
+
+	return ret;
+}
+
+const CreatureService * BaseMechanics::creatures() const
+{
+	return LIBRARY->creatures(); //todo: redirect
+}
+
+const scripting::Service * BaseMechanics::scripts() const
+{
+	return LIBRARY->scripts(); //todo: redirect
+}
+
+const Service * BaseMechanics::spells() const
+{
+	return LIBRARY->spells(); //todo: redirect
+}
+
+const CBattleInfoCallback * BaseMechanics::battle() const
+{
+	return cb;
+}
+
+BattleID BaseMechanics::getBattleID() const
+{
+	return cb->getBattle()->getBattleID();
+}
+
+} //namespace spells
+
+///IAdventureSpellMechanics
+IAdventureSpellMechanics::IAdventureSpellMechanics(const CSpell * s)
+	: owner(s)
+{
+}
+
+std::unique_ptr<IAdventureSpellMechanics> IAdventureSpellMechanics::createMechanics(LibraryLoadContext & context, const CSpell * s)
+{
+	if (s->isCombat())
+		return nullptr;
+
+	return std::make_unique<AdventureSpellMechanics>(context, s);
+}

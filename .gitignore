@@ -1,0 +1,13 @@
+/build/
+.cache/
+__pycache__/
+*.pyc
+*.psp2dmp
+*.log
+*.elf
+*.velf
+*.self
+*.a
+*.o
+*.obj
+# Public VPKs are included in dist/ for review; also attach them to GitHub Releases.

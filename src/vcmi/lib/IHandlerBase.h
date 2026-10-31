@@ -1,0 +1,150 @@
+/*
+ * IHandlerBase.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#pragma once
+
+class JsonNode;
+class Entity;
+class LibraryLoadContext;
+
+/// base class for all handlers that can be accessed from mod system
+class DLL_LINKAGE IHandlerBase : boost::noncopyable
+{
+protected:
+	static std::string getScopeBuiltin();
+
+	/// Calls modhandler. Mostly needed to avoid large number of includes in headers
+	void registerObject(LibraryLoadContext & context, const std::string & scope, const std::string & typeName, const std::string & name, const JsonNode & data, si32 index);
+	void registerObject(LibraryLoadContext & context, const std::string & scope, const std::vector<std::string> & typeNames, const std::string & name, const JsonNode & data, si32 index);
+
+	std::optional<int32_t> resolveIdentifier(const std::string & scope, const std::string & typeName, const std::string & name) const;
+public:
+	/// loads all original game data in vector of json nodes
+	/// dataSize - is number of items that must be loaded (normally - constant from GameConstants)
+	virtual std::vector<JsonNode> loadLegacyData(LibraryLoadContext & context) = 0;
+
+	/// loads single object into game. Scope is namespace of this object, same as name of source mod
+	virtual void loadObject(LibraryLoadContext & context, const std::string & scope, const std::string & name, const JsonNode & data) = 0;
+	virtual void loadObject(LibraryLoadContext & context, const std::string & scope, const std::string & name, const JsonNode & data, size_t index) = 0;
+
+	/// allows handlers to alter object configuration before validation and actual load
+	virtual void beforeValidate(JsonNode & object){};
+
+	/// allows handler to load some custom internal data before identifier finalization
+	virtual void loadCustom(LibraryLoadContext & context){};
+
+	/// allows handler to do post-loading step for validation or integration of loaded data
+	virtual void afterLoadFinalization(LibraryLoadContext & context){};
+
+	virtual ~IHandlerBase() = default;
+};
+
+template <class _ObjectID, class _ObjectBase, class _Object, class _ServiceBase>
+class CHandlerBase : public _ServiceBase, public IHandlerBase
+{
+	const _Object * getObjectImpl(const int32_t index) const
+	{
+		try
+		{
+			return objects.at(index).get();
+		}
+		catch (const std::out_of_range&)
+		{
+			logMod->error("%s id %d is invalid", getTypeNames()[0], index);
+			throw std::runtime_error("Attempt to access invalid index " + std::to_string(index) + " of type " + getTypeNames().front());
+		}
+	}
+
+public:
+	using ObjectPtr = std::shared_ptr<_Object>;
+
+	const Entity * getBaseByIndex(const int32_t index) const override
+	{
+		return getObjectImpl(index);
+	}
+
+	const _ObjectBase * getById(const _ObjectID & id) const override
+	{
+		return getObjectImpl(id.getNum());
+	}
+
+	const _ObjectBase * getByIndex(const int32_t index) const override
+	{
+		return getObjectImpl(index);
+	}
+
+	const _ObjectBase * getByName(const std::string & name) const override
+	{
+		// TODO: provide actual scope? Perhaps pass it as json node?
+		auto index = resolveIdentifier("game", getTypeNames().front(), name);
+		if (index)
+			return getByIndex(*index);
+		else
+			return nullptr;
+	}
+
+	void forEachBase(const std::function<void(const Entity * entity, bool & stop)> & cb) const override
+	{
+		forEachT(cb);
+	}
+
+	void forEach(const std::function<void(const _ObjectBase * entity, bool & stop)> & cb) const override
+	{
+		forEachT(cb);
+	}
+
+	void loadObject(LibraryLoadContext & context, const std::string & scope, const std::string & name, const JsonNode & data) override
+	{
+		objects.push_back(loadFromJson(context, scope, data, name, objects.size()));
+		registerObject(context, scope, getTypeNames(), name, data, objects.back()->getIndex());
+	}
+
+	void loadObject(LibraryLoadContext & context, const std::string & scope, const std::string & name, const JsonNode & data, size_t index) override
+	{
+		if(objects[index] != nullptr)
+			logMod->debug("Replacing existing object at index %d with '%s'", index, name); // required for war machines in demo (uses ids from conflux creatures)
+		objects[index] = loadFromJson(context, scope, data, name, index);
+		registerObject(context, scope, getTypeNames(), name, data, index);
+	}
+
+	const _Object * operator[] (const _ObjectID id) const
+	{
+		return getObjectImpl(id.getNum());
+	}
+
+	const _Object * operator[] (int32_t index) const
+	{
+		return getObjectImpl(index);
+	}
+
+	size_t size() const
+	{
+		return objects.size();
+	}
+
+protected:
+	virtual ObjectPtr loadFromJson(LibraryLoadContext & context, const std::string & scope, const JsonNode & json, const std::string & identifier, size_t index) = 0;
+	virtual const std::vector<std::string> & getTypeNames() const = 0;
+
+	template<typename ItemType>
+	void forEachT(const std::function<void(const ItemType *, bool &)> & cb) const
+	{
+		bool stop = false;
+
+		for(auto & object : objects)
+		{
+			cb(object.get(), stop);
+			if(stop)
+				break;
+		}
+	}
+
+public: //todo: make private
+	std::vector<ObjectPtr> objects;
+};

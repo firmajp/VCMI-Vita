@@ -1,0 +1,955 @@
+set(lib_SRCS
+	StdInc.cpp
+
+	filesystem/AdapterLoaders.cpp
+	filesystem/CArchiveLoader.cpp
+	filesystem/CBinaryReader.cpp
+	filesystem/CCompressedStream.cpp
+	filesystem/CFileInputStream.cpp
+	filesystem/CFilesystemLoader.cpp
+	filesystem/CInputStream.cpp
+	filesystem/CMemoryBuffer.cpp
+	filesystem/CMemoryStream.cpp
+	filesystem/CZipLoader.cpp
+	filesystem/CZipSaver.cpp
+	filesystem/FileInfo.cpp
+	filesystem/Filesystem.cpp
+	filesystem/MinizipExtensions.cpp
+	filesystem/PngStripWriter.cpp
+	filesystem/ResourcePath.cpp
+
+	json/JsonFormatException.cpp
+	json/JsonNode.cpp
+	json/JsonParser.cpp
+	json/JsonUtils.cpp
+	json/JsonValidator.cpp
+	json/JsonWriter.cpp
+
+	logging/CBasicLogConfigurator.cpp
+	logging/CLogger.cpp
+	logging/VisualLogger.cpp
+
+	network/HttpDownloader.cpp
+	network/NetworkConnection.cpp
+	network/NetworkDiscovery.cpp
+	network/NetworkHandler.cpp
+	network/NetworkServer.cpp
+
+	texts/TextOperations.cpp
+
+	vstd/DateUtils.cpp
+	vstd/StringUtils.cpp
+
+	CConfigHandler.cpp
+	CConsoleHandler.cpp
+	CThreadHelper.cpp
+	ExceptionsCommon.cpp
+	VCMIDirs.cpp
+)
+
+set(lib_MAIN_SRCS
+	filesystem/SavegamePath.cpp
+
+	battle/AccessibilityInfo.cpp
+	battle/BattleAction.cpp
+	battle/BattleAttackInfo.cpp
+	battle/BattleHex.cpp
+	battle/BattleHexArray.cpp
+	battle/BattleInfo.cpp
+	battle/BattleLayout.cpp
+	battle/BattleProxy.cpp
+	battle/BattleStateInfoForRetreat.cpp
+	battle/CBattleInfoCallback.cpp
+	battle/CBattleInfoEssentials.cpp
+	battle/CObstacleInstance.cpp
+	battle/CombatValue.cpp
+	battle/CPlayerBattleCallback.cpp
+	battle/CUnitState.cpp
+	battle/DamageEstimationTexts.cpp
+	battle/Destination.cpp
+	battle/IBattleState.cpp
+	battle/ReachabilityInfo.cpp
+	battle/SideInBattle.cpp
+	battle/SiegeInfo.cpp
+	battle/Unit.cpp
+	battle/actions/BattleActionType.cpp
+	battle/actions/CatapultAction.cpp
+	battle/actions/HealAction.cpp
+	battle/actions/MeleeAttackActions.cpp
+	battle/actions/NoTargetActions.cpp
+	battle/actions/ShootAction.cpp
+	battle/actions/SpellCastActions.cpp
+	battle/actions/WalkAction.cpp
+
+	bonuses/Bonus.cpp
+	bonuses/BonusCache.cpp
+	bonuses/BonusEnum.cpp
+	bonuses/BonusList.cpp
+	bonuses/BonusSelector.cpp
+	bonuses/BonusCustomTypes.cpp
+	bonuses/BonusFilter.cpp
+	bonuses/BonusMigration.cpp
+	bonuses/BonusParameters.cpp
+	bonuses/CBonusSystemNode.cpp
+	bonuses/IBonusBearer.cpp
+	bonuses/Limiters.cpp
+	bonuses/Propagators.cpp
+	bonuses/Updaters.cpp
+
+	callback/CAdventureAI.cpp
+	callback/Calendar.cpp
+	callback/AIFactory.cpp
+	callback/CBattleCallback.cpp
+	callback/CCallback.cpp
+	callback/CGameInfoCallback.cpp
+	callback/CNonConstInfoCallback.cpp
+	callback/CPlayerSpecificInfoCallback.cpp
+	callback/GameRandomizer.cpp
+	callback/MapInfoCallback.cpp
+	callback/EditorCallback.cpp
+
+	campaign/CampaignBonus.cpp
+	campaign/CampaignHandler.cpp
+	campaign/CampaignState.cpp
+	campaign/CampaignRegions.cpp
+	campaign/CampaignRegionsHandler.cpp
+
+	constants/EntityIdentifiers.cpp
+	constants/StringConstants.cpp
+	constants/IdentifierBase.cpp
+
+	entities/artifact/ArtifactUtils.cpp
+	entities/artifact/ArtSlotInfo.cpp
+	entities/artifact/CArtHandler.cpp
+	entities/artifact/CArtifact.cpp
+	entities/artifact/CArtifactFittingSet.cpp
+	entities/artifact/CArtifactInstance.cpp
+	entities/artifact/CArtifactSet.cpp
+	entities/building/CBuilding.cpp
+	entities/faction/CFaction.cpp
+	entities/faction/CTown.cpp
+	entities/faction/CTownHandler.cpp
+	entities/hero/CHero.cpp
+	entities/hero/CHeroClass.cpp
+	entities/hero/CHeroClassHandler.cpp
+	entities/hero/CHeroHandler.cpp
+	entities/ResourceTypeHandler.cpp
+
+	events/ApplyDamage.cpp
+	events/GameResumed.cpp
+	events/ObjectVisitEnded.cpp
+	events/ObjectVisitStarted.cpp
+	events/PlayerGotTurn.cpp
+	events/TurnStarted.cpp
+
+	json/JsonBonus.cpp
+	json/JsonRandom.cpp
+	json/JsonKeyExtractor.cpp
+
+	gameState/CGameState.cpp
+	gameState/CGameStateCampaign.cpp
+	gameState/GameStatePackVisitor.cpp
+	gameState/HighScore.cpp
+	gameState/InfoAboutArmy.cpp
+	gameState/QuestInfo.cpp
+	gameState/ReplayLog.cpp
+	gameState/RumorState.cpp
+	gameState/SaveMetadata.cpp
+	gameState/TavernHeroesPool.cpp
+	gameState/GameStatistics.cpp
+	gameState/UpgradeInfo.cpp
+
+	mapObjectConstructors/AObjectTypeHandler.cpp
+	mapObjectConstructors/CObjectClassesHandler.cpp
+	mapObjectConstructors/CommonConstructors.cpp
+	mapObjectConstructors/CRewardableConstructor.cpp
+	mapObjectConstructors/DwellingInstanceConstructor.cpp
+	mapObjectConstructors/FlaggableInstanceConstructor.cpp
+	mapObjectConstructors/HillFortInstanceConstructor.cpp
+	mapObjectConstructors/MarketInstanceConstructor.cpp
+	mapObjectConstructors/ShipyardInstanceConstructor.cpp
+
+	mapObjects/CGCreature.cpp
+	mapObjects/CGDwelling.cpp
+	mapObjects/CGHeroInstance.cpp
+	mapObjects/CGMarket.cpp
+	mapObjects/CGObjectInstance.cpp
+	mapObjects/CGPandoraBox.cpp
+	mapObjects/CGResource.cpp
+	mapObjects/TownBuildingInstance.cpp
+	mapObjects/CGTownInstance.cpp
+	mapObjects/Quest.cpp
+	mapObjects/CRewardableObject.cpp
+	mapObjects/FlaggableMapObject.cpp
+	mapObjects/IMarket.cpp
+	mapObjects/IObjectInterface.cpp
+	mapObjects/MapObjectDrawOrder.cpp
+	mapObjects/MiscObjects.cpp
+	mapObjects/ObjectTemplate.cpp
+	mapObjects/ObstacleSetHandler.cpp
+
+	mapObjects/army/CArmedInstance.cpp
+	mapObjects/army/CCommanderInstance.cpp
+	mapObjects/army/CCreatureSet.cpp
+	mapObjects/army/CStackBasicDescriptor.cpp
+	mapObjects/army/CStackInstance.cpp
+
+	mapping/CDrawRoadsOperation.cpp
+	mapping/CMap.cpp
+	mapping/CMapHeader.cpp
+	mapping/CMapEditManager.cpp
+	mapping/CMapInfo.cpp
+	mapping/CMapOperation.cpp
+	mapping/CMapService.cpp
+	mapping/ScenarioListEntry.cpp
+	mapping/ScenarioMetadata.cpp
+	mapping/HotaScriptConverter.cpp
+	mapping/MapEditUtils.cpp
+	mapping/MapIdentifiersH3M.cpp
+	mapping/MapFeaturesH3M.cpp
+	mapping/MapFormatH3M.cpp
+	mapping/MapReaderH3M.cpp
+	mapping/MapFormatJson.cpp
+	mapping/MapFormatSettings.cpp
+	mapping/ObstacleProxy.cpp
+
+	modding/ActiveModsInSaveList.cpp
+	modding/CModHandler.cpp
+	modding/CModVersion.cpp
+	modding/ContentTypeHandler.cpp
+	modding/IdentifierResolver.cpp
+	modding/LibraryLoadContext.cpp
+	modding/IdentifierStorage.cpp
+	modding/ModDescription.cpp
+	modding/ModIncompatibility.cpp
+	modding/ModManager.cpp
+	modding/ModUtility.cpp
+	modding/ModVerificationInfo.cpp
+
+	networkPacks/NetPacksLib.cpp
+
+	pathfinder/CGPathNode.cpp
+	pathfinder/CPathfinder.cpp
+	pathfinder/NodeStorage.cpp
+	pathfinder/PathfinderCache.cpp
+	pathfinder/PathfinderOptions.cpp
+	pathfinder/PathfindingRules.cpp
+	pathfinder/TurnInfo.cpp
+
+	rewardable/Configuration.cpp
+	rewardable/Info.cpp
+	rewardable/Interface.cpp
+	rewardable/Limiter.cpp
+	rewardable/Reward.cpp
+
+	rmg/RmgArea.cpp
+	rmg/RmgObject.cpp
+	rmg/RmgPath.cpp
+	rmg/CMapGenerator.cpp
+	rmg/CMapGenOptions.cpp
+	rmg/CRmgTemplate.cpp
+	rmg/CRmgTemplateStorage.cpp
+	rmg/CZonePlacer.cpp
+	rmg/CZoneGridPlacer.cpp
+	rmg/CRoadRandomizer.cpp
+	rmg/TileInfo.cpp
+	rmg/Zone.cpp
+	rmg/Functions.cpp
+	rmg/ObjectInfo.cpp
+	rmg/ObjectConfig.cpp
+	rmg/RmgMap.cpp
+	rmg/PenroseTiling.cpp
+	rmg/modificators/Modificator.cpp
+	rmg/modificators/ObjectManager.cpp
+	rmg/modificators/ObjectDistributor.cpp
+	rmg/modificators/RoadPlacer.cpp
+	rmg/modificators/TreasurePlacer.cpp
+	rmg/modificators/PrisonHeroPlacer.cpp
+	rmg/modificators/QuestArtifactPlacer.cpp
+	rmg/modificators/ConnectionsPlacer.cpp
+	rmg/modificators/WaterAdopter.cpp
+	rmg/modificators/MinePlacer.cpp
+	rmg/modificators/ObjectPlacer.cpp
+	rmg/modificators/TownPlacer.cpp
+	rmg/modificators/WaterProxy.cpp
+	rmg/modificators/WaterRoutes.cpp
+	rmg/modificators/RockPlacer.cpp
+	rmg/modificators/RockFiller.cpp
+	rmg/modificators/ObstaclePlacer.cpp
+	rmg/modificators/RiverPlacer.cpp
+	rmg/modificators/TerrainPainter.cpp
+	rmg/MapProxy.cpp
+
+	serializer/CLegacyLoadFile.cpp
+	serializer/CLoadFile.cpp
+	serializer/CMemorySerializer.cpp
+	serializer/GameConnection.cpp
+	serializer/CSaveFile.cpp
+	serializer/SaveFileFormat.cpp
+	serializer/CTypeList.cpp
+	serializer/JsonDeserializer.cpp
+	serializer/JsonSerializeFormat.cpp
+	serializer/JsonSerializer.cpp
+	serializer/SerializerReflection.cpp
+
+	scripting/ScriptVariablesStorage.cpp
+
+	spells/AbilityCaster.cpp
+	spells/BattleSpellMechanics.cpp
+	spells/BonusCaster.cpp
+	spells/CSpell.cpp
+	spells/CSpellHandler.cpp
+	spells/ExternalCaster.cpp
+	spells/ISpellMechanics.cpp
+	spells/ObstacleCasterProxy.cpp
+	spells/Problem.cpp
+	spells/ProxyCaster.cpp
+	spells/SpellSchoolHandler.cpp
+	spells/TargetCondition.cpp
+	spells/ViewSpellInt.cpp
+
+	spells/adventure/AdventureSpellEffect.cpp
+	spells/adventure/AdventureSpellMechanics.cpp
+	spells/adventure/DimensionDoorEffect.cpp
+	spells/adventure/RemoveObjectEffect.cpp
+	spells/adventure/ReinforcementsEffect.cpp
+	spells/adventure/SummonBoatEffect.cpp
+	spells/adventure/TownRelatedAdventureSpellEffect.cpp
+	spells/adventure/TownPortalEffect.cpp
+	spells/adventure/ViewWorldEffect.cpp
+
+	scripting/ScriptHandler.cpp
+
+	spells/effects/Effect.cpp
+	spells/effects/Effects.cpp
+	spells/effects/LocationEffect.cpp
+
+	texts/CGeneralTextHandler.cpp
+	texts/CLegacyConfigParser.cpp
+	texts/CompositeTranslator.cpp
+	texts/MetaString.cpp
+	texts/TextLocalizationContainer.cpp
+
+	BasicTypes.cpp
+	BattleFieldHandler.cpp
+	CAndroidVMHelper.cpp
+	CBonusTypeHandler.cpp
+	CCreatureHandler.cpp
+	ConditionalWait.cpp
+	CPlayerState.cpp
+	CRandomGenerator.cpp
+	CSkillHandler.cpp
+	CStack.cpp
+	ExceptionsCommon.cpp
+	GameSettings.cpp
+	IHandlerBase.cpp
+	LoadProgress.cpp
+	LogicalExpression.cpp
+	ObstacleHandler.cpp
+	StartInfo.cpp
+	ResourceSet.cpp
+	RiverHandler.cpp
+	RoadHandler.cpp
+	MapLayerHandler.cpp
+	TerrainHandler.cpp
+	TurnTimerInfo.cpp
+	GameLibrary.cpp
+)
+
+if (NOT ENABLE_MINIMAL_LIB)
+	list(APPEND lib_SRCS ${lib_MAIN_SRCS})
+endif()
+
+# Version.cpp is a generated file
+list(APPEND lib_SRCS ${CMAKE_BINARY_DIR}/Version.cpp)
+set_source_files_properties(${CMAKE_BINARY_DIR}/Version.cpp
+	PROPERTIES GENERATED TRUE
+)
+
+set(lib_HEADERS
+	../include/vstd/CLoggerBase.h
+	../include/vstd/DateUtils.h
+	../include/vstd/StringUtils.h
+	../Global.h
+	../AUTHORS.h
+	StdInc.h
+
+	filesystem/AdapterLoaders.h
+	filesystem/CArchiveLoader.h
+	filesystem/CBinaryReader.h
+	filesystem/CCompressedStream.h
+	filesystem/CFileInputStream.h
+	filesystem/CFilesystemLoader.h
+	filesystem/CInputOutputStream.h
+	filesystem/CInputStream.h
+	filesystem/CMemoryBuffer.h
+	filesystem/CMemoryStream.h
+	filesystem/COutputStream.h
+	filesystem/CStream.h
+	filesystem/CZipLoader.h
+	filesystem/CZipSaver.h
+	filesystem/FileInfo.h
+	filesystem/Filesystem.h
+	filesystem/ISimpleResourceLoader.h
+	filesystem/MinizipExtensions.h
+	filesystem/PngStripWriter.h
+	filesystem/ResourcePath.h
+
+	json/JsonFormatException.h
+	json/JsonNode.h
+	json/JsonParser.h
+	json/JsonUtils.h
+	json/JsonValidator.h
+	json/JsonWriter.h
+
+	logging/CBasicLogConfigurator.h
+	logging/CLogger.h
+	logging/VisualLogger.h
+
+	network/HttpDownloader.h
+	network/NetworkConnection.h
+	network/NetworkDefines.h
+	network/NetworkDiscovery.h
+	network/NetworkHandler.h
+	network/NetworkInterface.h
+	network/NetworkServer.h
+
+	texts/TextOperations.h
+
+	CConfigHandler.h
+	CConsoleHandler.h
+	CThreadHelper.h
+	VCMIDirs.h
+)
+
+set(lib_MAIN_HEADERS
+	filesystem/SavegamePath.h
+
+	../include/vstd/ContainerUtils.h
+	../include/vstd/RNG.h
+
+	../include/vcmi/events/AdventureEvents.h
+	../include/vcmi/events/ApplyDamage.h
+	../include/vcmi/events/BattleEvents.h
+	../include/vcmi/events/Event.h
+	../include/vcmi/events/EventBus.h
+	../include/vcmi/events/GameResumed.h
+	../include/vcmi/events/GenericEvents.h
+	../include/vcmi/events/ObjectVisitEnded.h
+	../include/vcmi/events/ObjectVisitStarted.h
+	../include/vcmi/events/PlayerGotTurn.h
+	../include/vcmi/events/SubscriptionRegistry.h
+	../include/vcmi/events/TurnStarted.h
+
+	../include/vcmi/scripting/ApiTags.h
+	../include/vcmi/scripting/Service.h
+
+	../include/vcmi/spells/Caster.h
+	../include/vcmi/spells/Magic.h
+	../include/vcmi/spells/Service.h
+	../include/vcmi/spells/Spell.h
+
+	../include/vcmi/Artifact.h
+	../include/vcmi/ArtifactService.h
+	../include/vcmi/Creature.h
+	../include/vcmi/CreatureService.h
+	../include/vcmi/Entity.h
+	../include/vcmi/Environment.h
+	../include/vcmi/Faction.h
+	../include/vcmi/FactionService.h
+	../include/vcmi/HeroClass.h
+	../include/vcmi/HeroClassService.h
+	../include/vcmi/HeroType.h
+	../include/vcmi/HeroTypeService.h
+	../include/vcmi/ResourceType.h
+	../include/vcmi/ResourceTypeService.h
+	../include/vcmi/Metatype.h
+	../include/vcmi/Player.h
+	../include/vcmi/ServerCallback.h
+	../include/vcmi/Services.h
+	../include/vcmi/Skill.h
+	../include/vcmi/SkillService.h
+	../include/vcmi/Team.h
+
+	battle/AccessibilityInfo.h
+	battle/AutocombatPreferences.h
+	battle/BattleAction.h
+	battle/BattleAttackInfo.h
+	battle/BattleHex.h
+	battle/BattleHexArray.h
+	battle/BattleInfo.h
+	battle/BattleLayout.h
+	battle/BattleSide.h
+	battle/BattleStateInfoForRetreat.h
+	battle/BattleProxy.h
+	battle/BattleUnitTurnReason.h
+	battle/UnitTurnStatus.h
+	battle/CBattleInfoCallback.h
+	battle/CBattleInfoEssentials.h
+	battle/CObstacleInstance.h
+	battle/CombatValue.h
+	battle/CPlayerBattleCallback.h
+	battle/CUnitState.h
+	battle/DamageEstimationTexts.h
+	battle/Destination.h
+	battle/IBattleInfoCallback.h
+	battle/IBattleState.h
+	battle/IUnitInfo.h
+	battle/ReachabilityInfo.h
+	battle/SideInBattle.h
+	battle/SiegeInfo.h
+	battle/Unit.h
+	battle/actions/ActionOption.h
+	battle/actions/BattleActionType.h
+	battle/actions/CatapultAction.h
+	battle/actions/HealAction.h
+	battle/actions/IBattleActionEnvironment.h
+	battle/actions/MeleeAttackActions.h
+	battle/actions/NoTargetActions.h
+	battle/actions/ShootAction.h
+	battle/actions/SpellCastActions.h
+	battle/actions/WalkAction.h
+
+	bonuses/Bonus.h
+	bonuses/BonusCache.h
+	bonuses/BonusEnum.h
+	bonuses/BonusList.h
+	bonuses/BonusSelector.h
+	bonuses/BonusCustomTypes.h
+	bonuses/BonusFilter.h
+	bonuses/BonusMigration.h
+	bonuses/BonusParameters.h
+	bonuses/CBonusSystemNode.h
+	bonuses/IBonusBearer.h
+	bonuses/Limiters.h
+	bonuses/Propagators.h
+	bonuses/Updaters.h
+
+	callback/CAdventureAI.h
+	callback/Calendar.h
+	callback/CallbackDefines.h
+	callback/CBattleCallback.h
+	callback/CBattleGameInterface.h
+	callback/AIFactory.h
+	callback/CCallback.h
+	callback/CGameInfoCallback.h
+	callback/CGameInterface.h
+	callback/CGlobalAI.h
+	callback/CNonConstInfoCallback.h
+	callback/CPlayerSpecificInfoCallback.h
+	callback/GameCallbackHolder.h
+	callback/IBattleCallback.h
+	callback/IBattleEventsReceiver.h
+	callback/IClient.h
+	callback/IGameActionCallback.h
+	callback/CGameInfoCallback.h
+	callback/IGameEventCallback.h
+	callback/IGameEventsReceiver.h
+	callback/IGameInfoCallback.h
+	callback/IGameRandomizer.h
+	callback/GameRandomizer.h
+	callback/MapInfoCallback.h
+	callback/EditorCallback.h
+	
+	campaign/CampaignBonus.h
+	campaign/CampaignConstants.h
+	campaign/CampaignHandler.h
+	campaign/CampaignRegions.h
+	campaign/CampaignRegionsHandler.h
+	campaign/CampaignScenarioPrologEpilog.h
+	campaign/CampaignState.h
+
+	constants/EntityIdentifiers.h
+	constants/Enumerations.h
+	constants/IdentifierBase.h
+	constants/VariantIdentifier.h
+	constants/NumericConstants.h
+	constants/StringConstants.h
+
+	entities/artifact/ArtBearer.h
+	entities/artifact/ArtifactUtils.h
+	entities/artifact/ArtSlotInfo.h
+	entities/artifact/CArtHandler.h
+	entities/artifact/CArtifact.h
+	entities/artifact/CArtifactInstance.h
+	entities/artifact/CArtifactFittingSet.h
+	entities/artifact/CArtifactSet.h
+	entities/artifact/EArtifactClass.h
+	entities/building/CBuilding.h
+	entities/building/TownFortifications.h
+	entities/faction/CFaction.h
+	entities/faction/CTown.h
+	entities/faction/CTownHandler.h
+	entities/hero/CHero.h
+	entities/hero/CHeroClass.h
+	entities/hero/CHeroClassHandler.h
+	entities/hero/CHeroHandler.h
+	entities/hero/EHeroGender.h
+	entities/ResourceTypeHandler.h
+
+	events/ApplyDamage.h
+	events/GameResumed.h
+	events/ObjectVisitEnded.h
+	events/ObjectVisitStarted.h
+	events/PlayerGotTurn.h
+	events/TurnStarted.h
+
+	json/JsonBonus.h
+	json/JsonRandom.h
+	json/JsonKeyExtractor.h
+
+	gameState/CGameState.h
+	gameState/CGameStateCampaign.h
+	gameState/EVictoryLossCheckResult.h
+	gameState/GameStatePackVisitor.h
+	gameState/HighScore.h
+	gameState/InfoAboutArmy.h
+	gameState/ReplayLog.h
+	gameState/RumorState.h
+	gameState/SaveMetadata.h
+	gameState/SThievesGuildInfo.h
+	gameState/TavernHeroesPool.h
+	gameState/GameStatistics.h
+	gameState/TavernSlot.h
+	gameState/QuestInfo.h
+	gameState/ScenarioEventJournalEntry.h
+
+	mapObjectConstructors/AObjectTypeHandler.h
+	mapObjectConstructors/CDefaultObjectTypeHandler.h
+	mapObjectConstructors/CObjectClassesHandler.h
+	mapObjectConstructors/CommonConstructors.h
+	mapObjectConstructors/CRewardableConstructor.h
+	mapObjectConstructors/DwellingInstanceConstructor.h
+	mapObjectConstructors/HillFortInstanceConstructor.h
+	mapObjectConstructors/FlaggableInstanceConstructor.h
+	mapObjectConstructors/IObjectInfo.h
+	mapObjectConstructors/KeyGuardInstanceConstructor.h
+	mapObjectConstructors/MarketInstanceConstructor.h
+	mapObjectConstructors/RandomMapInfo.h
+	mapObjectConstructors/ShipyardInstanceConstructor.h
+	mapObjectConstructors/SObjectSounds.h
+
+	mapObjects/CGCreature.h
+	mapObjects/CGDwelling.h
+	mapObjects/CGHeroInstance.h
+	mapObjects/CGMarket.h
+	mapObjects/CGObjectInstance.h
+	mapObjects/MapObjectDrawOrder.h
+	mapObjects/CGPandoraBox.h
+	mapObjects/TownBuildingInstance.h
+	mapObjects/CGResource.h
+	mapObjects/CGTownInstance.h
+	mapObjects/Quest.h
+	mapObjects/CRewardableObject.h
+	mapObjects/FlaggableMapObject.h
+	mapObjects/IMarket.h
+	mapObjects/IObjectInterface.h
+	mapObjects/IOwnableObject.h
+	mapObjects/MapObjects.h
+	mapObjects/MiscObjects.h
+	mapObjects/CompoundMapObjectID.h
+	mapObjects/ObjectTemplate.h
+	mapObjects/ObstacleSetHandler.h
+
+	mapObjects/army/CArmedInstance.h
+	mapObjects/army/CCommanderInstance.h
+	mapObjects/army/CCreatureSet.h
+	mapObjects/army/CSimpleArmy.h
+	mapObjects/army/CStackBasicDescriptor.h
+	mapObjects/army/CStackInstance.h
+
+	mapping/CDrawRoadsOperation.h
+	mapping/CCastleEvent.h
+	mapping/CMapEditManager.h
+	mapping/CMapEvent.h
+	mapping/CMapHeader.h
+	mapping/CMap.h
+	mapping/CMapInfo.h
+	mapping/CMapOperation.h
+	mapping/CMapService.h
+	mapping/ScenarioListEntry.h
+	mapping/ScenarioMetadata.h
+	mapping/MapDifficulty.h
+	mapping/HotaScriptConverter.h
+	mapping/MapEditUtils.h
+	mapping/MapIdentifiersH3M.h
+	mapping/MapFeaturesH3M.h
+	mapping/MapFormatH3M.h
+	mapping/MapFormat.h
+	mapping/MapFormatSettings.h
+	mapping/MapReaderH3M.h
+	mapping/MapTilesStorage.h
+	mapping/MapFormatJson.h
+	mapping/ObstacleProxy.h
+	mapping/TerrainTile.h
+
+	modding/ActiveModsInSaveList.h
+	modding/CModHandler.h
+	modding/CModVersion.h
+	modding/ContentTypeHandler.h
+	modding/IdentifierResolver.h
+	modding/LibraryLoadContext.h
+	modding/IdentifierStorage.h
+	modding/ModDescription.h
+	modding/ModIncompatibility.h
+	modding/ModManager.h
+	modding/ModScope.h
+	modding/ModUtility.h
+	modding/ModVerificationInfo.h
+
+	networkPacks/ArtifactLocation.h
+	networkPacks/BattleChanges.h
+	networkPacks/Component.h
+	networkPacks/EInfoWindowMode.h
+	networkPacks/EntityChanges.h
+	networkPacks/EOpenWindowMode.h
+	networkPacks/NetPacksBase.h
+	networkPacks/NetPackVisitor.h
+	networkPacks/ObjProperty.h
+	networkPacks/PacksForClient.h
+	networkPacks/PacksForClientBattle.h
+	networkPacks/PacksForLobby.h
+	networkPacks/PacksForServer.h
+	networkPacks/SetRewardableConfiguration.h
+	networkPacks/SetScriptVariable.h
+	networkPacks/SetStackEffect.h
+	networkPacks/SaveLocalState.h
+	networkPacks/StackLocation.h
+	networkPacks/TradeItem.h
+
+	pathfinder/INodeStorage.h
+	pathfinder/CGPathNode.h
+	pathfinder/CPathfinder.h
+	pathfinder/NodeStorage.h
+	pathfinder/PathfinderCache.h
+	pathfinder/PathfinderOptions.h
+	pathfinder/PathfinderUtil.h
+	pathfinder/PathfindingRules.h
+	pathfinder/TurnInfo.h
+
+	rewardable/Configuration.h
+	rewardable/Info.h
+	rewardable/Interface.h
+	rewardable/Limiter.h
+	rewardable/Reward.h
+
+	rmg/RmgArea.h
+	rmg/RmgObject.h
+	rmg/RmgPath.h
+	rmg/CMapGenerator.h
+	rmg/CMapGenOptions.h
+	rmg/CRmgTemplate.h
+	rmg/CRmgTemplateStorage.h
+	rmg/CZonePlacer.h
+	rmg/CZoneGridPlacer.h
+	rmg/ZonePlacementConfig.h
+	rmg/CRoadRandomizer.h
+	rmg/TileInfo.h
+	rmg/Zone.h
+	rmg/RmgMap.h
+	rmg/float3.h
+	rmg/Functions.h
+	rmg/ObjectInfo.h
+	rmg/ObjectConfig.h
+	rmg/PenroseTiling.h
+	rmg/modificators/Modificator.h
+	rmg/modificators/ObjectManager.h
+	rmg/modificators/ObjectDistributor.h
+	rmg/modificators/RoadPlacer.h
+	rmg/modificators/TreasurePlacer.h
+	rmg/modificators/PrisonHeroPlacer.h
+	rmg/modificators/QuestArtifactPlacer.h
+	rmg/modificators/ConnectionsPlacer.h
+	rmg/modificators/WaterAdopter.h
+	rmg/modificators/MinePlacer.h
+	rmg/modificators/ObjectPlacer.h
+	rmg/modificators/TownPlacer.h
+	rmg/modificators/WaterProxy.h
+	rmg/modificators/WaterRoutes.h
+	rmg/modificators/RockPlacer.h
+	rmg/modificators/RockFiller.h
+	rmg/modificators/ObstaclePlacer.h
+	rmg/modificators/RiverPlacer.h
+	rmg/modificators/TerrainPainter.h
+	rmg/MapProxy.h
+
+	serializer/BinaryDeserializer.h
+	serializer/BinarySerializer.h
+	serializer/CLegacyLoadFile.h
+	serializer/CLoadFile.h
+	serializer/CMemorySerializer.h
+	serializer/GameConnection.h
+	serializer/CSaveFile.h
+	serializer/CSerializer.h
+	serializer/SaveFileFormat.h
+	serializer/CTypeList.h
+	serializer/GameConnectionID.h
+	scripting/IScriptVariablesHost.h
+	scripting/ScriptVariablesStorage.h
+	serializer/JsonDeserializer.h
+	serializer/JsonSerializeFormat.h
+	serializer/JsonSerializer.h
+	serializer/ESerializationVersion.h
+	serializer/PlayerConnectionID.h
+	serializer/RegisterTypes.h
+	serializer/Serializeable.h
+	serializer/SerializerReflection.h
+
+	spells/AbilityCaster.h
+	spells/BattleSpellMechanics.h
+	spells/BonusCaster.h
+	spells/CSpell.h
+	spells/CSpellHandler.h
+	spells/ExternalCaster.h
+	spells/ISpellMechanics.h
+	spells/ObstacleCasterProxy.h
+	spells/Problem.h
+	spells/ProxyCaster.h
+	spells/SpellAnimationItem.h
+	spells/SpellSchoolHandler.h
+	spells/TargetCondition.h
+	spells/ViewSpellInt.h
+
+	spells/adventure/AdventureSpellMechanics.h
+	spells/adventure/AdventureSpellEffect.h
+	spells/adventure/DimensionDoorEffect.h
+	spells/adventure/RemoveObjectEffect.h
+	spells/adventure/ReinforcementsEffect.h
+	spells/adventure/SummonBoatEffect.h
+	spells/adventure/TownPortalEffect.h
+	spells/adventure/ViewWorldEffect.h
+
+	combatScripts/CombatEventPayload.h
+	combatScripts/ICombatEventScript.h
+	combatScripts/IDamageCalculatorScript.h
+
+	scripting/ScriptHandler.h
+	scripting/ScriptService.h
+	scripting/ScriptTypeDescription.h
+
+	spells/effects/Effect.h
+	spells/effects/Effects.h
+	spells/effects/EffectsFwd.h
+	spells/effects/LocationEffect.h
+
+	texts/CGeneralTextHandler.h
+	texts/Languages.h
+	texts/CLegacyConfigParser.h
+	texts/CompositeTranslator.h
+	texts/ITranslator.h
+	texts/MetaString.h
+	texts/TextIdentifier.h
+	texts/TextLocalizationContainer.h
+
+	AsyncRunner.h
+	BattleFieldHandler.h
+	CAndroidVMHelper.h
+	CBonusTypeHandler.h
+	CCreatureHandler.h
+	ConditionalWait.h
+	Color.h
+	CPlayerState.h
+	CRandomGenerator.h
+	CSkillHandler.h
+	CSoundBase.h
+	CStack.h
+	CStopWatch.h
+	ExceptionsCommon.h
+	ExtraOptionsInfo.h
+	FunctionList.h
+	GameConstants.h
+	GameSettings.h
+	IBonusTypeHandler.h
+	IGameSettings.h
+	IHandlerBase.h
+	int3.h
+	LoadProgress.h
+	LogicalExpression.h
+	ObstacleHandler.h
+	Point.h
+	Rect.h
+	Rect.cpp
+	ResourceSet.h
+	RiverHandler.h
+	RoadHandler.h
+	MapLayerHandler.h
+	ScopeGuard.h
+	StartInfo.h
+	TerrainHandler.h
+	TurnTimerInfo.h
+	UnlockGuard.h
+	vcmi_endian.h
+	GameLibrary.h
+)
+
+if (NOT ENABLE_MINIMAL_LIB)
+	list(APPEND lib_HEADERS ${lib_MAIN_HEADERS})
+endif()
+
+assign_source_group(${lib_SRCS} ${lib_HEADERS})
+
+add_library(vcmiMain OBJECT ${lib_SRCS} ${lib_HEADERS})
+
+target_compile_definitions(vcmiMain PRIVATE "VCMI_DLL=1")
+if(VITA)
+	# libstdc++ gthread weak references do not extract all pthread objects.
+	target_link_libraries(vcmiMain PUBLIC -Wl,--whole-archive pthread -Wl,--no-whole-archive)
+	set_property(TARGET minizip::minizip APPEND PROPERTY INTERFACE_LINK_LIBRARIES
+		z)
+	if(TARGET luajit::luajit)
+		set_property(TARGET luajit::luajit APPEND PROPERTY INTERFACE_LINK_LIBRARIES
+			dl taihen_stub SceSblSsMgr_stub SceKernelModulemgr_stub)
+	endif()
+endif()
+target_link_libraries(vcmiMain PUBLIC
+	minizip::minizip ZLIB::ZLIB Iconv::Iconv
+	${SYSTEM_LIBS} Boost::boost Boost::filesystem Boost::program_options
+)
+
+if (NOT ENABLE_MINIMAL_LIB)
+	target_link_libraries(vcmiMain PUBLIC TBB::tbb)
+endif()
+
+if(IOS)
+	target_link_libraries(vcmiMain PUBLIC iOS_utils)
+endif()
+
+if(ENABLE_LIBCURL)
+	target_link_libraries(vcmiMain PUBLIC CURL::libcurl)
+endif()
+
+target_include_directories(vcmiMain
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+	PUBLIC ${CMAKE_SOURCE_DIR}
+	PUBLIC ${CMAKE_SOURCE_DIR}/include
+)
+
+if(MINGW)
+	# Link Windows system libs: WinSock2 (ws2_32) + socket extensions (mswsock) + Debug Help API (dbghelp)
+	target_link_libraries(vcmiMain PRIVATE ws2_32 mswsock dbghelp)
+endif()
+
+# Use '-Wa,-mbig-obj' for files that generate very large object files
+# when compiling with MinGW lest you get "too many sections" assembler errors
+if(MINGW AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+	set_source_files_properties(
+		serializer/SerializerReflection.cpp
+		CGameInfoCallback.cpp
+		PROPERTIES
+		COMPILE_OPTIONS "-Wa,-mbig-obj")
+endif()
+
+enable_pch(vcmiMain)
+
+# Update version before vcmiMain compiling
+if(TARGET update_version)
+	add_dependencies(vcmiMain update_version)
+endif()
+
+if(VCMI_PORTMASTER)
+	target_compile_definitions(vcmiMain PRIVATE VCMI_PORTMASTER)
+endif()
+
+if(VCMI_FLATPAK)
+	target_compile_definitions(vcmiMain PRIVATE VCMI_FLATPAK)
+endif()

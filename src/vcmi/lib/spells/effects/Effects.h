@@ -1,0 +1,48 @@
+/*
+ * Effects.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+
+#pragma once
+
+#include "Effect.h"
+#include "../../GameConstants.h"
+
+class LibraryLoadContext;
+
+namespace spells
+{
+namespace effects
+{
+
+class Effects
+{
+public:
+	using EffectsToApply = std::vector<std::pair<const Effect *, Target>>;
+
+	using EffectsMap = std::map<std::string, std::shared_ptr<Effect>>;
+	using EffectData = std::array<EffectsMap, GameConstants::SPELL_SCHOOL_LEVELS>;
+
+	EffectData data;
+
+	virtual ~Effects() = default;
+
+	bool applicable(Problem & problem, const Mechanics * m) const;
+	bool applicable(Problem & problem, const Mechanics * m, const Target & aimPoint, const Target & spellTarget) const;
+
+	void forEachEffect(const int level, const std::function<void(const Effect *, bool &)> & callback) const;
+
+	EffectsToApply prepare(const Mechanics * m, const Target & aimPoint, const Target & spellTarget) const;
+
+	/// Builds the effects map for a single spell level from its JSON config.
+	static EffectsMap loadJson(LibraryLoadContext & context, const JsonNode & effectMap, const std::string & spellScope, const std::string & spellIdentifier);
+};
+
+
+}
+}

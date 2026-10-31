@@ -1,0 +1,141 @@
+/*
+ * GameLibrary.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#pragma once
+
+#include <vcmi/Services.h>
+
+class CConsoleHandler;
+class ScriptHandler;
+class CArtHandler;
+class CHeroHandler;
+class CHeroClassHandler;
+class CCreatureHandler;
+class CSpellHandler;
+class CSkillHandler;
+class CObjectClassesHandler;
+class ObstacleSetHandler;
+class CTownHandler;
+class CGeneralTextHandler;
+class CModHandler;
+class CContentHandler;
+class BattleFieldHandler;
+class IBonusTypeHandler;
+class ITranslator;
+class CBonusTypeHandler;
+class TerrainTypeHandler;
+class ResourceTypeHandler;
+class RoadTypeHandler;
+class RiverTypeHandler;
+class ObstacleHandler;
+class CTerrainViewPatternConfig;
+class CRmgTemplateStorage;
+class IHandlerBase;
+class IGameSettings;
+class GameSettings;
+class CIdentifierStorage;
+class LibraryLoadContext;
+class SpellSchoolHandler;
+class MapFormatSettings;
+class CampaignRegionsHandler;
+class MapLayerTypeHandler;
+
+/// Loads and constructs several handlers
+class DLL_LINKAGE GameLibrary final : public Services
+{
+public:
+	enum class GameDataMode
+	{
+		SOD,
+		ROE,
+		DEMO_SOD,
+		DEMO_ROE
+	};
+
+	const ArtifactService * artifacts() const override;
+	const CreatureService * creatures() const override;
+	const FactionService * factions() const override;
+	const HeroClassService * heroClasses() const override;
+	const HeroTypeService * heroTypes() const override;
+	const ResourceTypeService * resources() const override;
+	const scripting::Service * scripts() const override;
+	const spells::Service * spells() const override;
+	const SkillService * skills() const override;
+	const BattleFieldService * battlefields() const override;
+	const ObstacleService * obstacles() const override;
+	const IGameSettings * engineSettings() const override;
+	const spells::SchoolService * spellSchools() const override;
+	const ScriptService * scriptTypes() const override;
+	/// Resolver over the static text store: mod-defined text that every side shares.
+	/// It can not see map or campaign texts - anything a specific player reads must be
+	/// rendered with that player's translator instead.
+	const ITranslator * staticTexts() const;
+
+	const IBonusTypeHandler * getBth() const;
+	const CIdentifierStorage * identifiers() const;
+
+	std::unique_ptr<CArtHandler> arth;
+	std::unique_ptr<CBonusTypeHandler> bth;
+	std::unique_ptr<CHeroHandler> heroh;
+	std::unique_ptr<CHeroClassHandler> heroclassesh;
+	std::unique_ptr<CCreatureHandler> creh;
+	std::unique_ptr<CSpellHandler> spellh;
+	std::unique_ptr<SpellSchoolHandler> spellSchoolHandler;
+	std::unique_ptr<ScriptHandler> scriptTypeHandler;
+	std::unique_ptr<CSkillHandler> skillh;
+	std::unique_ptr<CObjectClassesHandler> objtypeh;
+	std::unique_ptr<CTownHandler> townh;
+	std::unique_ptr<CGeneralTextHandler> generaltexth;
+	std::unique_ptr<CModHandler> modh;
+	std::unique_ptr<TerrainTypeHandler> terrainTypeHandler;
+	std::unique_ptr<ResourceTypeHandler> resourceTypeHandler;
+	std::unique_ptr<RoadTypeHandler> roadTypeHandler;
+	std::unique_ptr<RiverTypeHandler> riverTypeHandler;
+	std::unique_ptr<CIdentifierStorage> identifiersHandler;
+	std::unique_ptr<CTerrainViewPatternConfig> terviewh;
+	std::unique_ptr<CRmgTemplateStorage> tplh;
+	std::unique_ptr<BattleFieldHandler> battlefieldsHandler;
+	std::unique_ptr<ObstacleHandler> obstacleHandler;
+	std::unique_ptr<GameSettings> settingsHandler;
+	std::unique_ptr<ObstacleSetHandler> biomeHandler;
+	std::unique_ptr<MapFormatSettings> mapFormat;
+	std::unique_ptr<CampaignRegionsHandler> campaignRegions;
+	std::unique_ptr<MapLayerTypeHandler> mapLayerHandler;
+	std::unique_ptr<scripting::Service> scriptHandler;
+
+	GameLibrary();
+	~GameLibrary();
+
+	/// initializes settings and filesystem
+	void initializeFilesystem(bool extractArchives, bool useTestPreset = false);
+
+	/// Loads all game entities
+	void initializeLibrary();
+
+	/// Loads all game entities using provided context, which stays available to the caller after loading
+	void initializeLibrary(LibraryLoadContext & context);
+
+	/// Returns current game data mode
+	GameDataMode getGameDataMode() const;
+
+	/// Returns true if game is running with RoE data files (either full or demo)
+	bool isRoeData() const;
+
+	/// Returns true if game is running with demo data files
+	bool isDemoData() const;
+
+	GameDataMode gameDataMode = GameDataMode::SOD;
+	// basic initialization. should be called before init(). Can also extract original H3 archives
+	void loadFilesystem(bool extractArchives);
+
+	// loads filesystems of all mods
+	void loadModFilesystem(bool useTestPreset = false);
+};
+
+extern DLL_LINKAGE GameLibrary * LIBRARY;

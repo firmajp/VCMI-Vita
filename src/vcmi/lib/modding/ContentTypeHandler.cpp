@@ -1,0 +1,385 @@
+/*
+ * ContentTypeHandler.cpp, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#include "StdInc.h"
+#include "ContentTypeHandler.h"
+#ifdef VCMI_VITA
+#include "../vita/VitaLoading.h"
+#endif
+
+#include "CModHandler.h"
+#include "ModDescription.h"
+#include "ModManager.h"
+#include "LibraryLoadContext.h"
+#include "ModScope.h"
+
+#include "../BattleFieldHandler.h"
+#include "../CCreatureHandler.h"
+#include "../CConfigHandler.h"
+#include "../campaign/CampaignRegionsHandler.h"
+#include "../entities/artifact/CArtHandler.h"
+#include "../entities/faction/CTownHandler.h"
+#include "../entities/hero/CHeroClassHandler.h"
+#include "../entities/hero/CHeroHandler.h"
+#include "../entities/ResourceTypeHandler.h"
+#include "../texts/CGeneralTextHandler.h"
+#include "../CBonusTypeHandler.h"
+#include "../CSkillHandler.h"
+#include "../CStopWatch.h"
+#include "../IGameSettings.h"
+#include "../IHandlerBase.h"
+#include "../ObstacleHandler.h"
+#include "../mapObjects/ObstacleSetHandler.h"
+#include "../RiverHandler.h"
+#include "../RoadHandler.h"
+#include "../constants/StringConstants.h"
+#include "../TerrainHandler.h"
+#include "../MapLayerHandler.h"
+#include "../json/JsonUtils.h"
+#include "../mapObjectConstructors/CObjectClassesHandler.h"
+#include "../rmg/CRmgTemplateStorage.h"
+#include "../spells/CSpellHandler.h"
+#include "../spells/SpellSchoolHandler.h"
+#include "../scripting/ScriptHandler.h"
+#include "../GameLibrary.h"
+
+ContentTypeHandler::ContentTypeHandler(LibraryLoadContext & context, IHandlerBase * handler, const std::string & entityName):
+	context(context),
+	handler(handler),
+	entityName(entityName),
+	originalData(handler->loadLegacyData(context))
+{
+	for(auto & node : originalData)
+	{
+		node.setModScope(ModScope::scopeBuiltin());
+	}
+}
+
+void ContentTypeHandler::preloadModData(const std::string & modName, JsonNode & data)
+{
+	ModInfo & modInfo = modData[modName];
+
+	for(auto & entry : data.Struct())
+	{
+		size_t colon = entry.first.find(':');
+
+		if (colon == std::string::npos)
+		{
+			// normal object, local to this mod
+			std::swap(modInfo.modData[entry.first], entry.second);
+		}
+		else
+		{
+			std::string remoteName = entry.first.substr(0, colon);
+			std::string objectName = entry.first.substr(colon + 1);
+
+			// patching this mod? Send warning and continue - this situation can be handled normally
+			if (remoteName == modName)
+				logMod->warn("Redundant namespace definition for %s", objectName);
+
+			logMod->trace("Patching object %s (%s) from %s", objectName, remoteName, modName);
+			modData[remoteName].patches[objectName].push_back(entry.second);
+		}
+	}
+}
+
+bool ContentTypeHandler::loadMod(const std::string & modName, bool validate)
+{
+	ModInfo & modInfo = modData[modName];
+	bool result = true;
+
+	auto performValidate = [&,this](JsonNode & data, const std::string & name){
+		handler->beforeValidate(data);
+		if (validate)
+			result &= JsonUtils::validate(data, "vcmi:" + entityName, name);
+	};
+
+	// apply patches
+	for (auto & [objectName, objectPatches] : modInfo.patches)
+	{
+		for (auto & objectPatch : objectPatches)
+		{
+			if (settings["mods"]["validation"].String() != "off" && !modInfo.modData[objectName].isNull())
+				JsonUtils::detectConflicts(conflictList, modInfo.modData[objectName], objectPatch, objectName);
+
+			JsonUtils::merge(modInfo.modData[objectName], objectPatch);
+		}
+	}
+
+	for(auto & entry : modInfo.modData.Struct())
+	{
+		const std::string & name = entry.first;
+		JsonNode & data = entry.second;
+
+		if (data.getModScope() != modName)
+		{
+			// in this scenario, entire object record comes from another mod
+			// normally, this is used to "patch" object from another mod (which is legal)
+			// however in this case there is no object to patch. This might happen in such cases:
+			// - another mod attempts to add object into this mod (technically can be supported, but might lead to weird edge cases)
+			// - another mod attempts to edit object from this mod that no longer exist - DANGER since such patch likely has very incomplete data
+			// so emit warning and skip such case
+			logMod->warn("Mod '%s' attempts to edit object '%s' of type '%s' from mod '%s' but no such object exist!", data.getModScope(), name, entityName, modName);
+			continue;
+		}
+
+		bool hasIndex = vstd::contains(data.Struct(), "index") && !data["index"].isNull();
+
+		if (hasIndex && modName != "core")
+			logMod->error("Mod %s is attempting to load original data! This option is reserved for built-in mod.", modName);
+
+		if (hasIndex && modName == "core")
+		{
+			// try to add H3 object data
+			size_t index = static_cast<size_t>(data["index"].Float());
+
+			if(originalData.size() > index)
+			{
+				logMod->trace("found original data in loadMod(%s) at index %d", name, index);
+				JsonUtils::merge(originalData[index], data);
+				std::swap(originalData[index], data);
+				originalData[index].clear(); // do not use same data twice (same ID)
+			}
+			else
+			{
+				logMod->trace("no original data in loadMod(%s) at index %d", name, index);
+			}
+			performValidate(data, name);
+			handler->loadObject(context, modName, name, data, index);
+		}
+		else
+		{
+			// normal new object
+			logMod->trace("no index in loadMod(%s)", name);
+			performValidate(data, name);
+			handler->loadObject(context, modName, name, data);
+		}
+	}
+	return result;
+}
+
+void ContentTypeHandler::loadCustom()
+{
+	handler->loadCustom(context);
+}
+
+void ContentTypeHandler::afterLoadFinalization()
+{
+	if (settings["mods"]["validation"].String() != "off")
+	{
+		for (auto const & data : modData)
+		{
+			if (data.second.modData.isNull())
+			{
+				for (auto & [objectName, objectPatches] : data.second.patches)
+					for (auto & node : objectPatches)
+						logMod->warn("Mod '%s' have added patch for object '%s' from mod '%s', but this mod was not loaded or has no new objects.", node.getModScope(), objectName, data.first);
+			}
+		}
+
+		// comparing objects of every mod against objects of every other mod is too slow for a normal game start
+		if (settings["mods"]["validation"].String() == "full")
+		{
+			for (auto const & data : modData)
+			{
+				for(auto & otherMod : modData)
+				{
+					if (otherMod.first == data.first)
+						continue;
+
+					if (otherMod.second.modData.isNull())
+						continue;
+
+					for(auto & otherObject : otherMod.second.modData.Struct())
+					{
+						if (data.second.modData.Struct().count(otherObject.first))
+						{
+							logMod->warn("Mod '%s' have added object with name '%s' that is also available in mod '%s'", data.first, otherObject.first, otherMod.first);
+							logMod->warn("Two objects with same name were loaded. Please use form '%s:%s' if mod '%s' needs to modify this object instead", otherMod.first, otherObject.first, data.first);
+						}
+					}
+				}
+			}
+		}
+
+		for (const auto& [conflictPath, conflictModData] : conflictList.Struct())
+		{
+			std::set<std::string> conflictingMods;
+			std::set<std::string> resolvedConflicts;
+
+			for (auto const & conflictModEntry: conflictModData.Struct())
+				conflictingMods.insert(conflictModEntry.first);
+
+			for (auto const & modID : conflictingMods)
+			{
+				const auto & dependencies = context.lib.modh->getModDependencies(modID);
+				resolvedConflicts.insert(dependencies.begin(), dependencies.end());
+				resolvedConflicts.merge(context.lib.modh->getModEnabledSoftDependencies(modID));
+			}
+
+			vstd::erase_if(conflictingMods, [&resolvedConflicts](const std::string & entry){ return resolvedConflicts.count(entry);});
+
+			if (conflictingMods.size() < 2)
+				continue; // all conflicts were resolved - either via compatibility patch (mod that depends on 2 conflicting mods) or simple mod that depends on another one
+
+			bool allEqual = true;
+
+			for (auto const & modID : conflictingMods)
+			{
+				if (conflictModData[modID] != conflictModData[*conflictingMods.begin()])
+				{
+					allEqual = false;
+					break;
+				}
+			}
+
+			if (allEqual)
+				continue; // conflict still present, but all mods use the same value for conflicting entry - permit it
+
+			logMod->warn("Potential confict in '%s'", conflictPath);
+
+			for (auto const & modID : conflictingMods)
+				logMod->warn("Mod '%s' - value set to %s", modID, conflictModData[modID].toCompactString());
+		}
+	}
+
+	handler->afterLoadFinalization(context);
+}
+
+CContentHandler::CContentHandler(LibraryLoadContext & context):
+	context(context)
+{
+}
+
+void CContentHandler::init()
+{
+	handlers.insert(std::make_pair("heroClasses", ContentTypeHandler(context, context.lib.heroclassesh.get(), "heroClass")));
+	handlers.insert(std::make_pair("artifacts", ContentTypeHandler(context, context.lib.arth.get(), "artifact")));
+	handlers.insert(std::make_pair("bonuses", ContentTypeHandler(context, context.lib.bth.get(), "bonus")));
+	handlers.insert(std::make_pair("creatures", ContentTypeHandler(context, context.lib.creh.get(), "creature")));
+	handlers.insert(std::make_pair("campaignRegions", ContentTypeHandler(context, context.lib.campaignRegions.get(), "campaignRegion")));
+	handlers.insert(std::make_pair("factions", ContentTypeHandler(context, context.lib.townh.get(), "faction")));
+	handlers.insert(std::make_pair("objects", ContentTypeHandler(context, context.lib.objtypeh.get(), "object")));
+	handlers.insert(std::make_pair("heroes", ContentTypeHandler(context, context.lib.heroh.get(), "hero")));
+	handlers.insert(std::make_pair("spells", ContentTypeHandler(context, context.lib.spellh.get(), "spell")));
+	handlers.insert(std::make_pair("scripts", ContentTypeHandler(context, context.lib.scriptTypeHandler.get(), "script")));
+	handlers.insert(std::make_pair("spellSchools", ContentTypeHandler(context, context.lib.spellSchoolHandler.get(), "spellSchool")));
+	handlers.insert(std::make_pair("skills", ContentTypeHandler(context, context.lib.skillh.get(), "skill")));
+	handlers.insert(std::make_pair("templates", ContentTypeHandler(context, context.lib.tplh.get(), "template")));
+	handlers.insert(std::make_pair("battlefields", ContentTypeHandler(context, context.lib.battlefieldsHandler.get(), "battlefield")));
+	handlers.insert(std::make_pair("terrains", ContentTypeHandler(context, context.lib.terrainTypeHandler.get(), "terrain")));
+	handlers.insert(std::make_pair("rivers", ContentTypeHandler(context, context.lib.riverTypeHandler.get(), "river")));
+	handlers.insert(std::make_pair("roads", ContentTypeHandler(context, context.lib.roadTypeHandler.get(), "road")));
+	handlers.insert(std::make_pair("obstacles", ContentTypeHandler(context, context.lib.obstacleHandler.get(), "obstacle")));
+	handlers.insert(std::make_pair("biomes", ContentTypeHandler(context, context.lib.biomeHandler.get(), "biome")));
+	handlers.insert(std::make_pair("resources", ContentTypeHandler(context, context.lib.resourceTypeHandler.get(), "resources")));
+	handlers.insert(std::make_pair("mapLayers", ContentTypeHandler(context, context.lib.mapLayerHandler.get(), "mapLayer")));
+}
+
+std::vector<std::string> CContentHandler::getContentTypeNames() const
+{
+	std::vector<std::string> result;
+	result.reserve(handlers.size());
+
+	for(const auto & handler : handlers)
+		result.push_back(handler.first);
+
+	return result;
+}
+
+bool CContentHandler::preloadData(const ModDescription & mod, JsonNode & modContent, bool validate)
+{
+	bool result = true;
+
+	// mod.json is part of mod checksum, so it only needs validation together with the rest of mod data
+	if (validate && !JsonUtils::validate(mod.getLocalConfig(), "vcmi:mod", mod.getID()))
+		result = false;
+
+	for(auto & handler : handlers)
+		handler.second.preloadModData(mod.getID(), modContent[handler.first]);
+
+	return result;
+}
+
+bool CContentHandler::load(const ModDescription & mod, bool validate)
+{
+	bool result = true;
+#ifdef VCMI_VITA
+	std::string timingReport = "Vita content timings: phase=" + mod.getID();
+#endif
+	for(auto & handler : handlers)
+	{
+#ifdef VCMI_VITA
+		const auto stage = std::find(VitaLoading::names.begin(), VitaLoading::names.end(), handler.first);
+		if (stage != VitaLoading::names.end())
+			VitaLoading::stage.store(std::distance(VitaLoading::names.begin(), stage), std::memory_order_relaxed);
+		CStopWatch loadTimer;
+#endif
+		result &= handler.second.loadMod(mod.getID(), validate);
+#ifdef VCMI_VITA
+		timingReport += " " + handler.first + "=" + std::to_string(loadTimer.getDiff());
+#endif
+	}
+#ifdef VCMI_VITA
+	std::fprintf(stderr, "%s\n", timingReport.c_str());
+#endif
+	return result;
+}
+
+void CContentHandler::loadCustom()
+{
+#ifdef VCMI_VITA
+	std::string timingReport = "Vita content timings: phase=custom";
+	VitaLoading::stage.store(VitaLoading::names.size() - 1, std::memory_order_relaxed);
+#endif
+	for(auto & handler : handlers)
+	{
+#ifdef VCMI_VITA
+		const auto stage = std::find(VitaLoading::names.begin(), VitaLoading::names.end(), handler.first);
+		if (stage != VitaLoading::names.end())
+			VitaLoading::stage.store(VitaLoading::names.size() + std::distance(VitaLoading::names.begin(), stage), std::memory_order_relaxed);
+		CStopWatch timer;
+#endif
+		handler.second.loadCustom();
+#ifdef VCMI_VITA
+		timingReport += " " + handler.first + "=" + std::to_string(timer.getDiff());
+#endif
+	}
+#ifdef VCMI_VITA
+	std::fprintf(stderr, "%s\n", timingReport.c_str());
+#endif
+}
+
+void CContentHandler::afterLoadFinalization()
+{
+#ifdef VCMI_VITA
+	std::string timingReport = "Vita content timings: phase=finalize";
+#endif
+	for(auto & handler : handlers)
+	{
+#ifdef VCMI_VITA
+		const auto stage = std::find(VitaLoading::names.begin(), VitaLoading::names.end(), handler.first);
+		if (stage != VitaLoading::names.end())
+			VitaLoading::stage.store(VitaLoading::names.size() + std::distance(VitaLoading::names.begin(), stage), std::memory_order_relaxed);
+		CStopWatch timer;
+#endif
+		handler.second.afterLoadFinalization();
+#ifdef VCMI_VITA
+		timingReport += " " + handler.first + "=" + std::to_string(timer.getDiff());
+#endif
+	}
+#ifdef VCMI_VITA
+	std::fprintf(stderr, "%s\n", timingReport.c_str());
+#endif
+}
+
+const ContentTypeHandler & CContentHandler::operator[](const std::string & name) const
+{
+	return handlers.at(name);
+}

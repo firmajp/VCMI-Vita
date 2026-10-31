@@ -1,0 +1,28 @@
+{
+  "vpk": "vcmi_vita_1.0.0-rc.1.vpk",
+  "sha256": "d5b3bfa2f21b606898e25456e2a88e8eeb107280c9022512ee9f8b7f921e59a1",
+  "vpk_bytes": 17378896,
+  "recursive_vpk_entries": 875,
+  "source_tree_files": 36651,
+  "all_files_below_100MB": true,
+  "checks": [
+    "ZIP CRC/paths/duplicates",
+    "short on-device paths and bounded directory depth",
+    "nested original-data extension denylist",
+    "required licenses/source notices",
+    "bundled notice byte equality",
+    "Vita title/version",
+    "LiveArea XML references",
+    "46 translations",
+    "excluded artwork hashes",
+    "original geometric LiveArea",
+    "bundled source byte equality",
+    "common secret-token patterns"
+  ],
+  "limits": [
+    "No legal certification",
+    "Not a judicial determination of third-party rights",
+    "Exact rebuilt RC device installation test remains pending",
+    "ScanCode findings are documented separately; no independent legal audit"
+  ]
+}

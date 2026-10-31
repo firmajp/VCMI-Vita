@@ -1,0 +1,60 @@
+/*
+ * Services.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+
+#pragma once
+
+#include "Metatype.h"
+#include "scripting/ApiTags.h"
+
+class ArtifactService;
+class CreatureService;
+class FactionService;
+class HeroClassService;
+class HeroTypeService;
+class ResourceTypeService;
+class SkillService;
+class JsonNode;
+class BattleFieldService;
+class ObstacleService;
+class IGameSettings;
+class ScriptService;
+
+namespace spells
+{
+	class Service;
+	class SchoolService;
+}
+
+namespace scripting
+{
+	class Service;
+}
+
+class DLL_LINKAGE Services : public scripting::ApiRawPointer<Services>
+{
+public:
+	virtual ~Services() = default;
+
+	virtual const ArtifactService * artifacts() const = 0;
+	virtual const CreatureService * creatures() const = 0;
+	virtual const FactionService * factions() const = 0;
+	virtual const HeroClassService * heroClasses() const = 0;
+	virtual const HeroTypeService * heroTypes() const = 0;
+	virtual const ResourceTypeService * resources() const = 0;
+	virtual const scripting::Service * scripts() const = 0;
+	virtual const spells::Service * spells() const = 0;
+	virtual const SkillService * skills() const = 0;
+	virtual const BattleFieldService * battlefields() const = 0;
+	virtual const ObstacleService * obstacles() const = 0;
+	virtual const IGameSettings * engineSettings() const = 0;
+	virtual const spells::SchoolService * spellSchools() const = 0;
+	/// registry of every script the game knows, of every kind
+	virtual const ScriptService * scriptTypes() const = 0;
+};

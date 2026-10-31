@@ -1,0 +1,56 @@
+/*
+ * NewTurnProcessor.h, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#pragma once
+
+#include "../../lib/constants/EntityIdentifiers.h"
+#include "../../lib/constants/Enumerations.h"
+#include "../../lib/gameState/RumorState.h"
+
+class CGTownInstance;
+class CCastleEvent;
+class ResourceSet;
+struct SetAvailableCreatures;
+struct SetMovePoints;
+struct SetMana;
+struct InfoWindow;
+struct NewTurn;
+
+class CGameHandler;
+
+class NewTurnProcessor : boost::noncopyable
+{
+	CGameHandler * gameHandler;
+
+	std::vector<SetMana> updateHeroesManaPoints();
+	std::vector<SetMovePoints> updateHeroesMovementPoints();
+
+	ResourceSet generatePlayerIncome(PlayerColor playerID, bool newWeek);
+	SetAvailableCreatures generateTownGrowth(const CGTownInstance * town, EWeekType weekType, CreatureID creatureWeek, bool firstDay, int additionalGrowth);
+	RumorState pickNewRumor();
+	InfoWindow createInfoWindow(EWeekType weekType, CreatureID creatureWeek, bool newMonth, int additionalGrowth);
+	std::tuple<EWeekType, CreatureID, int> pickWeekType(bool newMonth);
+
+	NewTurn generateNewTurnPack();
+	void handleTimeEvents(PlayerColor player);
+	void handleTownEvents(const CGTownInstance *town);
+	/// Constructs buildings and adds creatures of a town event; components go to `iw` if it is set
+	void applyTownEventEffects(const CGTownInstance * town, const CCastleEvent & event, InfoWindow * iw);
+
+	void updateNeutralTownGarrison(const CGTownInstance * t, int currentWeek) const;
+
+public:
+	NewTurnProcessor(CGameHandler * gameHandler);
+
+	void onNewTurn();
+	/// Runs the scenario and town events of a starting turn. Called from the turn start
+	/// routine, so that a dialog an event opens is answered before the turn-start visits.
+	void handleTurnStartEvents(PlayerColor color);
+	void onPlayerTurnEnded(PlayerColor color);
+};

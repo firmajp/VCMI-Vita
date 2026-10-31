@@ -1,0 +1,115 @@
+/*
+* AdventureSpellCast.cpp, part of VCMI engine
+*
+* Authors: listed in file AUTHORS in main folder
+*
+* License: GNU General Public License v2.0 or later
+* Full text of license available in license.txt file, in main folder
+*
+*/
+#include "StdInc.h"
+#include "AdventureSpellCast.h"
+#include "../AIGateway.h"
+#include "../../../lib/spells/ISpellMechanics.h"
+#include "../../../lib/spells/Problem.h"
+#include "../../../lib/spells/adventure/TownPortalEffect.h"
+#include "../../../lib/spells/CSpell.h"
+
+namespace NK2AI
+{
+
+using namespace Goals;
+
+bool AdventureSpellCast::operator==(const AdventureSpellCast & other) const
+{
+	return hero == other.hero
+		&& spellID == other.spellID
+		&& tile == other.tile
+		&& town == other.town;
+}
+
+void AdventureSpellCast::accept(AIGateway * aiGw)
+{
+	if(!hero)
+		throw cannotFulfillGoalException("Invalid hero!");
+
+	auto spell = getSpell();
+
+	logAi->trace("Decomposing adventure spell cast of %s for hero %s", spell->getNameTextID(), hero->getNameTextID());
+
+	if(!spell->isAdventure())
+		throw cannotFulfillGoalException(spell->getNameTranslated() + " is not an adventure spell.");
+
+	if(!hero->canCastThisSpell(spell))
+		throw cannotFulfillGoalException("Hero can not cast " + spell->getNameTranslated());
+
+	if(hero->mana < hero->getSpellCost(spell))
+		throw cannotFulfillGoalException("Hero has not enough mana to cast " + spell->getNameTranslated());
+
+	auto townPortalEffect = spell->getAdventureMechanics().getEffectAs<TownPortalEffect>(hero);
+
+	if(town && townPortalEffect)
+	{
+		// a hero chain may lead to the town through an earlier node, and the hero would count as its occupant
+		if(hero->getVisitedTown() == town)
+			throw goalFulfilledException(sptr(*this));
+
+		aiGw->selectedObject = town->id;
+
+		if(town->getVisitingHero() && town->tempOwner == aiGw->playerID && !town->getUpperArmy()->stacksCount())
+		{
+			aiGw->cc->swapGarrisonHero(town);
+		}
+
+		if(town->getVisitingHero())
+			throw cannotFulfillGoalException("The town is already occupied by " + town->getVisitingHero()->getNameTextID());
+	}
+
+	if (hero->isGarrisoned())
+	{
+		if(!aiGw->canSwapGarrisonHero(hero->getVisitedTown()))
+			throw cannotFulfillGoalException("Hero can not leave garrison, wandering heroes limit is reached!");
+		aiGw->cc->swapGarrisonHero(hero->getVisitedTown());
+	}
+
+	spells::detail::ProblemImpl problem;
+	const auto & mechanics = spell->getAdventureMechanics();
+	if(aiGw->cc->isInTheMap(tile) ? !mechanics.canBeCastAt(problem, aiGw->cc.get(), hero, tile) : !mechanics.canBeCast(problem, aiGw->cc.get(), hero))
+	{
+		std::vector<std::string> reasons;
+		problem.getAll(reasons);
+		throw cannotFulfillGoalException("Can not cast " + spell->getNameTranslated() + " at " + tile.toString() + ": " + boost::algorithm::join(reasons, "; "));
+	}
+
+	const auto wait = aiGw->cc->waitTillRealize;
+	aiGw->cc->waitTillRealize = true;
+	aiGw->cc->castSpell(hero, spellID, tile);
+	// Adventure spells may trigger visits and level-up dialogs.
+	// Restore only afterwards: a battle started by the cast suspends waiting and restores it on its own end
+	aiGw->waitTillFree();
+	aiGw->cc->waitTillRealize = wait;
+
+	// the server may refuse a cast that looked possible here; reporting it as done would make
+	// the planner pick the same cast again and again
+	if(!aiGw->lastAdventureCastSucceeded)
+		throw cannotFulfillGoalException("Server refused to cast " + spell->getNameTranslated() + " at " + tile.toString());
+
+	if(town && townPortalEffect)
+	{
+		// visit town
+		if(aiGw->moveHeroToTile(town->visitablePos(), HeroPtr(hero, aiGw->cc.get()))
+			!= HeroMovementResult::COMPLETE)
+		{
+			throw cannotFulfillGoalException("Unable to visit town after casting Town Portal.");
+		}
+	}
+
+	throw goalFulfilledException(sptr(*this));
+}
+
+std::string AdventureSpellCast::toString() const
+{
+	return "AdventureSpellCast " + spellID.toSpell()->getNameTranslated();
+}
+
+}

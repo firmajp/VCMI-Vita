@@ -1,0 +1,262 @@
+/*
+* CompleteQuest.cpp, part of VCMI engine
+*
+* Authors: listed in file AUTHORS in main folder
+*
+* License: GNU General Public License v2.0 or later
+* Full text of license available in license.txt file, in main folder
+*
+*/
+#include "StdInc.h"
+#include "../../../lib/GameLibrary.h"
+#include "../../../lib/CPlayerState.h"
+#include "../../../lib/mapObjects/Quest.h"
+#include "../../../lib/rewardable/Interface.h"
+#include "../../../lib/texts/CGeneralTextHandler.h"
+#include "../AIGateway.h"
+#include "../Behaviors/CaptureObjectsBehavior.h"
+#include "CompleteQuest.h"
+
+namespace NK2AI
+{
+
+using namespace Goals;
+
+bool isKeyMaster(const QuestInfo & q, CCallback & cc)
+{
+	const auto * const quest = q.getQuest(&cc);
+	return quest && !quest->mission.requiredKeys.empty();
+}
+
+std::string CompleteQuest::toString() const
+{
+	return "Complete quest " + questToString();
+}
+
+TGoalVec CompleteQuest::decompose(const Nullkiller * aiNk) const
+{
+	if(isKeyMaster(q, *aiNk->cc))
+	{
+		return missionKeymaster(aiNk);
+	}
+
+	logAi->debug("Trying to realize quest: %s", questToString());
+	const auto quest = q.getQuest(aiNk->cc.get());
+
+	if(!quest->mission.artifacts.empty())
+		return missionArt(aiNk);
+
+	if(!quest->mission.heroes.empty())
+		return missionHero(aiNk);
+
+	if(!quest->mission.creatures.empty())
+		return missionArmy(aiNk);
+
+	if(quest->mission.resources.nonZero())
+		return missionResources(aiNk);
+
+	if(!quest->mission.destroyedObjects.empty())
+		return missionDestroyObj(aiNk);
+
+	for(auto & s : quest->mission.primary)
+		if(s)
+			return missionIncreasePrimaryStat(aiNk);
+
+	if(quest->mission.heroLevel > 0)
+		return missionLevel(aiNk);
+
+	return TGoalVec();
+}
+
+bool CompleteQuest::operator==(const CompleteQuest & other) const
+{
+	if(isKeyMaster(q, cc))
+	{
+		return isKeyMaster(other.q, cc) && q.getObject(&cc)->subID == other.q.getObject(&cc)->subID;
+	}
+	else if(isKeyMaster(other.q, cc))
+	{
+		return false;
+	}
+
+	return q.getQuest(&cc) == other.q.getQuest(&cc);
+}
+
+uint64_t CompleteQuest::getHash() const
+{
+	if(isKeyMaster(q, cc))
+	{
+		return q.getObject(&cc)->subID;
+	}
+
+	return q.getObject(&cc)->id.getNum();
+}
+
+std::string CompleteQuest::questToString() const
+{
+	if(isKeyMaster(q, cc))
+	{
+		return "find " + LIBRARY->generaltexth->translate("core.tentcolr", q.getObject(&cc)->subID.getNum()) + " keymaster tent";
+	}
+
+	if(q.getQuest(&cc)->missionKind == EQuestMission::NONE)
+		return "inactive quest";
+
+	MetaString ms;
+	q.getQuest(&cc)->getQuestlogText(&cc, ms, false);
+	if(const auto * object = q.getObject(&cc))
+		ms.replaceRawString(object->getObjectName().toString(LIBRARY->staticTexts()));
+
+	return ms.toString(LIBRARY->staticTexts());
+}
+
+TGoalVec CompleteQuest::tryCompleteQuest(const Nullkiller * aiNk) const
+{
+	auto paths = aiNk->pathfinder->getPathInfo(q.getObject(aiNk->cc.get())->visitablePos());
+
+	vstd::erase_if(
+		paths,
+		[&](const AIPath & path) -> bool
+		{
+			return !q.getQuest(aiNk->cc.get())->checkQuest(path.targetHero);
+		}
+	);
+
+	return CaptureObjectsBehavior::getVisitGoals(paths, aiNk, q.getObject(aiNk->cc.get()));
+}
+
+TGoalVec CompleteQuest::missionArt(const Nullkiller * aiNk) const
+{
+	TGoalVec solutions = tryCompleteQuest(aiNk);
+
+	if(!solutions.empty())
+		return solutions;
+
+	CaptureObjectsBehavior findArts;
+
+	for(auto art : q.getQuest(aiNk->cc.get())->mission.artifacts)
+	{
+		solutions.push_back(sptr(CaptureObjectsBehavior().ofType(Obj::ARTIFACT, art.getNum())));
+	}
+
+	return solutions;
+}
+
+TGoalVec CompleteQuest::missionHero(const Nullkiller * aiNk) const
+{
+	TGoalVec solutions = tryCompleteQuest(aiNk);
+
+	if(solutions.empty())
+	{
+		//rule of a thumb - quest heroes usually are locked in prisons
+		solutions.push_back(sptr(CaptureObjectsBehavior().ofType(Obj::PRISON)));
+	}
+
+	return solutions;
+}
+
+TGoalVec CompleteQuest::missionArmy(const Nullkiller * aiNk) const
+{
+	auto paths = aiNk->pathfinder->getPathInfo(q.getObject(aiNk->cc.get())->visitablePos());
+
+	vstd::erase_if(
+		paths,
+		[&](const AIPath & path) -> bool
+		{
+			return !Quest::checkMissionArmy(q.getQuest(aiNk->cc.get()), path.heroArmy);
+		}
+	);
+
+	return CaptureObjectsBehavior::getVisitGoals(paths, aiNk, q.getObject(aiNk->cc.get()));
+}
+
+TGoalVec CompleteQuest::missionIncreasePrimaryStat(const Nullkiller * aiNk) const
+{
+	TGoalVec solutions = tryCompleteQuest(aiNk);
+	if(!solutions.empty())
+		return solutions;
+
+	const auto & required = q.getQuest(aiNk->cc.get())->mission.primary;
+	return visitObjectsGranting(aiNk, [&required](const Rewardable::Reward & reward)
+	{
+		for(size_t i = 0; i < required.size() && i < reward.primary.size(); ++i)
+			if(required[i] > 0 && reward.primary[i] > 0)
+				return true;
+		return false;
+	});
+}
+
+TGoalVec CompleteQuest::missionLevel(const Nullkiller * aiNk) const
+{
+	TGoalVec solutions = tryCompleteQuest(aiNk);
+	if(!solutions.empty())
+		return solutions;
+
+	return visitObjectsGranting(aiNk, [](const Rewardable::Reward & reward)
+	{
+		return reward.heroExperience > 0 || reward.heroLevel > 0;
+	});
+}
+
+TGoalVec CompleteQuest::visitObjectsGranting(const Nullkiller * aiNk, const std::function<bool(const Rewardable::Reward &)> & grantsProgress) const
+{
+	const auto * questObject = q.getObject(aiNk->cc.get());
+	std::vector<const CGObjectInstance *> sources;
+
+	for(const auto * obj : aiNk->memory->visitableIdsToObjsVector(*aiNk->cc))
+	{
+		const auto * rewardable = dynamic_cast<const Rewardable::Interface *>(obj);
+		if(!rewardable || obj == questObject)
+			continue;
+
+		if(std::ranges::any_of(rewardable->configuration.info, [&](const Rewardable::VisitInfo & info){ return grantsProgress(info.reward); }))
+			sources.push_back(obj);
+	}
+
+	// shouldVisit keeps out heroes that the object would not reward, such as a seer asking for another hero
+	return CaptureObjectsBehavior(sources).withoutForcedVisit().decompose(aiNk);
+}
+
+TGoalVec CompleteQuest::missionKeymaster(const Nullkiller * aiNk) const
+{
+	const auto * object = q.getObject(aiNk->cc.get());
+	if(isObjectPassable(aiNk, object))
+		return CaptureObjectsBehavior(object).decompose(aiNk);
+
+	TGoalVec solutions;
+	for(const auto & key : q.getQuest(aiNk->cc.get())->mission.requiredKeys)
+		vstd::concatenate(solutions, CaptureObjectsBehavior().ofType(Obj::KEYMASTER, key).decompose(aiNk));
+	return solutions;
+}
+
+TGoalVec CompleteQuest::missionResources(const Nullkiller * aiNk) const
+{
+	TGoalVec solutions = tryCompleteQuest(aiNk);
+	return solutions;
+}
+
+TGoalVec CompleteQuest::missionDestroyObj(const Nullkiller * aiNk) const
+{
+	const auto * killQuest = q.getQuest(aiNk->cc.get());
+
+	const auto & destroyedByUs = aiNk->cc->getPlayerState(aiNk->playerID)->destroyedObjects;
+
+	TGoalVec solutions;
+	for(const auto & targetId : killQuest->mission.destroyedObjects)
+	{
+		if(destroyedByUs.count(targetId))
+			continue;
+
+		// a target hidden by fog of war is not reported by getObj, so it is skipped until seen again
+		const auto * obj = aiNk->cc->tryGetObj(targetId);
+		if(obj && aiNk->cc->getPlayerRelations(aiNk->playerID, obj->tempOwner) == PlayerRelations::ENEMIES)
+			vstd::concatenate(solutions, CaptureObjectsBehavior(obj).decompose(aiNk));
+	}
+
+	if(std::ranges::all_of(killQuest->mission.destroyedObjects, [&](const ObjectInstanceID & targetId){ return destroyedByUs.count(targetId) != 0; }))
+		vstd::concatenate(solutions, CaptureObjectsBehavior(q.getObject(aiNk->cc.get())).decompose(aiNk));
+
+	return solutions;
+}
+
+}
