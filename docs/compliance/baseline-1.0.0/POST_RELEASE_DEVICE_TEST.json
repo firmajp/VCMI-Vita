@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0-rc.1",
+  "distribution_revision": "livearea101",
+  "status": "passed_by_user_report",
+  "confirmed_date": "2026-10-31",
+  "package_vpk_sha256": "f33e5106a42bda7260570a31104492b66010df4dbfe3d0f4f1f91c8eb1c2b172",
+  "method": "User report in conversation following delivery of LiveArea101",
+  "user_confirmation": "przetestowalem gre, wszystko wydaje sie dzialac",
+  "scope": "User reports the current package works. A new detailed checklist was not individually enumerated; the full original RC1 checklist remains recorded separately.",
+  "original_RC1_device_checklist": "Previously confirmed: installation, LiveArea, launch, town, battle, save/load",
+  "artifact_policy": "Existing VPK and source ZIP preserved byte-for-byte; this post-release confirmation is a separate supplemental record."
+}

@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/firmajp/VCMI-Vita",
+  "release": "1.0.0",
+  "tag": "v1.0.0",
+  "commit": "0b66197149246ce61fc94f484d5ff0640988c2d9",
+  "release_asset_filename": "vcmi_vita_1.0.0-rc.1.vpk",
+  "release_asset_sha256": "f33e5106a42bda7260570a31104492b66010df4dbfe3d0f4f1f91c8eb1c2b172",
+  "matches_previously_user_tested_package": true,
+  "source_archive_sha256": "59259f5e5b5dd6815ce687f3817b7c3911648158be0614eba1559409a19ca6e2",
+  "next_version": "1.0.1",
+  "new_working_source": "work/VCMI-Vita-1.0.1",
+  "old_work_vcmi_used_for_new_changes": false
+}

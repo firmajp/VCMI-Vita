@@ -131,7 +131,7 @@ if(VITA)
 	include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
 	vita_create_self(vcmiclient.self vcmiclient)
 	vita_create_vpk(vcmiclient.vpk H3VC00001 vcmiclient.self
-		VERSION 01.00 NAME "VCMI-Vita 1.0 RC1")
+		VERSION ${VCMI_VITA_APP_VER} NAME "VCMI-Vita ${VCMI_VITA_VERSION}")
 endif()
 
 if(IOS)

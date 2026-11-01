@@ -13,7 +13,8 @@ import zipfile
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
-VPK = ROOT / 'dist/vcmi_vita_1.0.0-rc.1.vpk'
+METADATA = json.loads((ROOT/'VERSION.json').read_text())
+VPK = ROOT / 'dist' / ('vcmi_vita_' + METADATA['version'] + '.vpk')
 FORBIDDEN = {'.lod', '.snd', '.vid', '.h3m', '.h3c', '.mp3', '.psp2dmp', '.suprx', '.skprx'}
 
 def entries(archive, prefix=''):
@@ -54,8 +55,8 @@ with zipfile.ZipFile(VPK) as archive:
         key, fmt, length, maximum, offset = struct.unpack_from('<HHIII', sfo, 20 + i * 16)
         end = sfo.index(b'\0', keys + key)
         values[sfo[keys + key:end].decode()] = sfo[data_start + offset:data_start + offset + length].rstrip(b'\0')
-    assert values['TITLE_ID'] == b'H3VC00001' and values['APP_VER'] == b'01.00'
-    assert values['TITLE'] == b'VCMI-Vita 1.0 RC1'
+    assert values['TITLE_ID'] == b'H3VC00001' and values['APP_VER'] == METADATA['vita_app_ver'].encode()
+    assert values['TITLE'] == ('VCMI-Vita '+METADATA['version']).encode()
     template = ET.fromstring(files['sce_sys/livearea/contents/template.xml'])
     for node in ['livearea-background/image', 'gate/startup-image']:
         assert 'sce_sys/livearea/contents/' + template.find(node).text in files
@@ -85,9 +86,9 @@ result = {
     'source_tree_files': len(all_paths), 'all_files_below_100MB': True,
     'checks': ['ZIP CRC/paths/duplicates', 'short on-device paths and bounded directory depth', 'nested original-data extension denylist',
                'required licenses/source notices', 'bundled notice byte equality', 'Vita title/version', 'LiveArea XML references',
-               '46 translations', 'excluded artwork hashes', 'LiveArea101 supplied artwork', 'bundled source byte equality', 'common secret-token patterns'],
+               '46 translations', 'excluded artwork hashes', '1.0.1 supplied LiveArea and matching boot/loading artwork', 'bundled source byte equality', 'common secret-token patterns'],
     'limits': ['No legal certification', 'Not a judicial determination of third-party rights',
-               'Original RC1 device checklist passed by user report; new LiveArea101 visual/install check pending', 'ScanCode findings are documented separately; no independent legal audit'],
+               'Official 1.0.0 baseline tested by user; 1.0.1 device test pending', 'ScanCode findings are documented separately; no independent legal audit'],
 }
 (ROOT/'AUDIT_RESULTS.json').write_text(json.dumps(result, indent=2) + '\n')
 print(json.dumps(result, indent=2))

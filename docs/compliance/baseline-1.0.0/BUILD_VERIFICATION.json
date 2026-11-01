@@ -1,0 +1,24 @@
+{
+  "clean_exported_engine_build": "passed",
+  "custom_dependency_source_build": "passed: pthread, modified SDL2, FFmpeg, oneTBB, libsquish, iconv and zlib-only minizip",
+  "modified_LGPL_source_rebuild_and_complete_application_relink": {
+    "status": "passed",
+    "method": "Append a probe function in a separate copy of LGPL pthread_mutex_lock.c, rebuild/install the modified library, relink the complete application to a separate ELF with -Wl,-u forcing this symbol, verify symbol and literal marker, restore the original library. Release source is never modified.",
+    "original_source_sha256": "30fced222d9068869281a27b11e99dc5863e659958c172531e09d3312a522149",
+    "modified_source_sha256": "53d440237b996a1c9881446ef8469352ec7802c642564bfe5eaf80e07495d5eb",
+    "original_library_sha256": "44d9ae198bccff822e9d755a1827b06e1bc59e2bc61545c83cbc97287e5b5c75",
+    "modified_library_sha256": "7188ebf57dd5933c6b23291c78987f14f34008fa7346f60aba80729f173bfa61",
+    "modified_application_sha256": "070a4ac760d7a9f8c9d9fe6c41b0f1a3a881ad3f554392b5e70c013009684431",
+    "probe_symbol": "vcmi_lgpl_relink_probe_rc1",
+    "device_execution": "not performed",
+    "release_executable_sha256": "6718f6eeaec9ea40ba8b895eb31fbf2015c3f239b5134fdab60935933c985e0f",
+    "original_source_and_library_restored": true,
+    "release_executable_unchanged": true
+  },
+  "release_library_and_application_restored": true,
+  "PCH": "disabled after Windows cross-compiler mapping failure",
+  "SDK_prerequisites": "Dedicated existing VitaSDK; remaining dependency sources and package recipes supplied; compiler bootstrap not claimed",
+  "reproducible_bit_identical_independent_rebuild": "not claimed",
+  "exact_RC_device_test": "passed for original RC1 VPK identified in DEVICE_TEST.json; new LiveArea101 visual/install check pending",
+  "livearea101_engine_rebuild": "not performed or needed; reuse tested original executable with byte-equality evidence"
+}

@@ -1,0 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Vita metadata template, 2026-11-01; see MODIFICATIONS.md.
+#pragma once
+
+#define VCMI_VITA_VERSION "@VCMI_VITA_VERSION@"
+#define VCMI_VITA_APP_VER "@VCMI_VITA_APP_VER@"
+#define VCMI_VITA_STARTUP_LOG "ux0:data/vcmi-startup-" VCMI_VITA_VERSION ".log"
+#define VCMI_VITA_PERFORMANCE_LOG "ux0:data/vcmi-performance-" VCMI_VITA_VERSION ".log"
+#define VCMI_VITA_WATCHDOG_LOG "ux0:data/vcmi-watchdog-" VCMI_VITA_VERSION ".log"

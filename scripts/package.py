@@ -8,7 +8,7 @@ import argparse
 repo=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
 parser.add_argument('--bare-vpk',type=Path,default=repo/'build/vcmi/clientapp/vcmiclient.vpk')
-parser.add_argument('--output',type=Path,default=repo/'dist/vcmi_vita_1.0.0-rc.1.vpk')
+parser.add_argument('--output',type=Path,default=repo/'dist'/('vcmi_vita_'+json.loads((repo/'VERSION.json').read_text())['version']+'.vpk'))
 args=parser.parse_args()
 root=repo/'src/vcmi'; build=args.bare_vpk
 out=args.output

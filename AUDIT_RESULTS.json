@@ -1,9 +1,9 @@
 {
-  "vpk": "vcmi_vita_1.0.0-rc.1.vpk",
-  "sha256": "f33e5106a42bda7260570a31104492b66010df4dbfe3d0f4f1f91c8eb1c2b172",
-  "vpk_bytes": 17451915,
+  "vpk": "vcmi_vita_1.0.1.vpk",
+  "sha256": "c4864eae003b84eb17d2443308c03d51170e82f1c13869e95b704fc7356a7f76",
+  "vpk_bytes": 17427838,
   "recursive_vpk_entries": 875,
-  "source_tree_files": 36656,
+  "source_tree_files": 36671,
   "all_files_below_100MB": true,
   "checks": [
     "ZIP CRC/paths/duplicates",
@@ -15,14 +15,14 @@
     "LiveArea XML references",
     "46 translations",
     "excluded artwork hashes",
-    "LiveArea101 supplied artwork",
+    "1.0.1 supplied LiveArea and matching boot/loading artwork",
     "bundled source byte equality",
     "common secret-token patterns"
   ],
   "limits": [
     "No legal certification",
     "Not a judicial determination of third-party rights",
-    "Original RC1 device checklist passed by user report; new LiveArea101 visual/install check pending",
+    "Official 1.0.0 baseline tested by user; 1.0.1 device test pending",
     "ScanCode findings are documented separately; no independent legal audit"
   ]
 }

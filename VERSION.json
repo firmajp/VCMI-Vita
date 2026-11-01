@@ -1,10 +1,9 @@
 {
-  "version": "1.0.0-rc.1",
-  "vita_app_ver": "01.00",
+  "version": "1.0.1",
+  "vita_app_ver": "01.01",
   "title_id": "H3VC00001",
-  "device_tested_engine_baseline": "0.1.25 / v038",
-  "status": "release candidate",
-  "distribution_revision": "livearea101",
-  "livearea_content_rev": 101,
-  "device_test": "Original RC1 passed; new LiveArea installation/visual check pending"
+  "status": "development build; device test pending",
+  "baseline_release": "1.0.0",
+  "baseline_commit": "0b66197149246ce61fc94f484d5ff0640988c2d9",
+  "livearea_content_rev": 102
 }

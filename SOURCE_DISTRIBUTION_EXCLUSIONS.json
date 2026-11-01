@@ -82,9 +82,14 @@
     "third_party/boost-program_options/build"
   ],
   "unused_zip_specifications": "Omitted optional Info-ZIP/PKWARE format-reference documents; these are not library source, build inputs, or author/license notices. The copied modified specification has no clear redistribution grant in its header.",
-  "livearea101": {
-    "included_generator": "tools/make_vcmi_livearea.py",
-    "preview_and_transfer_instructions": "Input mockup and transfer instructions remain build-work files; not distributed",
-    "retained_boot_splash": true
+  "artwork_1.0.1": {
+    "included_generators": [
+      "tools/make_vcmi_livearea.py",
+      "tools/make_bg_variants.py",
+      "tools/make_bg_heroic.py",
+      "tools/make_final_livearea.py"
+    ],
+    "input_mockups_and_transfer_instructions": "Outside release tree; not installed",
+    "loading_background": "Provided launch image copied unchanged"
   }
 }

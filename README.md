@@ -1,42 +1,40 @@
-# VCMI-Vita
+![VCMI-Vita](assets/github-banner.png)
 
-**1.0.0-rc.1 — first release candidate, LiveArea revision 101.** A native [VCMI](https://github.com/vcmi/vcmi) engine port for PlayStation Vita, based on the device-tested 0.1.25 / v038 implementation. This is a candidate for testing, not a claim that every map, campaign or hardware configuration works.
+**AI assistance:** The Vita adaptation, local optimisations and project documentation were developed with AI assistance. Upstream VCMI and third-party code retain their original authorship and licences. The README banner is AI-generated from the project's LiveArea artwork; see [banner provenance](docs/branding/BANNER_PROVENANCE.md).
 
-You need your own legally obtained **Heroes of Might and Magic III: Complete** data. The Steam HD Edition is incompatible. Original game archives, maps, music, installers and Windows executables are not included. This independent community port is not affiliated with or endorsed by Ubisoft, Sony or the upstream VCMI project. Names identify compatibility and remain their owners' trademarks.
+# VCMI-Vita 1.0.1
 
-## Download and install
+Development build for the next update, based directly on the official [1.0.0 release](https://github.com/firmajp/VCMI-Vita/releases/tag/v1.0.0), commit `0b66197149246ce61fc94f484d5ff0640988c2d9`. This begins work towards 1.1. The 1.0.1 build needs its own console test; testing of 1.0.0 is recorded separately.
 
-The VPK is `dist/vcmi_vita_1.0.0-rc.1.vpk`. Keep the complete corresponding source ZIP with any binary download. This software uses [FFmpeg](https://ffmpeg.org/) licensed under LGPL-2.1-or-later; its complete source is [included here](third_party/FFmpeg), with configuration and relinking instructions in [BUILDING.md](BUILDING.md).
+## Changes in 1.0.1
 
-1. Use a homebrew-enabled Vita and VitaShell. Tested engine baseline: Vita 2000, firmware 3.65 Ensō.
-2. Back up saves and settings. Transfer and install the VPK with VitaShell. Title ID **H3VC00001** is unchanged, so this updates the test application. Vita APP_VER is **01.00**; the public version is **1.0.0-rc.1**.
-3. From your own Complete installation, copy `Data`, `Maps` and optionally `Mp3` directly into:
+- New sunset mountain/castle/camp LiveArea artwork and matching bubble/launch image.
+- The system launch image, first in-app splash and loading background use the same image, with a readable loading panel added during initialization.
+- Version metadata in `VERSION.json` supplies the application title, package filename and diagnostic log names.
+- Existing gameplay, rendering optimisations, controller mapping and save format are retained. No new FPS or startup-time improvement is claimed before device measurements.
 
-   ```text
-   ux0:data/vcmi/Data/
-   ux0:data/vcmi/Maps/
-   ux0:data/vcmi/Mp3/
-   ```
+## Requirements and installation
 
-   Keep the original names and contents. Do not nest another game-installation folder inside `vcmi`. Do not copy the Windows executable or installer. Engine configuration, scripts, fonts and the built-in VCMI module are already included.
-4. Launch from LiveArea. An early splash is followed by loading progress. Loading speed depends on storage and game data.
+Use a homebrew-enabled Vita with VitaShell and your own legally obtained **Heroes of Might and Magic III: Complete** data. Steam HD Edition is incompatible. Original game archives, maps, music, installers and Windows executables are not included.
 
-Saves: `ux0:data/vcmi/Saves/`; settings: `ux0:data/vcmi/config/`; engine logs: `ux0:data/vcmi/logs/`.
+1. Back up saves and settings. Install `dist/vcmi_vita_1.0.1.vpk` using VitaShell; verify it with the adjacent `.vpk.sha256` file.
+2. Copy your own `Data`, `Maps` and optionally `Mp3` folders directly into `ux0:data/vcmi/`.
+3. Launch from LiveArea. Title ID **H3VC00001** is unchanged; Vita APP_VER is **01.01**, public version **1.0.1**. This updates the existing application.
 
-## Controls and testing
+Use the left stick to move the cursor and Cross to click, or use the front touchscreen. Rear touch is disabled. Saves are in `ux0:data/vcmi/Saves/`; settings in `ux0:data/vcmi/config/`; engine logs in `ux0:data/vcmi/logs/`.
 
-Use the left stick for the cursor and Cross to confirm/click, or use the front touchscreen. Rear touch is disabled. Prompts use PlayStation button symbols. CPU/GPU requests are 444/222 MHz; plugins can override them.
+## Testing and logs
 
-The user confirmed installation, LiveArea, launch, town, battle and save/load on the original exact RC1 VPK; its digest and checklist are in docs/compliance/DEVICE_TEST.json. This artwork revision preserves that tested executable, SFO, boot splash and game resources. Install this refreshed VPK and check the new bubble icon, LiveArea background/gate and launch; the new artwork has not yet been checked on a console. Large battles, sieges, campaigns, arbitrary mods and long sessions need broader testing.
+The user tested 1.0.0 on a Vita 2000, firmware 3.65 Ensō, including installation, LiveArea, launch, towns, battles and save/load. That confirmation does not automatically cover this new executable. Test installation, updated LiveArea, the splash/loading transition, menu, town, battle and save/load on **1.0.1**. Campaigns, arbitrary mods, larger battles/sieges and long sessions need broader coverage.
 
-Logs: `ux0:data/vcmi-startup-rc1.log`, `vcmi-performance-rc1.log` and `vcmi-watchdog-rc1.log`. Holding L + R + Start for about two seconds intentionally aborts the process for a diagnostic dump; unsaved progress is lost. Review logs before sharing and never upload commercial game data.
+Current diagnostic logs are `ux0:data/vcmi-startup-1.0.1.log`, `ux0:data/vcmi-performance-1.0.1.log` and `ux0:data/vcmi-watchdog-1.0.1.log`. Holding L + R + Start for about two seconds intentionally aborts the application to obtain a diagnostic dump; unsaved progress is lost. Review logs before sharing them.
 
-Town rendering reuses a bounded composition cache while preserving animation ticks and construction/hover changes. Overhanging layouts fall back to the original renderer. See [CHANGELOG.md](CHANGELOG.md) and [performance notes](docs/PERFORMANCE.md). No new FPS claim is made without RC device measurements.
+## Source and licences
 
-## Build, source and licenses
+The combined executable uses **GPL-3.0-or-later** under VCMI's GPL-2.0-or-later option. Individual components retain their original terms. Matching engine/dependency sources, original notices and build/install/relink material are supplied; see `BUILDING.md`, `SOURCE_ACCESS.md`, `PTHREAD_LINKING.md` and `THIRD_PARTY_NOTICES.md`. Statically linked LGPL components include complete source and rebuilding/relinking material. Users may modify those libraries and reverse engineer the linked application to debug library modifications.
 
-The complete engine, modified libraries, dependency sources, original notices and build/installation material are supplied. See [BUILDING.md](BUILDING.md), [SOURCE_ACCESS.md](SOURCE_ACCESS.md), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [review evidence](COMPLIANCE_AUDIT.md). Checksums preserve exact bytes across Git clones through `.gitattributes`; verify them with `python scripts/checksums.py verify`.
+This software uses [FFmpeg](https://ffmpeg.org/) under LGPL-2.1-or-later; its source is in `third_party/FFmpeg` and its configuration/ABI adaptations are supplied. GPL/nonfree options are disabled. New code-drawn LiveArea/boot artwork follows CC0-1.0 to the extent rights exist; Noto font software retains SIL OFL notices. Built-in VCMI artwork retains its separate original credits/licences.
 
-The combined executable is supplied under GPL-3.0-or-later using VCMI's GPL-2.0-or-later option. Individual files retain their original licenses. Statically linked LGPL libraries include source and rebuilding/relinking material; no restriction is added on modifying the libraries or reverse engineering to debug those modifications. Noto fonts use SIL OFL. VCMI asset credits and exceptions are in `LICENSES/VCMI-ASSET-AUTHORS.txt`; new public geometric artwork uses CC0 with separate font notices.
+Verify the complete source distribution with `python scripts/checksums.py verify`. Exact bytes are preserved by Git attributes; after staging, `--git` also checks index blobs. Technical build/scan evidence is in `docs/compliance/`; previous-version reports are explicitly under `baseline-1.0.0/`.
 
-The Vita work used AI assistance; upstream code retains its authorship and licenses. See [PORT_PROVENANCE.md](PORT_PROVENANCE.md). Technical checks and a license scanner do not certify legal rights or guarantee behavior. This software is provided without warranty.
+Independent community port; not an official release from, affiliated with, or endorsed by Ubisoft, Sony or the upstream VCMI team. Names identify compatibility and remain their owners' trademarks. Vita work used AI assistance; see `PORT_PROVENANCE.md`. Provided without warranty; tooling is not independent legal certification.

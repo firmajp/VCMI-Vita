@@ -8,6 +8,7 @@
  *
  */
 
+// Vita update 2026-11-01; see MODIFICATIONS.md.
 // EntryPoint.cpp : Defines the entry point for the console application.
 
 #include "StdInc.h"
@@ -48,6 +49,7 @@
 #include <vstd/StringUtils.h>
 
 #ifdef VCMI_VITA
+#include "VitaVersion.h"
 #define SDL_MAIN_HANDLED
 #include <psp2/kernel/sysmem.h>
 #include <psp2/power.h>
@@ -170,16 +172,16 @@ int main(int argc, char * argv[])
 {
 #ifdef VCMI_VITA
 	const auto vitaBootTime = std::chrono::steady_clock::now();
-	if (FILE * initialLog = std::fopen("ux0:data/vcmi-startup-rc1.log", "w"))
+	if (FILE * initialLog = std::fopen(VCMI_VITA_STARTUP_LOG, "w"))
 		std::fclose(initialLog);
-	if (!std::freopen("ux0:data/vcmi-startup-rc1.log", "a", stdout))
+	if (!std::freopen(VCMI_VITA_STARTUP_LOG, "a", stdout))
 		return 1;
-	if (!std::freopen("ux0:data/vcmi-startup-rc1.log", "a", stderr))
+	if (!std::freopen(VCMI_VITA_STARTUP_LOG, "a", stderr))
 		return 1;
 	static char vitaStdoutBuffer[4096], vitaStderrBuffer[4096];
 	std::setvbuf(stdout, vitaStdoutBuffer, _IOLBF, sizeof(vitaStdoutBuffer));
 	std::setvbuf(stderr, vitaStderrBuffer, _IOLBF, sizeof(vitaStderrBuffer));
-	std::fprintf(stderr, "VCMI VITA BUILD 01.00 (1.0.0-rc.1): main entered\n");
+	std::fprintf(stderr, "VCMI VITA BUILD " VCMI_VITA_APP_VER " (" VCMI_VITA_VERSION "): main entered\n");
 	std::fprintf(stderr, "Vita log policy: startup_level=info stderr=line file=buffered flush_on=warn_or_1s_on_write\n");
 	std::fprintf(stderr, "Vita clocks before: cpu=%d bus=%d gpu=%d xbar=%d MHz\n",
 		scePowerGetArmClockFrequency(), scePowerGetBusClockFrequency(), scePowerGetGpuClockFrequency(), scePowerGetGpuXbarClockFrequency());
@@ -479,16 +481,16 @@ int main(int argc, char * argv[])
 			{
 				const Uint32 elapsed = SDL_GetTicks() - loadingStart;
 				SDL_PumpEvents();
-                VitaBootScreen::draw(mainRenderer);
+                VitaBootScreen::drawLoading(mainRenderer);
                 Point size;
                 SDL_RenderGetLogicalSize(mainRenderer, &size.x, &size.y);
-                SDL_Rect track{size.x * 10 / 100, size.y * 84 / 100, size.x * 80 / 100, 4};
-                SDL_SetRenderDrawColor(mainRenderer, 39, 62, 76, 255);
+                SDL_Rect track{size.x * 10 / 100, size.y * 84 / 100, size.x * 60 / 100, 4};
+                SDL_SetRenderDrawColor(mainRenderer, 66, 46, 68, 255);
                 SDL_RenderFillRect(mainRenderer, &track);
                 const int travel = track.w - track.w / 5;
                 const int cycle = static_cast<int>((elapsed / 6) % (2 * travel));
                 SDL_Rect pulse{track.x + (cycle <= travel ? cycle : 2 * travel - cycle), track.y, track.w / 5, track.h};
-                SDL_SetRenderDrawColor(mainRenderer, 205, 177, 111, 255);
+                SDL_SetRenderDrawColor(mainRenderer, 226, 174, 98, 255);
                 SDL_RenderFillRect(mainRenderer, &pulse);
 				const size_t stage = VitaLoading::stage.load(std::memory_order_relaxed);
 				if (loadingFont && stage != displayedStage)
@@ -532,7 +534,7 @@ int main(int argc, char * argv[])
 				SDL_Delay(100);
 			}
 			std::fprintf(stderr, "Vita loading: library complete after %u ms\n", SDL_GetTicks() - loadingStart);
-			VitaBootScreen::draw(mainRenderer);
+			VitaBootScreen::drawLoading(mainRenderer);
 			if(loadingFont)
 			{
 				const auto label = loadingLabels["vcmi.vita.finalizing.finishing"].String();

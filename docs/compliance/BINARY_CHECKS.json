@@ -1,12 +1,14 @@
 {
-  "elf_sha256": "6718f6eeaec9ea40ba8b895eb31fbf2015c3f239b5134fdab60935933c985e0f",
-  "eboot_sha256": "abe5b7d55ffb06ce314ed85fc232dd766044d1a1c5d5c5785ef2ba0a67d176aa",
+  "elf_sha256": "8dffaf9d2700191fe117506db5f01f94a945f3e8dc0caeb8973e9ac38836cf2c",
+  "eboot_sha256": "3d0b29194efd1123352bf042e636b1fa0cd8d06c80bd957f729813dc95b47482",
   "private_paths_in_ELF_and_SELF": "none detected",
   "ELF_load_segments_checked": 2,
   "SELF_valid_zlib_streams_checked": 3,
   "shipped_SELF_equal_to_clean_build": true,
-  "indexed_LiveArea_dimensions_palette": "passed",
+  "indexed_LiveArea_dimensions_palette": "passed: 8-bit opaque noninterlaced, <=128 colors",
   "boot_image_equality": true,
+  "launch_splash_loading_background_equality": true,
+  "livearea_cache_counter_matches_VERSION": true,
   "known_public_CI_paths": [
     "/home/runner/work/autobuilds/autobuilds/buildscripts/build/gcc-final-prefix/src/gcc-final-build/arm-vita-eabi/libgcc",
     "/home/runner/work/autobuilds/autobuilds/buildscripts/build/gcc-final-prefix/src/gcc-final-build/arm-vita-eabi/libstdc++-v3/include",
@@ -563,6 +565,5 @@
   ],
   "OpenSSL_implementation_symbols": "none detected",
   "modified_pthread_probe_absent_from_release": true,
-  "limits": "Technical pattern, format and equality checks; not a legal certificate or device execution test.",
-  "known_public_CI_paths_note": "Public VitaSDK autobuild workspace references inherited from SDK/newlib and header metadata; no user identity or private project path. At least one newlib marker was also verified in the unmodified prebuilt SDK libc.a."
+  "limits": "Technical pattern, format and equality checks; not a legal certificate or device execution test."
 }

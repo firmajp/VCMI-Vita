@@ -1,9 +1,7 @@
-# 1.0.0-rc.1 verification
+# 1.0.1 checks
 
-Machine-readable outcomes are in AUDIT_RESULTS.json, docs/compliance/BUILD_VERIFICATION.json, the ScanCode review and BINARY_BUILD_PROVENANCE.json. Report unexecuted checks as pending.
+Review the current build, modified-LGPL relink, binary privacy, source/resource, ScanCode, Git/index/checkout and ZIP checks in docs/compliance and AUDIT_RESULTS.json. Only checks actually executed may be marked passed. Historical baseline evidence is in baseline-1.0.0/.
 
-Required preparation: clean exported-source client build; modified-LGPL-library source/build/relink probe; no private local paths in shipped ELF/load segments; complete license/source notices; no original game assets or proprietary Sony modules; byte-consistent VPK resources; valid indexed LiveArea PNGs/XML; short install paths; final checksums preserved across Git round-trip; review of ScanCode findings and unused binary exclusions.
+1.0.1 console test: pending. Install the matching VPK; check bubble/background/gate, launch-image to splash/loading transition, readable progress messages, menu, town, battle, save/load and return to map. Compare startup/performance logs with 1.0.0. Keep the original title ID and back up saves/settings.
 
-The user confirmed the original exact RC1 installation, LiveArea, launch, town, battle and save/load checklist. See docs/compliance/DEVICE_TEST.json for the tested VPK hash. LiveArea101 preserves the tested executable/SFO/boot/game resources; check installation, new bubble/background/gate and launch on this artwork repack. More detailed town interactions, arbitrary maps/mods and prolonged stress coverage are not inferred from that confirmation. Test larger battles/sieges and longer sessions before final release. Retain saves and title ID when upgrading.
-
-The supplied source/library texts and evidence address the reported distribution issues. Tool output and the maintainer's review are not an independent legal certification or proof of original authorship of every expression.
+The user-reported 1.0.0 tests remain valid for that earlier artifact only. Larger battles/sieges, campaigns/mods and prolonged sessions require broader coverage. Scanner results are internal technical evidence, not a certification of legal rights or original authorship.

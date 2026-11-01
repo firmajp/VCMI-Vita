@@ -1,24 +1,37 @@
 {
-  "clean_exported_engine_build": "passed",
-  "custom_dependency_source_build": "passed: pthread, modified SDL2, FFmpeg, oneTBB, libsquish, iconv and zlib-only minizip",
+  "version": "1.0.1",
+  "clean_engine_build_from_current_source": "passed",
+  "build_directory": "New 1.0.1 engine build; interrupted/resumed during compilation, completed outputs retained within this build",
+  "unchanged_dependency_archives_match_official_baseline": "passed",
+  "dependency_archive_sha256": {
+    "pthread": "44d9ae198bccff822e9d755a1827b06e1bc59e2bc61545c83cbc97287e5b5c75",
+    "SDL2": "ebc936488aecefee7d41e344c351acb54cd27f01bc42fcae63c32515e05e6931",
+    "tbb": "69fb17c2499f2cf5e1667ad02486018815a554e6f7742ce632da8a555c5de9fa",
+    "squish": "fb74dba6acbc2526c61e7d11ab0227eb96b623930be091c4d8d734fc19ecb981",
+    "vcmi_vita_iconv": "5d0970a7baac6c67d12dd2deda9814cc6ee30568f58300aab5d159739b571105",
+    "minizip": "ae3feeee9f2bfc9843b14cba6587cdc3b63f3ec9979163f4077d0a95f168d75f",
+    "avcodec": "f9c89bf1c7fa326c450a4b11e70316876d6fd8432a2a1afc8bc5a0ff0565ce69",
+    "avformat": "e2e74e37403be5b8602fbea4a1f2d1c2fe21c8165a9b1f8f31aee67b4657b79d",
+    "avutil": "948a4b3471a9fd25c0e1b5594e1ae5bee9d1b80679bf68bc5984a9830a0f84e0",
+    "swscale": "1801d7b66607572a49552692d1875c68953b0488fb7349b7f03f7b30be1b2e66",
+    "swresample": "a84df803e84a967569715494dfd0a4e7cab30904d7ac1fc8550e657336e6ff49"
+  },
   "modified_LGPL_source_rebuild_and_complete_application_relink": {
     "status": "passed",
     "method": "Append a probe function in a separate copy of LGPL pthread_mutex_lock.c, rebuild/install the modified library, relink the complete application to a separate ELF with -Wl,-u forcing this symbol, verify symbol and literal marker, restore the original library. Release source is never modified.",
     "original_source_sha256": "30fced222d9068869281a27b11e99dc5863e659958c172531e09d3312a522149",
-    "modified_source_sha256": "53d440237b996a1c9881446ef8469352ec7802c642564bfe5eaf80e07495d5eb",
+    "modified_source_sha256": "744b82c0a41453e2500040b15c2e09e611f30b8f0c3f6f0dad76010747fd0bc4",
     "original_library_sha256": "44d9ae198bccff822e9d755a1827b06e1bc59e2bc61545c83cbc97287e5b5c75",
-    "modified_library_sha256": "7188ebf57dd5933c6b23291c78987f14f34008fa7346f60aba80729f173bfa61",
-    "modified_application_sha256": "070a4ac760d7a9f8c9d9fe6c41b0f1a3a881ad3f554392b5e70c013009684431",
-    "probe_symbol": "vcmi_lgpl_relink_probe_rc1",
+    "modified_library_sha256": "81b82b827a53878da5e8ff5ed19bbaeb8d4f9bf841431467283fd199ce687407",
+    "modified_application_sha256": "c47aecd10131a1b0b1476b1782310b94c5494e1f47c683e9d26e247ebeda6823",
+    "probe_symbol": "vcmi_lgpl_relink_probe_1_0_1",
     "device_execution": "not performed",
-    "release_executable_sha256": "6718f6eeaec9ea40ba8b895eb31fbf2015c3f239b5134fdab60935933c985e0f",
+    "release_executable_sha256": "8dffaf9d2700191fe117506db5f01f94a945f3e8dc0caeb8973e9ac38836cf2c",
     "original_source_and_library_restored": true,
     "release_executable_unchanged": true
   },
   "release_library_and_application_restored": true,
-  "PCH": "disabled after Windows cross-compiler mapping failure",
-  "SDK_prerequisites": "Dedicated existing VitaSDK; remaining dependency sources and package recipes supplied; compiler bootstrap not claimed",
+  "SDK_prerequisites": "Dedicated existing VitaSDK; source/recipes supplied. Compiler/bootstrap rebuild not claimed.",
   "reproducible_bit_identical_independent_rebuild": "not claimed",
-  "exact_RC_device_test": "passed for original RC1 VPK identified in DEVICE_TEST.json; new LiveArea101 visual/install check pending",
-  "livearea101_engine_rebuild": "not performed or needed; reuse tested original executable with byte-equality evidence"
+  "exact_1.0.1_device_test": "pending"
 }

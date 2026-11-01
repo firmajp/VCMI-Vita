@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "method": "User-reported hardware test; not directly observed by the build tools",
+  "confirmed_date": "2026-10-31",
+  "version": "1.0.0-rc.1",
+  "tested_vpk_sha256": "d5b3bfa2f21b606898e25456e2a88e8eeb107280c9022512ee9f8b7f921e59a1",
+  "hardware": "PlayStation Vita 2000; firmware 3.65 Enso (user supplied)",
+  "checks": {
+    "installation": "passed",
+    "LiveArea icon/background/gate": "passed",
+    "launch": "passed",
+    "town": "passed",
+    "battle": "passed",
+    "save": "passed",
+    "load": "passed"
+  },
+  "scope": "Exact original RC1 VPK above. LiveArea revision 101 changes artwork and notices only; its installation/new artwork still require a visual device check.",
+  "current_artwork_repack": {
+    "vpk_sha256": "f33e5106a42bda7260570a31104492b66010df4dbfe3d0f4f1f91c8eb1c2b172",
+    "eboot_SFO_boot_game_resources": "byte-identical to tested VPK",
+    "installation_and_new_LiveArea_visual_check": "pending"
+  }
+}

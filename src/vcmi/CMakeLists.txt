@@ -4,6 +4,15 @@
 cmake_minimum_required(VERSION 3.16.0)
 
 project(VCMI)
+
+if(VITA)
+	set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../../VERSION.json")
+	file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../../VERSION.json" vitaPackageMetadata)
+	string(JSON VCMI_VITA_VERSION GET "${vitaPackageMetadata}" version)
+	string(JSON VCMI_VITA_APP_VER GET "${vitaPackageMetadata}" vita_app_ver)
+	configure_file(lib/vita/VitaVersion.h.in "${CMAKE_CURRENT_BINARY_DIR}/VitaVersion.h" @ONLY)
+	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
+endif()
 # TODO
 # - Cleanup remove_directory copy_directory if performance will be a problem.
 # We can use some macro over copy_if_different since it's only work for single file.

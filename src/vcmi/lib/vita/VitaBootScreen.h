@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Vita adaptation; see license.txt and MODIFICATIONS.md.
+// Vita update 2026-11-01; see MODIFICATIONS.md.
 /* Part of VCMI engine, GNU GPL v2.0 or later. See license.txt. */
 #pragma once
 #include <SDL.h>
@@ -45,9 +46,25 @@ inline void draw(SDL_Renderer * target)
 		}
 		if(!background) std::fprintf(stderr, "Vita boot artwork fallback: %s\n", SDL_GetError());
 	}
-	SDL_SetRenderDrawColor(target, 10, 23, 37, 255);
+	SDL_SetRenderDrawColor(target, 13, 7, 24, 255);
 	SDL_RenderClear(target);
 	if(background) SDL_RenderCopy(target, background, nullptr, nullptr);
+}
+
+inline void drawLoading(SDL_Renderer * target)
+{
+	draw(target);
+	int width = 0, height = 0;
+	SDL_RenderGetLogicalSize(target, &width, &height);
+	SDL_BlendMode previousBlend = SDL_BLENDMODE_NONE;
+	SDL_GetRenderDrawBlendMode(target, &previousBlend);
+	SDL_SetRenderDrawBlendMode(target, SDL_BLENDMODE_BLEND);
+	SDL_Rect card{width * 8 / 100, height / 2, width * 65 / 100, height * 43 / 100};
+	SDL_SetRenderDrawColor(target, 13, 10, 29, 218);
+	SDL_RenderFillRect(target, &card);
+	SDL_SetRenderDrawColor(target, 212, 160, 91, 190);
+	SDL_RenderDrawRect(target, &card);
+	SDL_SetRenderDrawBlendMode(target, previousBlend);
 }
 
 inline void begin()

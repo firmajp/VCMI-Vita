@@ -1,7 +1,7 @@
 {
+  "version": "1.0.1",
   "status": "passed",
-  "distribution_revision": "livearea101",
-  "method": "Final SHA256 manifest, Git index and independent checkout with core.autocrlf=true",
-  "scope": "All final listed files; no old history or remote included",
-  "limits": "Original RC1 device test is user-reported; new artwork install/visual check pending"
+  "method": "SHA256 disk manifest, Git index and independent checkout with core.autocrlf=true",
+  "scope": "All final listed files; no history or remote included in archive",
+  "limits": "1.0.1 device execution remains pending; baseline tests recorded separately"
 }

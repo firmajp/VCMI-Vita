@@ -1,3 +1,9 @@
+# Vita modifications — 1.0.1, 2026-11-01
+
+Current changes from official 1.0.0: centralized public version metadata and generated runtime log/version header; SFO/title update; new supplied CC0 sunset/camp artwork/generators; identical launch/splash/loading background; translucent SDL loading panel and matching activity-bar colours. Gameplay and save/network serialization are unchanged. The full current files are supplied.
+
+Historical adaptation notes below describe the 1.0.0 baseline, not additional 1.0.1 changes:
+
 # Vita modifications — 2026-10-31, 1.0.0-rc.1
 
 VCMI base revision and dependency revisions are recorded in SOURCE_MANIFEST.json. Existing copyright/license headers remain authoritative. Full modified files are supplied; patches are not required to reconstruct the exported tree.

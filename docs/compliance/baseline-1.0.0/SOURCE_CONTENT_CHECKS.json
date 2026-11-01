@@ -1,0 +1,7 @@
+{
+  "source_files_checked": 36654,
+  "compiled_CPU_binary_magic_matches": [],
+  "forbidden_artifact_extensions": [],
+  "retained": "Vita/engine/dependency implementation source, required Boost Jamfiles, licenses, public artwork and generated technical evidence",
+  "excluded": "Only top-level generated build directory, dist binary checked separately, Git/cache metadata; vendor build source directories remain included"
+}

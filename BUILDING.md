@@ -1,4 +1,4 @@
-# Building and relinking 1.0.0-rc.1
+# Building and relinking 1.0.1
 
 Use a dedicated VitaSDK installation; the script installs rebuilt libraries into it. Reference tools: VitaSDK GCC 15.2.0, CMake 4.4.5, Ninja 1.13.2, Python 3.12.14 and PowerShell. Python 3.10 or newer is required for the supplied scripts. You also need POSIX `sh` and GNU make; MSYS2 UCRT64 make with its matching runtime dependencies is suitable on Windows. Put the shell utilities and make runtime DLL directory on PATH. Do not mix MINGW64 and UCRT64 gettext runtime DLLs. Toolchain binaries are not distributed in the source package.
 
@@ -32,5 +32,6 @@ python scripts/checksums.py generate
 python scripts/checksums.py verify
 ```
 
-Regenerate the unchanged boot splash with packaging/generate-boot.ps1. LiveArea revision 101 uses tools/make_vcmi_livearea.py (Python, Pillow and numpy), called by packaging/generate-livearea.ps1 with --rev 101 and the bundled NotoSerif-Bold.ttf. The generator already writes indexed PNGs; do not recompress the supplied release artwork. Its preview.png is only a local mockup, not an installable asset. Noto font notices are preserved; LiveArea PNGs must remain indexed with at most 128 colors. Check RELEASING.md before redistributing.
+Regenerate LiveArea with packaging/generate-livearea.ps1, which calls tools/make_final_livearea.py with the bundled NotoSerif-Bold.ttf and the cache counter recorded in VERSION.json. Python/Pillow/numpy and the supplied helper generators are required. The wrapper also copies the 960x544 launch image byte-for-byte to vitaBoot.png; generate-boot.ps1 repeats only that copy. Release PNGs are supplied indexed and must not be recompressed. preview*.png are local mockups, not installable assets.
 
+VERSION.json is the public version source: CMake generates VitaVersion.h and the SFO title/version; the package script reads the same JSON. The Vita metadata parser requires CMake 3.19 or newer; 4.4.5 is the reference build tool. Public artifacts and diagnostic logs use 1.0.1, while content-rev is only the LiveArea cache counter.

@@ -13,8 +13,9 @@ proof.mkdir(parents=True,exist_ok=True)
 def sha(data):return hashlib.sha256(data).hexdigest()
 original_source=source.read_bytes();original_library=library.read_bytes()
 release_hash=sha(release.read_bytes())
-symbol='vcmi_lgpl_relink_probe_rc1'
-marker='VCMI_RC1_MODIFIED_PTHREAD_RELINK_PROBE'
+version=json.loads((root/'VERSION.json').read_text())['version'].replace('.','_').replace('-','_')
+symbol='vcmi_lgpl_relink_probe_'+version
+marker='VCMI_'+version+'_MODIFIED_PTHREAD_RELINK_PROBE'
 addition=('\n/* Temporary source/relink verification; LGPL-2.1 terms retained. */\n'
           f'const char * {symbol}(void) {{ return "{marker}"; }}\n').encode()
 result={}

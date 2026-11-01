@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: CC0-1.0
-# Wrapper for the CC0 LiveArea generator. Boot splash is generated separately.
 param([string]$Python = 'python')
 $ErrorActionPreference='Stop'
 $repoRoot=Split-Path $PSScriptRoot -Parent
-& $Python "$repoRoot/tools/make_vcmi_livearea.py" --font "$repoRoot/src/vcmi/Mods/vcmi/Content/Data/NotoSerif-Bold.ttf" --out $PSScriptRoot --rev 101
+$metadata=Get-Content -LiteralPath "$repoRoot/VERSION.json" -Raw | ConvertFrom-Json
+& $Python "$repoRoot/tools/make_final_livearea.py" --font "$repoRoot/src/vcmi/Mods/vcmi/Content/Data/NotoSerif-Bold.ttf" --out $PSScriptRoot --rev $metadata.livearea_content_rev
 if ($LASTEXITCODE) { throw 'LiveArea generator failed.' }
+& "$PSScriptRoot/generate-boot.ps1"

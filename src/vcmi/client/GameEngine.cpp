@@ -7,9 +7,11 @@
  * Full text of license available in license.txt file, in main folder
  *
  */
+// Vita update 2026-11-01; see MODIFICATIONS.md.
 #include "StdInc.h"
 #include "GameEngine.h"
 #ifdef VCMI_VITA
+#include "VitaVersion.h"
 #include "VitaRuntimeDiagnostics.h"
 #include "VitaRenderProfiling.h"
 #include "../lib/vita/VitaOpaqueCacheStats.h"
@@ -98,8 +100,8 @@ public:
 		if (!reportStart)
 		{
 			reportStart = frameStart;
-			log = std::fopen("ux0:data/vcmi-performance-rc1.log", "w");
-			if (log) std::fprintf(log, "VCMI 1.0.0-rc.1; target=30 FPS; times in ms; averages per frame\n");
+			log = std::fopen(VCMI_VITA_PERFORMANCE_LOG, "w");
+			if (log) std::fprintf(log, "VCMI " VCMI_VITA_VERSION "; target=30 FPS; times in ms; averages per frame\n");
 		}
 		currentPhase = VitaRuntime::FetchInput;
 	}
@@ -297,7 +299,7 @@ void GameEngine::fakeMouseMove()
 	{
 		std::thread([]()
 		{
-			FILE * log = std::fopen("ux0:data/vcmi-watchdog-rc1.log", "w");
+			FILE * log = std::fopen(VCMI_VITA_WATCHDOG_LOG, "w");
 			if (log) std::setvbuf(log, nullptr, _IONBF, 0);
 			Uint32 nextReport = 0;
 			unsigned dumpHold = 0;

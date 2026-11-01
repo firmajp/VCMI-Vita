@@ -377,7 +377,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--font', default='NotoSerif-Bold.ttf')
     ap.add_argument('--out', default='out')
-    ap.add_argument('--rev', default='101', help='content-rev; raise it when you change the art (LiveArea caches it)')
+    ap.add_argument('--rev', default='38', help='content-rev; raise it when you change the art (LiveArea caches it)')
     args = ap.parse_args()
     o = args.out
     bg = scene(840, 500, seed=11)
