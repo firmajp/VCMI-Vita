@@ -8,6 +8,10 @@
  *
  */
 #include "StdInc.h"
+#ifdef VCMI_VITA
+#include "../vita/VitaProtocolStats.h"
+#include <chrono>
+#endif
 #include "CBattleCallback.h"
 
 #include "CGameInterface.h"
@@ -104,5 +108,19 @@ void CBattleCallback::battleMakeSpellAction(const BattleID & battleID, const Bat
 
 int CBattleCallback::sendRequest(const CPackForServer & request)
 {
+#ifdef VCMI_VITA
+	const auto started = std::chrono::steady_clock::now();
+	VitaProtocolStats::requests.fetch_add(1);
+	VitaProtocolStats::requestType.store(typeid(request).name());
+	const bool waitRequested = waitTillRealize;
+	const int requestID = cl->sendRequest(request, getPlayerID().value(), waitRequested);
+	VitaProtocolStats::lastSent.store(requestID);
+	VitaProtocolStats::sent.fetch_add(1);
+	const auto elapsed = static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - started).count());
+	VitaProtocolStats::sendWork.add(elapsed);
+	(waitRequested ? VitaProtocolStats::sendWait : VitaProtocolStats::sendNoWait).add(elapsed);
+	return requestID;
+#else
 	return cl->sendRequest(request, getPlayerID().value(), waitTillRealize);
+#endif
 }

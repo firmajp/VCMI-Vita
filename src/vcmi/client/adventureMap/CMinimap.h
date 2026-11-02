@@ -21,6 +21,13 @@ class IImage;
 class CMinimapInstance : public CIntObject
 {
 	std::unique_ptr<Canvas> minimap;
+#ifdef VCMI_VITA
+	std::unique_ptr<Canvas> scaledMinimap;
+	Point scaledDimensions;
+	int scaledScale = 0;
+	bool scaledDirty = true;
+	bool scaleAllocationFailed = false;
+#endif
 	int level;
 
 	//get color of selected tile on minimap

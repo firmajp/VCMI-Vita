@@ -8,6 +8,13 @@
  *
  */
 #include "StdInc.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaBattleTraceStats.h"
+#endif
+#ifdef VCMI_VITA
+#include "../VitaRuntimeDiagnostics.h"
+#include <cstdio>
+#endif
 #include "BattleStacksController.h"
 
 #include "BattleActionsController.h"
@@ -400,6 +407,28 @@ void BattleStacksController::tickFrameBattleAnimations(uint32_t msPassed)
 
 void BattleStacksController::updateBattleAnimations(uint32_t msPassed)
 {
+#ifdef VCMI_VITA
+	static uint32_t lastDiagnostic = 0;
+	const uint32_t now = SDL_GetTicks();
+	const bool requested = VitaRuntime::battleSnapshotRequested.exchange(false, std::memory_order_acq_rel);
+	if(requested || (owner.hasAnimations() && now - lastDiagnostic >= 5000))
+	{
+		lastDiagnostic = now;
+		VitaBattleTraceStats::queueTicks.store(now);
+		VitaBattleTraceStats::queueBusy.store(owner.hasAnimations());
+		VitaBattleTraceStats::queueEntries.store(currentAnimations.size());
+		if(requested)
+		{
+			std::fprintf(stderr, "Vita battle queue: ticks=%u manual=%d busy=%d entries=%u dt=%u\n", now,
+				static_cast<int>(requested), static_cast<int>(owner.hasAnimations()), static_cast<unsigned>(currentAnimations.size()), msPassed);
+			for(auto * animation : currentAnimations)
+				if(animation)
+					std::fprintf(stderr, "Vita battle queue item: id=%u type=%s initialized=%d\n", animation->ID,
+						typeid(*animation).name(), static_cast<int>(animation->isInitialized()));
+			std::fflush(stderr);
+		}
+	}
+#endif
 	bool hadAnimations = !currentAnimations.empty();
 	initializeBattleAnimations();
 	tickFrameBattleAnimations(msPassed);

@@ -9,6 +9,9 @@
  */
 #include "StdInc.h"
 #include "MapAudioPlayer.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaMapWorkStats.h"
+#endif
 
 #include "../CPlayerInterface.h"
 #include "../GameEngine.h"
@@ -164,7 +167,16 @@ void MapAudioPlayer::updateAmbientSounds()
 
 	int3 pos = currentSelection->getSightCenter();
 	FowTilesType tiles;
+	{
+#ifdef VCMI_VITA
+		VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::Visibility);
+#endif
 	GAME->interface()->cb->getVisibleTilesInRange(tiles, pos, ENGINE->sound().ambientGetRange(), int3::DIST_CHEBYSHEV);
+	}
+	{
+#ifdef VCMI_VITA
+		VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::AmbientScan);
+#endif
 	for(int3 tile : tiles)
 	{
 		int dist = pos.dist(tile, int3::DIST_CHEBYSHEV);
@@ -172,7 +184,13 @@ void MapAudioPlayer::updateAmbientSounds()
 		for(auto & soundName : getAmbientSounds(tile))
 			updateSounds(soundName, dist);
 	}
+	}
+	{
+#ifdef VCMI_VITA
+		VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::AmbientChannels);
+#endif
 	ENGINE->sound().ambientUpdateChannels(currentSounds);
+	}
 }
 
 void MapAudioPlayer::updateMusic()
@@ -193,7 +211,12 @@ void MapAudioPlayer::updateMusic()
 
 void MapAudioPlayer::update()
 {
+	{
+#ifdef VCMI_VITA
+		VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::Music);
+#endif
 	updateMusic();
+	}
 
 	if(audioPlaying && playerMakingTurn && currentSelection)
 		updateAmbientSounds();

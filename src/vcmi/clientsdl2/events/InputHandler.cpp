@@ -516,11 +516,8 @@ void InputHandler::dispatchMainThread(const std::function<void()> & functor)
 	event.user.code = 0;
 	event.user.data1 = nullptr;
 	event.user.data2 = nullptr;
-	SDL_PushEvent(&event);
-
-	// NOTE: approach with dispatchedTasks container is a bit excessive
-	// used mostly to prevent false-positives leaks in analyzers
 	dispatchedTasks.push(std::move(heapFunctor));
+	SDL_PushEvent(&event);
 }
 
 void InputHandler::handleUserEvent(const SDL_UserEvent & current)

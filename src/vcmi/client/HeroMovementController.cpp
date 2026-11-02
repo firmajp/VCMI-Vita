@@ -9,6 +9,9 @@
  */
 #include "StdInc.h"
 #include "HeroMovementController.h"
+#ifdef VCMI_VITA
+#include "../lib/vita/VitaMapWorkStats.h"
+#endif
 
 #include "CPlayerInterface.h"
 #include "PlayerLocalState.h"
@@ -178,10 +181,25 @@ void HeroMovementController::onTryMoveHero(const CGHeroInstance * hero, const Tr
 		hero->convertToVisitablePos(details.start),
 		hero->convertToVisitablePos(details.end)
 	};
+	{
+#ifdef VCMI_VITA
+		VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::Tiles);
+#endif
 	adventureInt->onMapTilesChanged(changedTiles);
+	}
+	{
+#ifdef VCMI_VITA
+		VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::StartUI);
+#endif
 	adventureInt->onHeroMovementStarted(hero);
+	}
 
+	{
+#ifdef VCMI_VITA
+		VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::Path);
+#endif
 	updatePath(hero, details);
+	}
 
 	if(details.stopMovement())
 	{
@@ -192,10 +210,20 @@ void HeroMovementController::onTryMoveHero(const CGHeroInstance * hero, const Tr
 
 	// We are in network thread
 	// Block netpack processing until movement animation is over
+	{
+#ifdef VCMI_VITA
+		VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::AnimationWait);
+#endif
 	GAME->map().waitForOngoingAnimations();
+	}
 
 	//move finished
+	{
+#ifdef VCMI_VITA
+		VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::EndUI);
+#endif
 	adventureInt->onHeroChanged(hero);
+	}
 
 	// Hero attacked creature, set direction to face it.
 	if(directlyAttackingCreature)
@@ -232,6 +260,9 @@ void HeroMovementController::onQuestionAnswerApplied()
 
 void HeroMovementController::onMoveHeroApplied()
 {
+#ifdef VCMI_VITA
+	VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::ContinueMove);
+#endif
 	// at this point, server have finished processing of hero movement request
 	// as well as all side effectes from movement, such as object visit or combat start
 

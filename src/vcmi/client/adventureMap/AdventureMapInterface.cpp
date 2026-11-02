@@ -8,6 +8,10 @@
  *
  */
 #include "StdInc.h"
+#ifdef VCMI_VITA
+#include <chrono>
+#include <cstdio>
+#endif
 #include "AdventureMapInterface.h"
 
 #include "AdventureOptions.h"
@@ -112,12 +116,29 @@ void AdventureMapInterface::onHeroMovementStarted(const CGHeroInstance * hero)
 
 void AdventureMapInterface::onHeroChanged(const CGHeroInstance *h)
 {
+#ifdef VCMI_VITA
+	const auto started = std::chrono::steady_clock::now();
+#endif
 	widget->getHeroList()->updateElement(h);
+#ifdef VCMI_VITA
+	const auto listDone = std::chrono::steady_clock::now();
+#endif
 
 	if (h && h == GAME->interface()->localState->getCurrentHero() && !widget->getInfoBar()->showingComponents())
 		widget->getInfoBar()->showSelection();
 
+#ifdef VCMI_VITA
+	const auto infoDone = std::chrono::steady_clock::now();
+#endif
 	widget->updateActiveState();
+#ifdef VCMI_VITA
+	const auto ended = std::chrono::steady_clock::now();
+	if(ended - started >= std::chrono::milliseconds(20))
+		std::fprintf(stderr, "Vita hero UI refresh: list_wall_ms=%.3f info_wall_ms=%.3f buttons_wall_ms=%.3f\n",
+			std::chrono::duration<double, std::milli>(listDone - started).count(),
+			std::chrono::duration<double, std::milli>(infoDone - listDone).count(),
+			std::chrono::duration<double, std::milli>(ended - infoDone).count());
+#endif
 }
 
 void AdventureMapInterface::onTownChanged(const CGTownInstance * town)

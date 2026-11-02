@@ -10,6 +10,9 @@
 
 #include "StdInc.h"
 #include "MapRenderer.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaMapUiStats.h"
+#endif
 
 #include "IMapRendererContext.h"
 #include "mapHandler.h"
@@ -48,11 +51,12 @@ struct NeighborTilesInfo
 	//012
 	std::bitset<8> d;
 
-	NeighborTilesInfo(IMapRendererContext & context, const int3 & pos)
+	template<typename Visibility>
+	NeighborTilesInfo(Visibility isVisible, const int3 & pos)
 	{
 		auto checkTile = [&](int dx, int dy)
 		{
-			return context.isVisible(pos + int3(dx, dy, 0));
+			return isVisible(pos + int3(dx, dy, 0));
 		};
 
 		// sides
@@ -559,6 +563,20 @@ void MapRendererObjects::renderImage(IMapRendererContext & context, Canvas & tar
 	if(!image)
 		return;
 
+	const Point offsetPixels = context.objectImageOffset(object->id, coordinates);
+	const Point imageSize = image->dimensions();
+#ifdef VCMI_VITA
+	++VitaMapUiStats::objectPartsChecked;
+#endif
+	if(offsetPixels.x >= imageSize.x || offsetPixels.y >= imageSize.y
+		|| offsetPixels.x <= -32 || offsetPixels.y <= -32)
+	{
+#ifdef VCMI_VITA
+		++VitaMapUiStats::objectPartsOutside;
+#endif
+		return;
+	}
+
 	auto transparency = static_cast<uint8_t>(std::round(255 * context.objectTransparency(object->id, coordinates) * transparencyFactor));
 
 	if (transparency == 0)
@@ -574,13 +592,8 @@ void MapRendererObjects::renderImage(IMapRendererContext & context, Canvas & tar
 			image->setOverlayColor(graphics->neutralColor);
 	}
 
-	Point offsetPixels = context.objectImageOffset(object->id, coordinates);
-
-	if ( offsetPixels.x < image->dimensions().x && offsetPixels.y < image->dimensions().y)
-	{
-		Point imagePos = image->dimensions() - offsetPixels - Point(32, 32);
-		target.draw(image, Point(0, 0), Rect(imagePos, Point(32,32)));
-	}
+	const Point imagePos = imageSize - offsetPixels - Point(32, 32);
+	target.draw(image, Point(0, 0), Rect(imagePos, Point(32,32)));
 }
 
 void MapRendererObjects::renderShadow(IMapRendererContext & context, Canvas & target, const int3 & coordinates, const CGObjectInstance * object)
@@ -656,15 +669,18 @@ void MapRendererObjects::renderTile(IMapRendererContext & context, Canvas & targ
 
 void MapRendererObjects::prepareFrame()
 {
-	checksumInfoCache.clear();
-	renderImageCache.clear();
+	// Retain nodes used last pass, but recompute their values before using them this pass.
+	std::erase_if(checksumInfoCache, [this](const auto & entry) { return entry.second.pass != cachePass; });
+	// Tile caching can leave an animated object undrawn for several passes.
+	std::erase_if(renderImageCache, [this](const auto & entry) { return cachePass - entry.second.pass >= imageCacheRetentionPasses; });
+	++cachePass;
 }
 
 const MapRendererObjects::ObjectImages & MapRendererObjects::getObjectImages(IMapRendererContext & context, const CGObjectInstance * object)
 {
 	auto it = renderImageCache.find(object->id.getNum());
-	if(it != renderImageCache.end())
-		return it->second;
+	if(it != renderImageCache.end() && it->second.pass == cachePass)
+		return it->second.value;
 
 	// Which image each layer resolves to is fixed for the whole pass: the animation clock
 	// does not advance inside one, and no object can change while it runs under the lock.
@@ -680,18 +696,30 @@ const MapRendererObjects::ObjectImages & MapRendererObjects::getObjectImages(IMa
         if(objectImages[layer] == objectImages[LAYER_BODY])
             objectImages[layer] = nullptr;
 
-	return renderImageCache.emplace(object->id.getNum(), std::move(objectImages)).first->second;
+	if(it != renderImageCache.end())
+	{
+		it->second = {cachePass, std::move(objectImages)};
+#ifdef VCMI_VITA
+		VitaMapUiStats::objectImageReuses.fetch_add(1, std::memory_order_relaxed);
+#endif
+		return it->second.value;
+	}
+#ifdef VCMI_VITA
+	VitaMapUiStats::objectImageAllocations.fetch_add(1, std::memory_order_relaxed);
+#endif
+	return renderImageCache.emplace(object->id.getNum(), FrameCacheEntry<ObjectImages>{cachePass, std::move(objectImages)}).first->second.value;
 }
 
-const MapRendererObjects::ObjectChecksumInfo & MapRendererObjects::getChecksumInfo(IMapRendererContext & context, const CGObjectInstance * object, size_t groupIndex)
+const MapRendererObjects::ObjectChecksumInfo & MapRendererObjects::getChecksumInfo(IMapRendererContext & context, const CGObjectInstance * object)
 {
-	const uint64_t key = (static_cast<uint64_t>(object->id.getNum()) << 32) | groupIndex;
+	const int32_t key = object->id.getNum();
 
 	auto it = checksumInfoCache.find(key);
-	if(it != checksumInfoCache.end())
-		return it->second;
+	if(it != checksumInfoCache.end() && it->second.pass == cachePass)
+		return it->second.value;
 
 	ObjectChecksumInfo info;
+	const size_t groupIndex = context.objectGroupIndex(object->id);
 
 	// The image index depends on the animation clock, which does not advance during a
 	// single pass, so the image - and therefore its size - is fixed for the whole pass.
@@ -717,7 +745,20 @@ const MapRendererObjects::ObjectChecksumInfo & MapRendererObjects::getChecksumIn
 		}
 	}
 
-	return checksumInfoCache.emplace(key, info).first->second;
+	if(info.baseAnimated || info.flagAnimated)
+		info.animationIndex = context.objectImageIndex(object->id, 250);
+	if(it != checksumInfoCache.end())
+	{
+		it->second = {cachePass, info};
+#ifdef VCMI_VITA
+		VitaMapUiStats::objectChecksumReuses.fetch_add(1, std::memory_order_relaxed);
+#endif
+		return it->second.value;
+	}
+#ifdef VCMI_VITA
+	VitaMapUiStats::objectChecksumAllocations.fetch_add(1, std::memory_order_relaxed);
+#endif
+	return checksumInfoCache.emplace(key, FrameCacheEntry<ObjectChecksumInfo>{cachePass, info}).first->second.value;
 }
 
 uint8_t MapRendererObjects::checksum(IMapRendererContext & context, const int3 & coordinates)
@@ -737,16 +778,17 @@ uint8_t MapRendererObjects::checksum(IMapRendererContext & context, const int3 &
 			continue;
 		}
 
-		const size_t groupIndex = context.objectGroupIndex(objectInstance->id);
-		const Point offsetPixels = context.objectImageOffset(objectInstance->id, coordinates);
-		const auto & info = getChecksumInfo(context, objectInstance, groupIndex);
+		const auto & info = getChecksumInfo(context, objectInstance);
+		if(!info.baseAnimated && !info.flagAnimated)
+			continue;
 
+		const Point offsetPixels = context.objectImageOffset(objectInstance->id, coordinates);
 		const bool baseVisible = info.baseAnimated && offsetPixels.x < info.baseDimensions.x && offsetPixels.y < info.baseDimensions.y;
 		const bool flagVisible = info.flagAnimated && offsetPixels.x < info.flagDimensions.x && offsetPixels.y < info.flagDimensions.y;
 
 		// odd multiplier, so a frame advancing by one always changes the result
 		if(baseVisible || flagVisible)
-			result = result * 31 + context.objectImageIndex(objectID, 250);
+			result = result * 31 + info.animationIndex;
 	}
 	return result;
 }
@@ -942,8 +984,20 @@ uint8_t MapRendererPath::checksum(IMapRendererContext & context, const int3 & co
 	return selectImage(context, coordinates) & 0xff;
 }
 
+bool MapRenderer::tileVisible(IMapRendererContext & context, const int3 & coordinates)
+{
+#ifdef VCMI_VITA
+	if(VitaVisibilityCache::enabled)
+		return visibilityCache.get(&context, coordinates.x, coordinates.y, coordinates.z, [&]() { return context.isVisible(coordinates); });
+#endif
+	return context.isVisible(coordinates);
+}
+
 void MapRenderer::prepareFrame(IMapRendererContext & context)
 {
+#ifdef VCMI_VITA
+	visibilityCache.begin(&context);
+#endif
 	rendererPath.prepareFrame(context);
 	rendererObjects.prepareFrame();
 }
@@ -961,13 +1015,13 @@ MapRenderer::TileChecksum MapRenderer::getTileChecksum(IMapRendererContext & con
 		return result;
 	}
 
-	const bool visible = context.isVisible(coordinates);
+	const bool visible = tileVisible(context, coordinates);
 
 	// Neighbour visibility costs eight queries and is only consulted for hidden tiles, so it is
 	// skipped for the common case of a visible one - which the old code built and discarded.
 	std::optional<NeighborTilesInfo> neighborInfo;
 	if(!visible)
-		neighborInfo.emplace(context, coordinates);
+		neighborInfo.emplace([&](const int3 & position) { return tileVisible(context, position); }, coordinates);
 
 	if(!visible && neighborInfo->areAllHidden())
 	{
@@ -998,11 +1052,11 @@ void MapRenderer::renderTile(IMapRendererContext & context, Canvas & target, con
 		return;
 	}
 
-	const bool visible = context.isVisible(coordinates);
+	const bool visible = tileVisible(context, coordinates);
 
 	std::optional<NeighborTilesInfo> neighborInfo;
 	if(!visible)
-		neighborInfo.emplace(context, coordinates);
+		neighborInfo.emplace([&](const int3 & position) { return tileVisible(context, position); }, coordinates);
 
 	if(!visible && neighborInfo->areAllHidden())
 	{

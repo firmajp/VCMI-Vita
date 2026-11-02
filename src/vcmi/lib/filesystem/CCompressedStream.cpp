@@ -11,15 +11,17 @@
 #include "CCompressedStream.h"
 
 #include <zlib.h>
+#include <array>
 
 DecompressionException::~DecompressionException() = default;
 
 static const int inflateBlockSize = 10000;
 
-CBufferedStream::CBufferedStream():
+CBufferedStream::CBufferedStream(size_t capacityHint):
     position(0),
     endOfFileReached(false)
 {
+	buffer.reserve(capacityHint);
 }
 
 si64 CBufferedStream::read(ui8 * data, si64 size)
@@ -31,7 +33,7 @@ si64 CBufferedStream::read(ui8 * data, si64 size)
 
 	std::copy(start, start + toRead, data);
 	position += toRead;
-	return size;
+	return toRead;
 }
 
 si64 CBufferedStream::seek(si64 position)
@@ -67,9 +69,27 @@ void CBufferedStream::ensureSize(si64 size)
 	{
 		si64 initialSize = buffer.size();
 		si64 need = size - buffer.size();
+		if(initialSize != 0 && buffer.size() == buffer.capacity())
+		{
+			// Probe EOF before allocating another full buffer.
+			std::array<ui8, 512> probe;
+			const si64 readSize = readMore(probe.data(), probe.size());
+			if(readSize > static_cast<si64>(probe.size()))
+				throw std::runtime_error("Buffered stream returned more bytes than requested");
+			if(readSize > 0)
+				buffer.insert(buffer.end(), probe.begin(), probe.begin() + readSize);
+			if(readSize < static_cast<si64>(probe.size()))
+			{
+				endOfFileReached = true;
+				return;
+			}
+			continue;
+		}
         // grow geometrically, but never by less than 512 bytes.
         // 512 covers 70% of h3m headers in a single step, their average size being ~550 bytes
 		si64 currentStep = std::clamp<si64>(need, si64{512}, std::max<si64>(initialSize, si64{512}));
+		if(buffer.capacity() > buffer.size())
+			currentStep = std::min<si64>(currentStep, buffer.capacity() - buffer.size());
 
 		buffer.resize(initialSize + currentStep);
 
@@ -117,6 +137,7 @@ void CBufferedStream::reset()
 }
 
 CCompressedStream::CCompressedStream(std::unique_ptr<CInputStream> stream, bool gzip, size_t decompressedSize):
+	CBufferedStream(decompressedSize),
 	gzipStream(std::move(stream)),
 	compressedBuffer(inflateBlockSize)
 {

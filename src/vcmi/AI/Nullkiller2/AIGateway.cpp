@@ -8,6 +8,9 @@
  *
  */
 #include "StdInc.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaAiTurnStats.h"
+#endif
 
 #include "../../lib/battle/CombatValue.h"
 #include "../../lib/CCreatureHandler.h"
@@ -875,6 +878,9 @@ void AIGateway::makeTurn()
 		memorizeVisitableObjs(nullkiller->memory, nullkiller->dangerHitMap, playerID, cc);
 		memorizeRevisitableObjs(nullkiller->memory, playerID, cc);
 
+#ifdef VCMI_VITA
+		VitaAiTurnStats::Turn vitaAiTurn;
+#endif
 		const auto start = std::chrono::high_resolution_clock::now();
 		nullkiller->makeTurn();
 		saveOneWayPortalState();
@@ -882,6 +888,7 @@ void AIGateway::makeTurn()
 #ifdef VCMI_VITA
 		std::fprintf(stderr, "Vita AI turn: player=%d day=%d elapsed_ms=%llu heroes=%u\n",
 			playerID.getNum(), day, static_cast<unsigned long long>(timeElapsedMs), static_cast<unsigned>(cc->getHeroesInfo().size()));
+		vitaAiTurn.report(playerID.getNum(), day);
 #endif
 		if(timeElapsedMs > 5000)
 			logAi->warn("PERFORMANCE: NK2 makeTurn took %ld ms", timeElapsedMs);
@@ -1125,6 +1132,9 @@ void AIGateway::battleEnd(const BattleID & battleID, const BattleResult * br, Qu
 
 void AIGateway::waitTillFree()
 {
+#ifdef VCMI_VITA
+	VitaAiTurnStats::Scope vitaAiScope(VitaAiTurnStats::Phase::WaitFree);
+#endif
 	auto unlock = vstd::makeUnlockSharedGuard(CGameState::mutex);
 	status.waitTillFree();
 }
@@ -1149,6 +1159,9 @@ bool AIGateway::canSwapGarrisonHero(const CGTownInstance * town) const
 
 HeroMovementResult AIGateway::moveHeroToTile(const int3 dst, const HeroPtr & heroPtr)
 {
+#ifdef VCMI_VITA
+	VitaAiTurnStats::Scope vitaAiScope(VitaAiTurnStats::Phase::Move);
+#endif
 	// a reply sent earlier, e.g. to a level-up, may open another question on the server,
 	// which would reject the movement
 	waitTillFree();
@@ -1707,7 +1720,17 @@ void AIStatus::waitTillFree()
 	std::unique_lock<std::mutex> lock(mx);
 	while(battle != NO_BATTLE || !remainingQuestions.empty() || !objectsBeingVisited.empty() || ongoingHeroMovement)
 	{
+#ifdef VCMI_VITA
+		const auto waitStarted = std::chrono::steady_clock::now();
+		const auto waitReason = battle != NO_BATTLE ? VitaAiTurnStats::Phase::WaitBattle
+			: !remainingQuestions.empty() ? VitaAiTurnStats::Phase::WaitQuestion
+			: ongoingHeroMovement ? VitaAiTurnStats::Phase::WaitMovement : VitaAiTurnStats::Phase::WaitVisit;
+#endif
 		cv.wait_for(lock, std::chrono::milliseconds(10));
+#ifdef VCMI_VITA
+		if(VitaAiTurnStats::current)
+			VitaAiTurnStats::current->add(waitReason, static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - waitStarted).count()));
+#endif
 		aiGw->nullkiller->makingTurnInterruption.interruptionPoint();
 	}
 }

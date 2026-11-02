@@ -12,6 +12,7 @@ def sha(data):return hashlib.sha256(data).hexdigest()
 def files():
     return sorted(p for p in root.rglob('*') if p.is_file() and p!=manifest
                   and p.relative_to(root).parts[0] != 'build'
+                  and not (p.relative_to(root).parts[0] == 'dist' and (p.name.endswith('.vpk') or p.name.endswith('.vpk.sha256')))
                   and not any(part in {'.git','__pycache__','.cache'} for part in p.relative_to(root).parts))
 if args.mode=='generate':
     manifest.write_text(''.join(sha(p.read_bytes())+'  '+p.relative_to(root).as_posix()+'\n' for p in files()),encoding='utf-8',newline='\n')

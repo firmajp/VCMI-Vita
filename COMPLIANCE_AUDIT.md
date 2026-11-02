@@ -1,11 +1,11 @@
-# 1.0.1 distribution review
+# 1.1.0 distribution review
 
-This update starts from official release 1.0.0, tag v1.0.0, commit 0b66197149246ce61fc94f484d5ff0640988c2d9. The GitHub asset SHA256 matches the user-tested local artifact. Baseline evidence is retained separately under docs/compliance/baseline-1.0.0; it is not a substitute for current executable and source checks.
+Version 1.1.0 is the first public release. Historical development/test baselines retain their original source revisions, hashes and evidence; those records are not claims that earlier builds were this release.
 
-The combined work uses GPL-3.0-or-later under VCMI's GPL-2.0-or-later option, with original per-file/component licences preserved. pthread-embedded follows its original LGPL 2.1 COPYING via section 6(a) source/relinking material; the retained GPL alternative is not the selected library licence. FFmpeg remains the minimal LGPL build with GPL/nonfree/version3 options disabled. Current source, configuration and ABI adaptations are supplied. New artwork/generators carry their declared CC0 terms to the extent rights exist; Noto font software remains under SIL OFL.
+The combined work uses GPL-3.0-or-later under VCMI's GPL-2.0-or-later option. Original component notices are preserved. pthread-embedded follows LGPL 2.1 section 6(a) source/relinking material, not the retained GPL alternative. FFmpeg retains its minimal LGPL configuration with GPL/nonfree/version3 disabled. Source, configuration and ABI adaptations are supplied.
 
-No original game data or proprietary Sony runtime module is supplied. Local source/SDK prefix mapping, binary privacy, resource equality, indexed PNG/XML, licence/source notices, modified-library relink, hash-verified license-scan coverage and Git/checksum/archive integrity are checked in the current evidence files. Read their actual outcomes and limitations; do not infer execution of a pending test.
+Current reports identify the accepted executable, VPK metadata refresh, dependency hashes, changed-source scan scope and content/layout checks. The engine build was incremental; no new clean rebuild or modified-library relink execution is claimed. Prior version-specific relink and full-scan evidence is retained separately. The console test is a user report, not an independent laboratory test.
 
-Public /home/runner autobuild paths inherited from VitaSDK/newlib may remain. These are distinct from private user/project paths; current binary evidence records them. The artwork launch/splash/loading equality is checked by bytes, while the new executable and visual transition still need console testing.
+No original game data or proprietary Sony runtime module is included. Public `/home/runner` VitaSDK/newlib paths, if detected, are recorded separately from private user paths. Runtime artwork is retained unchanged from the accepted package.
 
-ScanCode is an external tool run internally, not an independent legal or authorship review. Licence detections require interpretation and cannot exclude all unattributed similarities or certify every legal outcome.
+These are internal technical checks, not independent legal, authorship or security certification. Licence scans identify notices and potential matches and require review; they cannot certify the absence of all unattributed code or determine every legal outcome.

@@ -43,6 +43,7 @@
 #include <SDL.h>
 #ifdef VCMI_VITA
 #include <psp2/touch.h>
+#include <psp2/kernel/clib.h>
 #include "lib/vita/VitaBootScreen.h"
 #endif
 
@@ -526,6 +527,7 @@ void ScreenHandler::initializeScreenBuffers()
 
 #ifdef VCMI_VITA
 	std::fprintf(stderr, "Vita video: texture ready; before first clear/present\n");
+
 #endif
 	clearScreen();
 #ifdef VCMI_VITA
@@ -771,8 +773,29 @@ void ScreenHandler::updateScreenTexture()
 {
 	if(colorScheme == ColorScheme::NONE)
 	{
+#ifdef VCMI_VITA
+		void * pixels = nullptr;
+		int pitch = 0;
+		if(SDL_LockTexture(screenTexture, nullptr, &pixels, &pitch) != 0)
+			throw std::runtime_error(SDL_GetError());
+		const int rowBytes = screen->w * screen->format->BytesPerPixel;
+		if(pitch < rowBytes)
+		{
+			SDL_UnlockTexture(screenTexture);
+			throw std::runtime_error("Vita screen texture pitch is smaller than the source row");
+		}
+		// Use the system copy routine already used by Vita surface blits.
+		if(pitch == rowBytes && screen->pitch == rowBytes)
+			sceClibMemcpy(pixels, screen->pixels, static_cast<size_t>(rowBytes) * screen->h);
+		else
+			for(int y = 0; y < screen->h; ++y)
+				sceClibMemcpy(static_cast<uint8_t *>(pixels) + static_cast<size_t>(y) * pitch,
+					static_cast<const uint8_t *>(screen->pixels) + static_cast<size_t>(y) * screen->pitch, rowBytes);
+		SDL_UnlockTexture(screenTexture);
+#else
 		if (SDL_UpdateTexture(screenTexture, nullptr, screen->pixels, screen->pitch) != 0)
 			throw std::runtime_error(SDL_GetError());
+#endif
 		return;
 	}
 

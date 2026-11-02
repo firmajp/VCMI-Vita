@@ -43,6 +43,8 @@ class AdventureMapWidget : public InterfaceObjectConfigurable
 	std::string defaultLayerOtherImage;
 	/// Whether the "other" map layer button uses small rendering
 	bool defaultLayerOtherGenerateSmall = false;
+	std::optional<std::pair<int, int>> mapLayerButtonSource;
+	std::optional<std::pair<int, std::string>> mapLayerHelpSource;
 
 	Rect readTargetArea(const JsonNode & source);
 	Rect readSourceArea(const JsonNode & source, const JsonNode & sourceCommon);

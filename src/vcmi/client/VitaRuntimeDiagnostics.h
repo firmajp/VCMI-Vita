@@ -20,6 +20,7 @@ inline std::atomic<uint32_t> phase{Idle};
 inline std::atomic<uint32_t> lastProgress{0};
 inline std::atomic<uint32_t> frames{0};
 inline std::atomic<bool> enabled{false};
+inline std::atomic<bool> battleSnapshotRequested{false};
 inline void mark(Phase value)
 {
 	phase.store(value, std::memory_order_relaxed);

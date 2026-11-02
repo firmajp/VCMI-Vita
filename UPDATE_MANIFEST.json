@@ -1,0 +1,654 @@
+{
+  "version": "1.1.0",
+  "baseline_commit": "3bec1a58b8061e17c380fe666ff734d9c22093e2",
+  "files": [
+    {
+      "path": ".gitignore",
+      "action": "replace",
+      "baseline_git_blob": "09af2c16de9a6d8207f62c5c997fd109606da44d",
+      "sha256": "5090079ed274a57791fc703afe381199ec672ea3fa8cd2eee3dcccfd79a7f90a"
+    },
+    {
+      "path": "AUDIT_RESULTS.json",
+      "action": "replace",
+      "baseline_git_blob": "5a7f43a5905c688fd2f8c5402471c6c568768839",
+      "sha256": "774aa6dcd0b5d21ebbdb8fbf466adbc808969be77eebb32463d48b464df824b1"
+    },
+    {
+      "path": "BINARY_BUILD_PROVENANCE.json",
+      "action": "replace",
+      "baseline_git_blob": "ae5d66f53a2d4f5a2eb7165bd85a151f7a8adcf8",
+      "sha256": "d295bb0ca6f2a479bae805c58ec59448ce8d9aa4bb8bfb106daae91e7422b798"
+    },
+    {
+      "path": "BUILDING.md",
+      "action": "replace",
+      "baseline_git_blob": "a974b883c98e80f9406e69e6627d412f0c50355c",
+      "sha256": "ca06e040068b761c3eabcc9c7a99f27fd6fff5a4bf8cabf420918867a019c166"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "action": "replace",
+      "baseline_git_blob": "4cba534d3ed6cfb0d9cc7a8931edbf984c430179",
+      "sha256": "da4bc8b3d66ab10703ed17dfb37cb9d94d527f29bd5cfba4c86df5201a3683f6"
+    },
+    {
+      "path": "COMPLIANCE_AUDIT.md",
+      "action": "replace",
+      "baseline_git_blob": "0141041890207926a1687a4605fa262109adf063",
+      "sha256": "756d5d132d86c9b71785b3725056246ca728b69b08290613751bfbd758d10237"
+    },
+    {
+      "path": "MODIFICATIONS.md",
+      "action": "replace",
+      "baseline_git_blob": "fc64b168d90076beab597d20db181c9c36d1150b",
+      "sha256": "2bfa1b8fa53900ce381c8d81dfa172ad0a7a9772987440a674c8cdb6b2fb00d6"
+    },
+    {
+      "path": "PORT_PROVENANCE.md",
+      "action": "replace",
+      "baseline_git_blob": "e33a793cfd457431a59545cec2b8501385b3b5ad",
+      "sha256": "403225c7a89b450e660ebb09e9587f1998db05664223e8a1c77c72235b67c650"
+    },
+    {
+      "path": "PTHREAD_LINKING.md",
+      "action": "replace",
+      "baseline_git_blob": "5c185e2a9a5a5e8ea57ca071df5ae561a7e4330e",
+      "sha256": "e1bd9f145f60a0d01d5d751c555cd90ed925b72beb41a2c9d03a6ebf89a9714c"
+    },
+    {
+      "path": "README.md",
+      "action": "replace",
+      "baseline_git_blob": "0b1f9767468c8d888f528c2c02bac7a90580c8c4",
+      "sha256": "d3d9981ccc52d86cdc35535f4ac0fd4301958417a3f67a578db9673421e116f6"
+    },
+    {
+      "path": "RELEASE_CHECKLIST.md",
+      "action": "replace",
+      "baseline_git_blob": "31ccf76d05f5180d7690c759aaa0cb3fee2e470e",
+      "sha256": "af7a5981690ba66a1229bd5bad9e834b44f99eb7d66a9e4f1121bb40f7e1a7db"
+    },
+    {
+      "path": "RELEASING.md",
+      "action": "replace",
+      "baseline_git_blob": "d3719af0a77230d46c1313cf9079b3dd08f515bd",
+      "sha256": "04d17fa06383ae10cb3fda88b0e7148f0f68b1d918030116b84114559d8dbf68"
+    },
+    {
+      "path": "SHA256SUMS",
+      "action": "replace",
+      "baseline_git_blob": "94720ba2aa762bae7fd16262d98744bb57db00e1",
+      "sha256": "b2153da9083354e5b3e3719d2db0ed35f1dcf2496863825d4b195dcdd7c74e68"
+    },
+    {
+      "path": "SOURCE_ACCESS.md",
+      "action": "replace",
+      "baseline_git_blob": "6b38e5e6f95f37aab1d4d635f3507af76d3bd90e",
+      "sha256": "e8f2582a2a329804e86bc7bfaba20e76b927592171dc83801e39142c8d0ce166"
+    },
+    {
+      "path": "SOURCE_MANIFEST.json",
+      "action": "replace",
+      "baseline_git_blob": "e8f7427f7b50c385cd3465b835f43ea6be802169",
+      "sha256": "1ffd53a029f4ac4e641554692f11f4aae9f31feb80e6c7fb4b6245381f17972f"
+    },
+    {
+      "path": "VERSION.json",
+      "action": "replace",
+      "baseline_git_blob": "d1926ffebb04d7e9728f0f56bd95d94462bfd543",
+      "sha256": "bb8b6fa899118c862bd3ab2835ac9283c1d6a7e502824d9b4dba51cf406525cc"
+    },
+    {
+      "path": "dist/README.md",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "58b27e8b09d10ceb14d07aaa1d798a8f2401f3e86f3894de5a6c9531241559cb"
+    },
+    {
+      "path": "docs/compliance/BINARY_CHECKS.json",
+      "action": "replace",
+      "baseline_git_blob": "d92950e691efa587d5a9fc7aa9b5b1b103096486",
+      "sha256": "4f3f20a02f069ffc70767b26974cf2a31c1f5ddec2099bcd248f48a3af3ed651"
+    },
+    {
+      "path": "docs/compliance/BUILD_VERIFICATION.json",
+      "action": "replace",
+      "baseline_git_blob": "3a24faead18b3b9d9c8118fed66fb690ce763704",
+      "sha256": "9f79d6c65bf6176f34d42d5df5c4cdb3ca32db4de47b879244aea6aa23d1138e"
+    },
+    {
+      "path": "docs/compliance/CHANGE_SCOPE.json",
+      "action": "replace",
+      "baseline_git_blob": "f10cb3322a0b675b9f83b9491dc8f2164d5303f8",
+      "sha256": "d2b3c33f5de21b7c9a2f6643dea5ddfd560bbabcc697316051af519f4a27c35b"
+    },
+    {
+      "path": "docs/compliance/DEVICE_TEST.json",
+      "action": "replace",
+      "baseline_git_blob": "a2054aae4f44a310631df77e8ee562f9af46ca09",
+      "sha256": "4c23c5132abf8032c08d0d39bd7b4779f71e0d73cb544fdbf39b1bf1765f3945"
+    },
+    {
+      "path": "docs/compliance/ENGINE_SOURCE_SHA256.json",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "ca47db996d1dee96755afba9519985a3469a47a69859e4ec1630059a57585621"
+    },
+    {
+      "path": "docs/compliance/GIT_INTEGRITY.json",
+      "action": "replace",
+      "baseline_git_blob": "09adbed4911032c8ad1a7648093be30734e0e416",
+      "sha256": "c50f566d83b7f952bb359797ee346818499d2012f1c02c0335edf8f70dd1ba01"
+    },
+    {
+      "path": "docs/compliance/SCANCODE_REVIEW.json",
+      "action": "replace",
+      "baseline_git_blob": "7a8b0314903059bbc035b4d185b1798506d66171",
+      "sha256": "817282890a989a1ac08e5750ba2d2663a04f7dd31e4ffcde4494e42d96210a2e"
+    },
+    {
+      "path": "docs/compliance/SOURCE_CONTENT_CHECKS.json",
+      "action": "replace",
+      "baseline_git_blob": "3f5af0f7b6bd42d65a770eb09e1241e276e9b640",
+      "sha256": "9d4d25424cbfea92869a7206bab7cce7806f48166a017c29cbc4cf32136ed14f"
+    },
+    {
+      "path": "docs/compliance/baseline-1.0.1/AUDIT_RESULTS.json",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "62f739a8a99b192d362fc4d1e4513fd02868de174333f305b3d604641a92a8b7"
+    },
+    {
+      "path": "docs/compliance/baseline-1.0.1/BINARY_BUILD_PROVENANCE.json",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "8b26e350a53f54acfcd82640446fde2b79d598eaa7256f23d6ca4042186a567d"
+    },
+    {
+      "path": "docs/compliance/baseline-1.0.1/BINARY_CHECKS.json",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "6cf10d8b0bc9f0088bf428aee02bc7ec50d62b0e3190152009ba2de4ea0cb9e2"
+    },
+    {
+      "path": "docs/compliance/baseline-1.0.1/BUILD_VERIFICATION.json",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "3e906d774e47c5a458960e8d2b7dc5f59b785c8980a1c3eda1a9d1449a0a7772"
+    },
+    {
+      "path": "docs/compliance/baseline-1.0.1/CHANGE_SCOPE.json",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "ec5a361dc75df866a802a36cadde60ee6cefa507b83eb148c924ac88112977c0"
+    },
+    {
+      "path": "docs/compliance/baseline-1.0.1/DEVICE_TEST.json",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "c90205ef92a5828ca6091ea40123073afc93c9cb5bc08dbfd36b523cb774e0df"
+    },
+    {
+      "path": "docs/compliance/baseline-1.0.1/GIT_INTEGRITY.json",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "dbcf5a456dbe1d3b704beff0bce24fe25950dc431357cbb1410ee433ea70de52"
+    },
+    {
+      "path": "docs/compliance/baseline-1.0.1/SCANCODE_REVIEW.json",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "0f31c3ae400119401065766c6d29cf3f1e06d3ce4d8d8c06eeabe651783aa11f"
+    },
+    {
+      "path": "docs/compliance/baseline-1.0.1/SOURCE_CONTENT_CHECKS.json",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "518a897d893f194c5a44ecef8ddfecef2e2f50f199a0fe7420eead7c219f25f5"
+    },
+    {
+      "path": "docs/compliance/scancode-delta-1.1.0.json.gz",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "8f8573fb91f9a04794bb32e948851a8749a099d566925613cb03611fd3c85d0c"
+    },
+    {
+      "path": "scripts/audit.py",
+      "action": "replace",
+      "baseline_git_blob": "832e6e7616f9fa737ac13160355c97b5b4bd6612",
+      "sha256": "bb2c908afb2a969c1c7bb276848f9efa8de24c1e8525061af342d3ba833449f7"
+    },
+    {
+      "path": "scripts/checksums.py",
+      "action": "replace",
+      "baseline_git_blob": "d13d6e10bfdc0ad3352510ac398f8b671494f7ce",
+      "sha256": "51a58ca94c8a70c0c261be3835313d6e5d65ed485a5449cfd439d6fafbb11117"
+    },
+    {
+      "path": "src/vcmi/AI/BattleAI/BattleAI.cpp",
+      "action": "replace",
+      "baseline_git_blob": "85011e911e3b98477801bcf39f552e263d76f473",
+      "sha256": "a7168c0be246a10159c1ee2857e7e75dc1821f2d28980d252111f831b8af01da"
+    },
+    {
+      "path": "src/vcmi/AI/BattleAI/BattleEvaluator.cpp",
+      "action": "replace",
+      "baseline_git_blob": "e4d9581370cb3ad3e5fa699a5490461858a9a57c",
+      "sha256": "173e6ce596e9a6949013de6379c33decd238a38980d1dcf907d792af17c778f4"
+    },
+    {
+      "path": "src/vcmi/AI/BattleAI/BattleExchangeVariant.cpp",
+      "action": "replace",
+      "baseline_git_blob": "63216efc8f2484b6b4de0e1d0476bd8471adcf3e",
+      "sha256": "8cf96887c0799516a6c09d5384a7fb053afdd31ee98d646b3389ad95daf14a36"
+    },
+    {
+      "path": "src/vcmi/AI/BattleAI/PotentialTargets.cpp",
+      "action": "replace",
+      "baseline_git_blob": "045f59467127f5b5a07f39a34b9884a4498e7850",
+      "sha256": "08b66ccb1404e1a98b31741e0c14f0e9d1c37338810845f2de127d9c7863d750"
+    },
+    {
+      "path": "src/vcmi/AI/Nullkiller2/AIGateway.cpp",
+      "action": "replace",
+      "baseline_git_blob": "0d5de5bc5e40619787e977eb0faae70a301d65d3",
+      "sha256": "62ec53b12984a8763950aaee377b615ad519deb6c43502624718bbdc5268c7ec"
+    },
+    {
+      "path": "src/vcmi/AI/Nullkiller2/Engine/Nullkiller.cpp",
+      "action": "replace",
+      "baseline_git_blob": "d9e3989038dd6b752ddaa1b4d09f835a23154fdb",
+      "sha256": "3d2738203084bb10c74b97c936877860529e7a37b747e1a0627069084ab43b73"
+    },
+    {
+      "path": "src/vcmi/client/CPlayerInterface.cpp",
+      "action": "replace",
+      "baseline_git_blob": "e36a958d99a6963e1558c4d1702763d13da6588d",
+      "sha256": "d65f6aeb716b8b0cc87aa6001cbc22dc7a1fa659a48dc43c9f6b15b4b0c5eb1e"
+    },
+    {
+      "path": "src/vcmi/client/CServerHandler.cpp",
+      "action": "replace",
+      "baseline_git_blob": "7bd50729cd98450b0f0669ab67f35f22d4264275",
+      "sha256": "af4998857cc8638a4a8aed3d6c03e19a092727191859f8a157e6ee558f34acaf"
+    },
+    {
+      "path": "src/vcmi/client/Client.cpp",
+      "action": "replace",
+      "baseline_git_blob": "f247a6aa166c0ff47ace65c431c9ad50f8fb0441",
+      "sha256": "ec2e294dfb6f5d145b786f113237b5fd47ae19eb5472a3c828948a34c7097628"
+    },
+    {
+      "path": "src/vcmi/client/GameEngine.cpp",
+      "action": "replace",
+      "baseline_git_blob": "d4dc990ae709235b610e18d7e1d3d0cc3667612d",
+      "sha256": "6f454b82eabdbcfe1f5941f6cbc4744e2c9e78f801b835972019885603ac3cd1"
+    },
+    {
+      "path": "src/vcmi/client/HeroMovementController.cpp",
+      "action": "replace",
+      "baseline_git_blob": "66e79342611dd23467bf616adb26e6fdb50cdeb1",
+      "sha256": "a7fcb3d387dbcfd55e1ad8dda7d01d251bebbd7d4811cf51eb02eeff997b776b"
+    },
+    {
+      "path": "src/vcmi/client/NetPacksClient.cpp",
+      "action": "replace",
+      "baseline_git_blob": "f0c0b08d470fa152954409a201f3e54528a4ba1a",
+      "sha256": "5ec84582051b044f1acbdb315893dcb46fd9c4f5585687f9aa823b7e84eaad92"
+    },
+    {
+      "path": "src/vcmi/client/VitaRuntimeDiagnostics.h",
+      "action": "replace",
+      "baseline_git_blob": "0e2547785a3d23bb1b1b197626c1ff1773ed9a55",
+      "sha256": "c0e103a8090cb4b99c54f766eaff840b0df3e6bfd7da1c7b712efba798db28b2"
+    },
+    {
+      "path": "src/vcmi/client/adventureMap/AdventureMapInterface.cpp",
+      "action": "replace",
+      "baseline_git_blob": "d363a9ab644660b90032a987436137966c3bb698",
+      "sha256": "b5340afeeea80f08c28acb05d0172376afef3f16e3bb85abaa0ad299961d078d"
+    },
+    {
+      "path": "src/vcmi/client/adventureMap/AdventureMapWidget.cpp",
+      "action": "replace",
+      "baseline_git_blob": "e4ea45888bd5874b20695ac1722aa8157652c7b8",
+      "sha256": "8b0b1222845617050b5bb7c78e8632deb99acb1524feef309d526d39b6a78b54"
+    },
+    {
+      "path": "src/vcmi/client/adventureMap/AdventureMapWidget.h",
+      "action": "replace",
+      "baseline_git_blob": "5406440c800478cefa80ae734c7530c130f54fd3",
+      "sha256": "9ea02833df816ff0f466ee3b13b0d9855303cfa0849e95f91114bbe0226bd0fe"
+    },
+    {
+      "path": "src/vcmi/client/adventureMap/CInfoBar.cpp",
+      "action": "replace",
+      "baseline_git_blob": "100af55fb1b0794ffa0a6da2919601354ff46c39",
+      "sha256": "b5046e59dc3647a62f9b45312ec2c365fc5eb9f5a02adf3b0887969180264ec2"
+    },
+    {
+      "path": "src/vcmi/client/adventureMap/CInfoBar.h",
+      "action": "replace",
+      "baseline_git_blob": "f866d790f98d1e75e272310866de4a3519dee3c0",
+      "sha256": "988d7297b122f8061e4b1da10e2ef473dfca497c3acdf80a1a2c67583b5e31b7"
+    },
+    {
+      "path": "src/vcmi/client/adventureMap/CList.cpp",
+      "action": "replace",
+      "baseline_git_blob": "66ddf9071bfc0b1966456e092aac78a5ffc8d413",
+      "sha256": "da1fde7a13090b6ed0a819b317129bfdd3aeedfff5b3386a9ff38cb320dd0030"
+    },
+    {
+      "path": "src/vcmi/client/adventureMap/CList.h",
+      "action": "replace",
+      "baseline_git_blob": "ebe81729a02a4a062a6b169a73eaba03cedde3fc",
+      "sha256": "6cf03698dfd1dcb8c22e82cfb57ca614c673b01953a46316bc4690f848f39e35"
+    },
+    {
+      "path": "src/vcmi/client/adventureMap/CMinimap.cpp",
+      "action": "replace",
+      "baseline_git_blob": "c90db9288e04cbf880884369bd0ec42f27044d9d",
+      "sha256": "a2b633891062ff634e6a79f8d0ca79e362ea6e69e112e1b241be44fc5b6d902d"
+    },
+    {
+      "path": "src/vcmi/client/adventureMap/CMinimap.h",
+      "action": "replace",
+      "baseline_git_blob": "8c1705677a8649e77c4a15fd13e9a667a766df05",
+      "sha256": "a97370e76ec6be501df14f62ffd923ba1ba9e4b96d959c1dc86cc12411f2211f"
+    },
+    {
+      "path": "src/vcmi/client/adventureMap/MapAudioPlayer.cpp",
+      "action": "replace",
+      "baseline_git_blob": "8a06f401699ff6e6b1560a5985a17b9e3b333561",
+      "sha256": "e5ae9661fef4b5beb6ece6f501128b83c558f6cfd8c4df1a2e2a02b5f008b8a5"
+    },
+    {
+      "path": "src/vcmi/client/battle/BattleAnimationClasses.cpp",
+      "action": "replace",
+      "baseline_git_blob": "906c003421feec15900086abfdb9deaf4bfe26d1",
+      "sha256": "26c56a68f0e126bfbd202af0eed751ff4f9b46c493196f3311edc99538b39a97"
+    },
+    {
+      "path": "src/vcmi/client/battle/BattleAnimationClasses.h",
+      "action": "replace",
+      "baseline_git_blob": "3c258823935ab6cd78c5f31618b8080f4a356da4",
+      "sha256": "d5f3bfa22157e7537c5529b2e0e435f4ead88aed6b6b893f71419fab239db63a"
+    },
+    {
+      "path": "src/vcmi/client/battle/BattleHero.cpp",
+      "action": "replace",
+      "baseline_git_blob": "ed668c170c8239efbd415d727659b9ba907a05f7",
+      "sha256": "f6b00f423cf9adfdab8acc49d972e3bbd4f78e636be717f52105cd3ad65a52e7"
+    },
+    {
+      "path": "src/vcmi/client/battle/BattleInterface.cpp",
+      "action": "replace",
+      "baseline_git_blob": "576be78321e02ab19fdf5c4c09eddb461c312379",
+      "sha256": "0d77d2d5c7e2d65dff6749e634b0274ab2d349949198b56bd6298a13ae612ad0"
+    },
+    {
+      "path": "src/vcmi/client/battle/BattleInterface.h",
+      "action": "replace",
+      "baseline_git_blob": "5225a5d3d8376f5bcb013c6d71a7e55a7eb0334f",
+      "sha256": "d046e4f2a09410e88bc2041ba6a62ec6d6f43cb7b20add4f3eff1ecb2c649779"
+    },
+    {
+      "path": "src/vcmi/client/battle/BattleProjectileController.cpp",
+      "action": "replace",
+      "baseline_git_blob": "727e074e82dec75f256a34f07b7cdd5464defb47",
+      "sha256": "ff261e1ead3a7c1be63d587058c5c04469abd9afec9897a4b1691bbd1aa5d4f5"
+    },
+    {
+      "path": "src/vcmi/client/battle/BattleProjectileController.h",
+      "action": "replace",
+      "baseline_git_blob": "6d26ea279235c5552513f93aed37074c2bd28149",
+      "sha256": "f437654e48dd06f9790f2b4c9d735d604bfbdbb62cd9369d03a5fdf54b3c38af"
+    },
+    {
+      "path": "src/vcmi/client/battle/BattleStacksController.cpp",
+      "action": "replace",
+      "baseline_git_blob": "094b385f5f6f51121fbee00f7b0621d49190ec1d",
+      "sha256": "e75f2b4a6536489fb372cbe7379be74124847d7620db4f9e73236bbbdfa230c8"
+    },
+    {
+      "path": "src/vcmi/client/gui/InterfaceObjectConfigurable.cpp",
+      "action": "replace",
+      "baseline_git_blob": "f9992ac2d97e024a4873c4d4ff918f389808bdbf",
+      "sha256": "24bf4ba5a074ba18928cd43dbe37311c53978f42af65dbf9c92080753326e474"
+    },
+    {
+      "path": "src/vcmi/client/mapView/MapRenderer.cpp",
+      "action": "replace",
+      "baseline_git_blob": "37ee3e3c5d2fe611a11a43c6b230f98cd675b307",
+      "sha256": "62748410666bee7aa6866a82faa8a49795ebd7cd97e9dd7b9fc99f4f1f9b711e"
+    },
+    {
+      "path": "src/vcmi/client/mapView/MapRenderer.h",
+      "action": "replace",
+      "baseline_git_blob": "5b54232dca9870e57f414a551c4b2197ac8de296",
+      "sha256": "de05bda78b34ffb85f5bcbbfa6b7ce9429e854aef313571d221a59f6b9639d9b"
+    },
+    {
+      "path": "src/vcmi/client/mapView/MapViewCache.cpp",
+      "action": "replace",
+      "baseline_git_blob": "cc52846b74671af9ed3dadfdf26fc97e7954d1b1",
+      "sha256": "55473944042b7af51f2591369ce1ac966622d6c8e24167264627a39e125dcb22"
+    },
+    {
+      "path": "src/vcmi/client/mapView/MapViewController.cpp",
+      "action": "replace",
+      "baseline_git_blob": "6f2746ac06b467a762c70b0f422410418927930f",
+      "sha256": "de92494e441e5d21d4d11006904f863828a0eea5a5810b328a926cb9cc4bfbda"
+    },
+    {
+      "path": "src/vcmi/client/windows/CCastleInterface.cpp",
+      "action": "replace",
+      "baseline_git_blob": "727d03f6a6db2a0d1b9964f1e81de262780e3028",
+      "sha256": "174498d7a276e141f00e3e0ffbe7241c04115d1b763ec0fbd9e8af29cfc1dd5c"
+    },
+    {
+      "path": "src/vcmi/clientapp/EntryPoint.cpp",
+      "action": "replace",
+      "baseline_git_blob": "4214d1a02d1e2056fad6db490d7f1da1fbe93749",
+      "sha256": "7a6a77491d2d9d17faf3ad378651d52be2a865835353d783163ae512cdaf4b49"
+    },
+    {
+      "path": "src/vcmi/clientsdl2/events/InputHandler.cpp",
+      "action": "replace",
+      "baseline_git_blob": "a340616c7934587c9dae78cdaa352630dd654d23",
+      "sha256": "100a46b763ad10bcd29272cb12aab48d98f8440d884d5f608dafb0ebaaf1f8d1"
+    },
+    {
+      "path": "src/vcmi/clientsdl2/media/CSoundHandler.cpp",
+      "action": "replace",
+      "baseline_git_blob": "c95665ea834fda898668237c0b0bb57a9c1fe011",
+      "sha256": "830f06ca5c1b67bff2ea07ba9f88ac07bdcf4885bb2a77f188257c8e240cf862"
+    },
+    {
+      "path": "src/vcmi/clientsdl2/media/CSoundHandler.h",
+      "action": "replace",
+      "baseline_git_blob": "8bb7ac870b76dd3ab1968723bede64f98036f2cf",
+      "sha256": "3e43546ef5c7ff01fe762c0e94f83797fc91cbfb3d1c60df0c3bac3f1cd29de6"
+    },
+    {
+      "path": "src/vcmi/clientsdl2/render/SDLImage.cpp",
+      "action": "replace",
+      "baseline_git_blob": "192835edda5c03742aafcf2bad2ef1670bbce83d",
+      "sha256": "8f68f41bea038fffd907d96d8e569b8924c0c80178a5543ddeeee87599fb8676"
+    },
+    {
+      "path": "src/vcmi/clientsdl2/render/ScreenHandler.cpp",
+      "action": "replace",
+      "baseline_git_blob": "3716b27a1b2c5f200299b9c85d1f8f37c4f1a4dd",
+      "sha256": "9ba87ac57eeca2d739eaa78bd9bfc437d78cd8c0bd5cf33c720edf3c269356f2"
+    },
+    {
+      "path": "src/vcmi/lib/callback/CBattleCallback.cpp",
+      "action": "replace",
+      "baseline_git_blob": "1b5860e04481cb224d8144a2a45fa0dda4c14a4d",
+      "sha256": "5b691b2d74dacede03389672b219df5300885d4dbe720a2aacc8025058fd4b44"
+    },
+    {
+      "path": "src/vcmi/lib/filesystem/CArchiveLoader.cpp",
+      "action": "replace",
+      "baseline_git_blob": "0c6ada5a91a17f72898f9f978c10b7f384c55971",
+      "sha256": "44542b562c8602169aed1a931d2ea8ecdda8aea992261ab851ca372f4112fe39"
+    },
+    {
+      "path": "src/vcmi/lib/filesystem/CArchiveLoader.h",
+      "action": "replace",
+      "baseline_git_blob": "b4b98d75ce7ad3dcf768a5394c3e4cb24e3c3790",
+      "sha256": "870eff2ed20d8db563fe461eaaa23008ae8979f456717f73139ca2ff5dd8c29f"
+    },
+    {
+      "path": "src/vcmi/lib/filesystem/CCompressedStream.cpp",
+      "action": "replace",
+      "baseline_git_blob": "67f41e547ffca26bd65613b16cc19ed18e12eb76",
+      "sha256": "4c85e684c2db2f1988f6d09afb14d5acfbd58930e07367f0b42d07e4b8f8868f"
+    },
+    {
+      "path": "src/vcmi/lib/filesystem/CCompressedStream.h",
+      "action": "replace",
+      "baseline_git_blob": "a6f58202bca3617fe8960618008d203e6dc6adaa",
+      "sha256": "e91c6a54d7a9cb7be307844b15f179be3f2c3a14e9f88274d5057e30286d632c"
+    },
+    {
+      "path": "src/vcmi/lib/serializer/CMemorySerializer.cpp",
+      "action": "replace",
+      "baseline_git_blob": "1384958c025e4ea35c26e7f7dacdc464f4dd6b30",
+      "sha256": "60db8f78773ab6e10dd2a0a1af9682b2f2033a36563dfe4602179d486df7b021"
+    },
+    {
+      "path": "src/vcmi/lib/serializer/GameConnection.cpp",
+      "action": "replace",
+      "baseline_git_blob": "5f116b939f7c769fe1fa687491180d25a7deca8a",
+      "sha256": "4ef37856690ebe310324c61296b1ef57fc84a16186a1504466e1c29bb10ea04f"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaAiTurnStats.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "94ff5b8265d849fcb9d80f77a6ee3e64095b1479e8132a37447bd9718846681d"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaAmbientStats.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "a4794a9241fa39eb9a2fcf599d441137b8fbeb33776ed88407febcac023fab77"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaAsyncLog.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "cf08c933cbe3e8e8f2d97b9fbdd716eae29da6cd72d663995279fce2b9b35c0d"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaBattleTraceStats.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "eb61c739d17216269ad5e40be5443441c74bc0d38a03fb50811077f0e52ec718"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaBinaryAlphaStats.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "90947f42815e5e813c1f0c2b8d1e7ef545b60e4025c85b5b3e0dd9d7053f924f"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaBufferedStreamTest.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "5e0b39482926c173595a8226ecffebbe308d44e2064f4133126c7ca0bf1f2a31"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaMapUiStats.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "1097ecf8ee0066106b08e77758831445d2212de1cc6fdeb49e7c1135602de70e"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaMapWorkStats.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "77f998a55ab2a766da3ac07c312ff21b203bc917fa94b50b0bad45446e97d88b"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaMonoWave.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "09f93cdf12a2eef096f3dddb333287faf0ddfc7a9908b01fc45386ba3d957d8d"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaNetworkStats.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "babea0a20cefd5fcd372317453ca265273858e4792f7d32849e9a6bca9d6b779"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaPacketTrace.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "2cc19e010d7a814673efd5e580af9cbcdfaa40279390636f034dacb329b03579"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaProtocolStats.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "bf50ea81b7bee46693fc862f522719aab2616033a8663261c820ac7789bbe404"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaSendStats.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "9fcd60abd89c869a099d3de9daf11529c1ee7cffadf89c38690a67ded75fed18"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaSoundDiskCache.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "1587bd544da6854e91390cd7147b18505cf9c7e2d20537fc9040638a34f50cee"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaSpellAiProbe.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "3f5409d70da6244eb2deb53540b00bc68024491312e81eec68005fc6db865aa7"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaTileImageStats.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "0f6aaf4b93f04964c1432802e88ca3757eb870dbb83023039e0f155ac215b9dc"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaTownCacheStats.h",
+      "action": "replace",
+      "baseline_git_blob": "b83d9b33d512c07ac9352112a0b83d6b64babfe2",
+      "sha256": "46a5db24cd5ba6b8a286df20e5d1f852d5bf07f85549579b476f6a23bf8429c2"
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaVisibilityCache.h",
+      "action": "add",
+      "baseline_git_blob": null,
+      "sha256": "e81835729b97bff98631bc60248005a962408446377738a79556358dc73eaec3"
+    },
+    {
+      "path": "dist/vcmi_vita_1.0.1.vpk",
+      "action": "delete",
+      "baseline_git_blob": "a027329ad03c6e10229d4ee1e041a7350be60c1c",
+      "sha256": null
+    },
+    {
+      "path": "dist/vcmi_vita_1.0.1.vpk.sha256",
+      "action": "delete",
+      "baseline_git_blob": "83d47b3069613e0cf759e7d58cda50e041dcf9b2",
+      "sha256": null
+    },
+    {
+      "path": "scripts/public_audit.py",
+      "action": "replace",
+      "baseline_git_blob": "80d7a7c93db91a319df1ccc9209fb8ccfccf2447",
+      "sha256": "e451cb6ddeac663f927e185722251073b582803a1c4d72406b82e504e3f4b1e4"
+    }
+  ]
+}

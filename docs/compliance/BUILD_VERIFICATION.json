@@ -1,8 +1,9 @@
 {
-  "version": "1.0.1",
-  "clean_engine_build_from_current_source": "passed",
-  "build_directory": "New 1.0.1 engine build; interrupted/resumed during compilation, completed outputs retained within this build",
-  "unchanged_dependency_archives_match_official_baseline": "passed",
+  "version": "1.1.0",
+  "engine_build": "passed incremental build",
+  "new_clean_build": "not performed",
+  "device_test": "passed_user_report",
+  "dependency_archives_match_historical_verified_build": true,
   "dependency_archive_sha256": {
     "pthread": "44d9ae198bccff822e9d755a1827b06e1bc59e2bc61545c83cbc97287e5b5c75",
     "SDL2": "ebc936488aecefee7d41e344c351acb54cd27f01bc42fcae63c32515e05e6931",
@@ -16,22 +17,11 @@
     "swscale": "1801d7b66607572a49552692d1875c68953b0488fb7349b7f03f7b30be1b2e66",
     "swresample": "a84df803e84a967569715494dfd0a4e7cab30904d7ac1fc8550e657336e6ff49"
   },
-  "modified_LGPL_source_rebuild_and_complete_application_relink": {
-    "status": "passed",
-    "method": "Append a probe function in a separate copy of LGPL pthread_mutex_lock.c, rebuild/install the modified library, relink the complete application to a separate ELF with -Wl,-u forcing this symbol, verify symbol and literal marker, restore the original library. Release source is never modified.",
-    "original_source_sha256": "30fced222d9068869281a27b11e99dc5863e659958c172531e09d3312a522149",
-    "modified_source_sha256": "744b82c0a41453e2500040b15c2e09e611f30b8f0c3f6f0dad76010747fd0bc4",
-    "original_library_sha256": "44d9ae198bccff822e9d755a1827b06e1bc59e2bc61545c83cbc97287e5b5c75",
-    "modified_library_sha256": "81b82b827a53878da5e8ff5ed19bbaeb8d4f9bf841431467283fd199ce687407",
-    "modified_application_sha256": "c47aecd10131a1b0b1476b1782310b94c5494e1f47c683e9d26e247ebeda6823",
-    "probe_symbol": "vcmi_lgpl_relink_probe_1_0_1",
-    "device_execution": "not performed",
-    "release_executable_sha256": "8dffaf9d2700191fe117506db5f01f94a945f3e8dc0caeb8973e9ac38836cf2c",
-    "original_source_and_library_restored": true,
-    "release_executable_unchanged": true
+  "modified_LGPL_relink_test": {
+    "status": "historical evidence retained; not repeated",
+    "report": "baseline-1.0.1/BUILD_VERIFICATION.json",
+    "same_library_hashes": true
   },
-  "release_library_and_application_restored": true,
-  "SDK_prerequisites": "Dedicated existing VitaSDK; source/recipes supplied. Compiler/bootstrap rebuild not claimed.",
-  "reproducible_bit_identical_independent_rebuild": "not claimed",
-  "exact_1.0.1_device_test": "pending"
+  "source_and_relink_instructions": "supplied",
+  "reproducible_bit_identical_independent_rebuild": "not claimed"
 }

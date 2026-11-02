@@ -22,6 +22,7 @@ class Point;
 class ColorFilter;
 class BattleHero;
 class CAnimation;
+struct ProjectileBase;
 class BattleInterface;
 class CreatureAnimation;
 struct StackAttackedInfo;
@@ -365,6 +366,7 @@ public:
 
 class HeroCastAnimation : public BattleAnimation
 {
+	std::shared_ptr<ProjectileBase> projectile;
 	std::shared_ptr<BattleHero> hero;
 	const CStack * target;
 	const CSpell * spell;
@@ -387,6 +389,7 @@ public:
 /// Drives the jagged ray chaining between chain-lightning targets; waits until the ray finishes flying
 class ChainLightningAnimation : public BattleAnimation
 {
+	std::shared_ptr<ProjectileBase> projectile;
 	const CStack * caster;
 	std::vector<Point> targetPoints;
 	const CSpell * spell;

@@ -11,6 +11,9 @@
 #include "StdInc.h"
 #include "VitaRenderProfiling.h"
 #include "MapViewCache.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaMapUiStats.h"
+#endif
 
 #include "IMapRendererContext.h"
 #include "MapRenderer.h"
@@ -156,6 +159,9 @@ static bool differsOnlyInTerrainAnimation(const std::array<uint8_t, 8> & before,
 
 void MapViewCache::updateTile(const std::shared_ptr<IMapRendererContext> & context, const int3 & coordinates)
 {
+#ifdef VCMI_VITA
+	++VitaMapUiStats::tileChecks;
+#endif
 	int cacheX = (terrainChecksum.shape()[0] + coordinates.x) % terrainChecksum.shape()[0];
 	int cacheY = (terrainChecksum.shape()[1] + coordinates.y) % terrainChecksum.shape()[1];
 
@@ -164,7 +170,22 @@ void MapViewCache::updateTile(const std::shared_ptr<IMapRendererContext> & conte
 
 	newCacheEntry.tileX = coordinates.x;
 	newCacheEntry.tileY = coordinates.y;
+#ifdef VCMI_VITA
+	auto & sampleState = VitaMapUiStats::tileSampleState;
+	sampleState ^= sampleState << 13;
+	sampleState ^= sampleState >> 17;
+	sampleState ^= sampleState << 5;
+	const bool sampleTile = (sampleState & 15) == 0;
+	const uint64_t checksumStarted = sampleTile ? SDL_GetPerformanceCounter() : 0;
+#endif
 	newCacheEntry.checksum = mapRenderer->getTileChecksum(*context, coordinates);
+#ifdef VCMI_VITA
+	if(sampleTile)
+	{
+		VitaMapUiStats::checksumTicks += SDL_GetPerformanceCounter() - checksumStarted;
+		++VitaMapUiStats::checksumSamples;
+	}
+#endif
 
 	if(cachedLevel == coordinates.z && oldCacheEntry == newCacheEntry && !context->tileAnimated(coordinates))
 		return;
@@ -180,11 +201,20 @@ void MapViewCache::updateTile(const std::shared_ptr<IMapRendererContext> & conte
 		++animatedTilesDirty;
 
 		if(animatedTilesRedrawn >= animatedTileRedrawBudget)
+		{
+#ifdef VCMI_VITA
+			++VitaMapUiStats::animationDeferrals;
+#endif
 			return;
+		}
 
 		++animatedTilesRedrawn;
 	}
 
+#ifdef VCMI_VITA
+	++VitaMapUiStats::tilePaints;
+	const uint64_t paintStarted = sampleTile ? SDL_GetPerformanceCounter() : 0;
+#endif
 	Canvas target = getTile(coordinates);
 
 	const uint32_t placeholdersBefore = ENGINE->renderHandler().getPlaceholderDrawCount();
@@ -201,6 +231,13 @@ void MapViewCache::updateTile(const std::shared_ptr<IMapRendererContext> & conte
 
 	if(context->filterGrayscale())
 		target.applyGrayscale();
+#ifdef VCMI_VITA
+	if(sampleTile)
+	{
+		VitaMapUiStats::paintTicks += SDL_GetPerformanceCounter() - paintStarted;
+		++VitaMapUiStats::paintSamples;
+	}
+#endif
 
 	// A tile drawn from a stretched stand-in is not final. Leaving its checksum empty keeps
 	// it out of the cache, so it is drawn again until the upscale it waits for has finished.
@@ -406,12 +443,29 @@ void MapViewCache::render(const std::shared_ptr<IMapRendererContext> & context, 
 				Rect targetRect = model->getTargetTileArea(tile);
 
 				if(model->getCacheTileSize() == model->getSingleTileSize())
-					target.draw(source, targetRect.topLeft());
+				{
+					int end = x + 1;
+					const int width = terrainChecksum.shape()[0];
+					// A run cannot cross the wrapped cache seam or an unchanged tile.
+					while(end < dimensions.right() && cacheX + end - x < width
+						&& !tilesUpToDate[cacheX + end - x][cacheY])
+						++end;
+					const Point runSize(targetRect.w * (end - x), targetRect.h);
+					Canvas run(*terrain, Rect(model->getCacheTileArea(tile).topLeft(), runSize));
+					target.draw(run, targetRect.topLeft());
+					for(int offset = 0; offset < end - x; ++offset)
+						tilesUpToDate[cacheX + offset][cacheY] = true;
+#ifdef VCMI_VITA
+					++VitaMapUiStats::composeRuns;
+					VitaMapUiStats::composeTiles += end - x;
+#endif
+					x = end - 1;
+				}
 				else
+				{
 					target.drawScaled(source, targetRect.topLeft(), targetRect.dimensions());
-
-				if (!fullRedraw)
 					tilesUpToDate[cacheX][cacheY] = true;
+				}
 			}
 		}
 	}

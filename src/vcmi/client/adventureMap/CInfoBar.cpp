@@ -9,6 +9,9 @@
  */
 
 #include "StdInc.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaMapUiStats.h"
+#endif
 #include "CInfoBar.h"
 
 #include "AdventureMapInterface.h"
@@ -533,6 +536,18 @@ void CInfoBar::showHeroSelection(const CGHeroInstance * hero)
 		return;
 	}
 
+	const HeroInfoInputs inputs{
+		hero->id, hero->tempOwner, ArmyDescriptor(hero, true), hero->getNameTextID(), hero->getHeroClass(),
+		hero->getPortraitSource(), hero->mana, hero->getTreeVersion(),
+		settings["gameTweaks"]["infoBarCreatureManagement"].Bool()};
+	if(state == EState::HERO && visibleInfo && visibleHeroInfoInputs == inputs)
+	{
+#ifdef VCMI_VITA
+		VitaMapUiStats::heroInfoHits.fetch_add(1, std::memory_order_relaxed);
+#endif
+		return;
+	}
+
 	// VisibleHeroInfo is built purely from the data gathered here, so when none of it changed the
 	// tree on screen is the one we would build - and hero movement raises one of these per step.
 	const HeroInfoSource source{
@@ -540,6 +555,10 @@ void CInfoBar::showHeroSelection(const CGHeroInstance * hero)
 		InfoAboutHero(hero, InfoAboutHero::EInfoLevel::DETAILED),
 		settings["gameTweaks"]["infoBarCreatureManagement"].Bool()
 	};
+	visibleHeroInfoInputs = inputs;
+#ifdef VCMI_VITA
+	VitaMapUiStats::heroInfoBuilds.fetch_add(1, std::memory_order_relaxed);
+#endif
 
 	// state is part of the condition because the infobar may have been showing something else
 	// entirely - a town, picked up resources - while the hero data stayed the same

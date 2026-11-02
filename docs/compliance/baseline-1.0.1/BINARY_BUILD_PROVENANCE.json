@@ -1,0 +1,29 @@
+{
+  "version": "1.0.1",
+  "app_ver": "01.01",
+  "title_id": "H3VC00001",
+  "baseline_release": "1.0.0",
+  "baseline_commit": "0b66197149246ce61fc94f484d5ff0640988c2d9",
+  "baseline_release_vpk_sha256": "f33e5106a42bda7260570a31104492b66010df4dbfe3d0f4f1f91c8eb1c2b172",
+  "build": "Full engine build in a new build directory from the current 1.0.1 source tree. Compilation resumed after increasing parallelism; no private v038 application objects imported. Unchanged dependency archives match the official baseline hashes.",
+  "compiler": "VitaSDK GCC 15.2.0",
+  "cmake": "4.4.5",
+  "configuration": "Release; static; PCH off; monolithic paths; prefix mapping; video on; no Qt tools or standalone server",
+  "elf_sha256": "8dffaf9d2700191fe117506db5f01f94a945f3e8dc0caeb8973e9ac38836cf2c",
+  "eboot_sha256": "3d0b29194efd1123352bf042e636b1fa0cd8d06c80bd957f729813dc95b47482",
+  "library_archive_sha256": {
+    "pthread": "44d9ae198bccff822e9d755a1827b06e1bc59e2bc61545c83cbc97287e5b5c75",
+    "SDL2": "ebc936488aecefee7d41e344c351acb54cd27f01bc42fcae63c32515e05e6931",
+    "tbb": "69fb17c2499f2cf5e1667ad02486018815a554e6f7742ce632da8a555c5de9fa",
+    "squish": "fb74dba6acbc2526c61e7d11ab0227eb96b623930be091c4d8d734fc19ecb981",
+    "vcmi_vita_iconv": "5d0970a7baac6c67d12dd2deda9814cc6ee30568f58300aab5d159739b571105",
+    "minizip": "ae3feeee9f2bfc9843b14cba6587cdc3b63f3ec9979163f4077d0a95f168d75f",
+    "avcodec": "f9c89bf1c7fa326c450a4b11e70316876d6fd8432a2a1afc8bc5a0ff0565ce69",
+    "avformat": "e2e74e37403be5b8602fbea4a1f2d1c2fe21c8165a9b1f8f31aee67b4657b79d",
+    "avutil": "948a4b3471a9fd25c0e1b5594e1ae5bee9d1b80679bf68bc5984a9830a0f84e0",
+    "swscale": "1801d7b66607572a49552692d1875c68953b0488fb7349b7f03f7b30be1b2e66",
+    "swresample": "a84df803e84a967569715494dfd0a4e7cab30904d7ac1fc8550e657336e6ff49"
+  },
+  "FFmpeg": "Unchanged audited 7.1.2 minimal LGPL build; GPL/nonfree/version3 options disabled; supplied sources/header adaptation and build configuration retained",
+  "device_test": "1.0.1 pending; user-tested 1.0.0 is a separate artifact"
+}

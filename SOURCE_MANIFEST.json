@@ -107,7 +107,9 @@
   },
   "VCMI": {
     "base_commit": "abe535c4418b66bae8cdb56fee1473b109e8c55e",
-    "local_changes_included": true
+    "local_changes_included": true,
+    "modified_tree_sha256": "c5dada1d8ac90935bac1295ce5416bb5d932ced51be31b482fe46008f0104b06",
+    "file_hashes": "docs/compliance/ENGINE_SOURCE_SHA256.json"
   },
   "oneTBB": {
     "base_commit": "f1862f38f83568d96e814e469ab61f88336cc595",
@@ -157,12 +159,13 @@
     "license": "LGPL-2.1-or-later; GPL/nonfree disabled"
   },
   "release": {
-    "version": "1.0.1",
+    "version": "1.1.0",
     "baseline_release": "1.0.0",
     "baseline_repository": "https://github.com/firmajp/VCMI-Vita",
     "baseline_tag": "v1.0.0",
     "baseline_commit": "0b66197149246ce61fc94f484d5ff0640988c2d9",
-    "complete_modified_files": true
+    "complete_modified_files": true,
+    "publication_note": "First public release; earlier referenced versions are historical test/source baselines"
   },
   "readme_banner": {
     "path": "assets/github-banner.png",

@@ -86,9 +86,9 @@ result = {
     'source_tree_files': len(all_paths), 'all_files_below_100MB': True,
     'checks': ['ZIP CRC/paths/duplicates', 'short on-device paths and bounded directory depth', 'nested original-data extension denylist',
                'required licenses/source notices', 'bundled notice byte equality', 'Vita title/version', 'LiveArea XML references',
-               '46 translations', 'excluded artwork hashes', '1.0.1 supplied LiveArea and matching boot/loading artwork', 'bundled source byte equality', 'common secret-token patterns'],
+               '46 translations', 'excluded artwork hashes', 'unchanged supplied LiveArea and matching boot/loading artwork', 'bundled source byte equality', 'common secret-token patterns'],
     'limits': ['No legal certification', 'Not a judicial determination of third-party rights',
-               'Official 1.0.0 baseline tested by user; 1.0.1 device test pending', 'ScanCode findings are documented separately; no independent legal audit'],
+               'User-tested1.1.0 executable; metadata-only public repack preserves runtime bytes', 'ScanCode findings are documented separately; no independent legal audit'],
 }
 (ROOT/'AUDIT_RESULTS.json').write_text(json.dumps(result, indent=2) + '\n')
 print(json.dumps(result, indent=2))

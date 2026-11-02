@@ -1,9 +1,9 @@
-# Publishing 1.0.1
+# Publishing 1.1.0
 
-Apply the matching source changes to the existing VCMI-Vita repository. Preserve Git attributes and original notices. Do not upload private logs, SDK/tool binaries, game data or generated build directories.
+Version 1.1.0 is the first public release. Apply the prepared source delta to the existing repository and review it before committing. Preserve `.gitattributes`, licences and original notices. Do not upload private logs, SDK/tool binaries, game data or generated build directories.
 
-Use version/tag 1.0.1/v1.0.1, VPK vcmi_vita_1.0.1.vpk, Vita APP_VER 01.01 and title ID H3VC00001. The LiveArea cache counter is implementation metadata, not an alternative public version name.
+Use tag `v1.1.0`, VPK `vcmi_vita_1.1.0.vpk`, Vita APP_VER `01.60` and title ID `H3VC00001`. APP_VER is an internal monotonic installer counter; it must not be lowered to `01.10`. LiveArea content-rev is separate cache metadata.
 
-Publish matching source, VPK and external SHA256 files together. Preserve the FFmpeg LGPL/source notice from README on the download page. Verify checksums before publication and after a fresh clone; use --git after staging. Mark an untested build as a prerelease. Record the 1.0.1 device checklist before presenting it as device-tested.
+Attach the final VPK and its `.sha256` to GitHub Releases. Keep binaries out of new Git commits to avoid uploading the same package twice. Publish the matching complete source tree/tag and retain the FFmpeg LGPL/source notice on the download page.
 
-Generate SHA256SUMS only after all distribution files are final. Refresh it after any subsequent change. This local workflow does not upload, publish or edit a GitHub release.
+The public package preserves the user-tested executable and runtime resources byte-for-byte; only licence/provenance metadata is refreshed. Do not silently rebuild or replace that executable after acceptance. Refresh checksums after any change. `python scripts/checksums.py verify --git` checks staged source bytes. The local preparation workflow does not publish anything remotely.

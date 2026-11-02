@@ -10,6 +10,13 @@
 #include "StdInc.h"
 #ifdef VCMI_VITA
 #include "lib/vita/VitaBattleEvents.h"
+#include "lib/vita/VitaMonoWave.h"
+#include "lib/vita/VitaSoundDiskCache.h"
+#include "lib/vita/VitaAmbientStats.h"
+#include "lib/filesystem/CFileInputStream.h"
+#include "lib/filesystem/CArchiveLoader.h"
+#include "lib/filesystem/CFilesystemLoader.h"
+#include "lib/AsyncRunner.h"
 #endif
 #include "CSoundHandler.h"
 
@@ -22,6 +29,38 @@
 
 #define VCMI_SOUND_NAME(x)
 #define VCMI_SOUND_FILE(y) #y,
+
+#ifdef VCMI_VITA
+struct CSoundHandler::AmbientJob
+{
+	std::function<std::unique_ptr<CInputStream>()> open;
+	std::unique_ptr<CInputStream> stream;
+	std::pair<std::unique_ptr<ui8[]>, si64> source;
+	VitaSoundDiskCache::Header signature{};
+	VitaSoundDiskCache::ReadResult result;
+	std::string error;
+};
+struct CSoundHandler::AmbientState
+{
+	CSoundHandler * owner = nullptr;
+	std::map<AudioPath, std::shared_ptr<AmbientJob>> loading;
+	std::map<AudioPath, int> wanted;
+};
+
+static void persistSoundChunk(const VitaSoundDiskCache::Header & signature, const std::shared_ptr<Mix_Chunk> & result)
+{
+	if(VitaSoundDiskCache::enabled && VitaSoundDiskCache::reserve(result->alen))
+		ENGINE->async().run([signature, result]()
+		{
+			VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::SoundCacheWrite);
+			if(VitaSoundDiskCache::writeCandidates(signature, *result, VitaSoundDiskCache::slots(signature)))
+				VitaSoundDiskCache::writes.fetch_add(1);
+			else
+				VitaSoundDiskCache::failures.fetch_add(1);
+			VitaSoundDiskCache::pendingBytes.fetch_sub(result->alen);
+		});
+}
+#endif
 
 // sounds mapped to soundBase enum
 static const std::string soundsList[] = {
@@ -42,6 +81,10 @@ CSoundHandler::CSoundHandler():
 	ambientConfig(JsonPath::builtin("config/ambientSounds.json"))
 {
 	listener(std::bind(&CSoundHandler::onVolumeChange, this, _1));
+#ifdef VCMI_VITA
+	ambientState = std::make_shared<AmbientState>();
+	ambientState->owner = this;
+#endif
 
 	if(ambientConfig["allocateChannels"].isNumber())
 		Mix_AllocateChannels(ambientConfig["allocateChannels"].Integer());
@@ -65,6 +108,13 @@ void CSoundHandler::MixChunkDeleter::operator()(Mix_Chunk * ptr)
 
 CSoundHandler::~CSoundHandler()
 {
+#ifdef VCMI_VITA
+	// GameEngine drains AsyncRunner before destroying the audio handlers.
+	ambientState->owner = nullptr;
+	ambientState.reset();
+	VitaAmbientStats::pending.store(0);
+	VitaAmbientStats::sourceBytes.store(0);
+#endif
 	if(isInitialized())
 	{
 		Mix_ChannelFinished(nullptr);
@@ -94,11 +144,53 @@ CSoundHandler::MixChunkPtr CSoundHandler::getSoundChunk(const AudioPath & sound)
 #endif
 	try
 	{
+#ifdef VCMI_VITA
+		auto data = [&]()
+		{
+			VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::SoundRead);
+			return CResourceHandler::get()->load(sound.addPrefix("SOUNDS/"))->readAll();
+		}();
+		VitaSoundDiskCache::Header signature{};
+		if(VitaSoundDiskCache::enabled)
+		{
+			VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::SoundCacheRead);
+			signature = VitaSoundDiskCache::key(data.first.get(), data.second);
+			auto cached = VitaSoundDiskCache::readCandidates(signature, VitaSoundDiskCache::slots(signature));
+			if(cached.chunk)
+			{
+				VitaSoundDiskCache::hits.fetch_add(1);
+				if(cached.mono) VitaSoundDiskCache::monoHits.fetch_add(1);
+				(cached.compressed ? VitaSoundDiskCache::compressedHits : VitaSoundDiskCache::rawHits).fetch_add(1);
+				auto result = MixChunkPtr(cached.chunk.release(), MixChunkDeleter{});
+				if(cached.legacy)
+				{
+					VitaSoundDiskCache::legacyHits.fetch_add(1);
+					persistSoundChunk(signature, result);
+				}
+				return result;
+			}
+			VitaSoundDiskCache::misses.fetch_add(1);
+		}
+		Mix_Chunk * chunk = VitaMonoWave::enabled ? VitaMonoWave::load(data.first.get(), data.second) : nullptr;
+		if(chunk)
+			VitaMonoWave::hits.fetch_add(1, std::memory_order_relaxed);
+		else
+		{
+			VitaMonoWave::fallback.fetch_add(1, std::memory_order_relaxed);
+			VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::MixerLoad);
+			chunk = Mix_LoadWAV_RW(SDL_RWFromMem(data.first.get(), data.second), 1);
+		}
+#else
 		auto data = CResourceHandler::get()->load(sound.addPrefix("SOUNDS/"))->readAll();
 		SDL_RWops * ops = SDL_RWFromMem(data.first.get(), data.second);
 		Mix_Chunk * chunk = Mix_LoadWAV_RW(ops, 1); // will free ops
+#endif
 		if(!chunk) return {};
-		return MixChunkPtr(chunk, MixChunkDeleter{});
+		auto result = MixChunkPtr(chunk, MixChunkDeleter{});
+#ifdef VCMI_VITA
+		persistSoundChunk(signature, result);
+#endif
+		return result;
 	}
 	catch(std::exception & e)
 	{
@@ -432,9 +524,143 @@ int CSoundHandler::ambientGetRange() const
 	return ambientConfig["range"].Integer();
 }
 
+#ifdef VCMI_VITA
+// Caller holds mutex. Only one cache read may be outstanding.
+bool CSoundHandler::queueAmbientSound(const AudioPath & sound)
+{
+	if(!ambientState->loading.empty())
+		return true;
+	try
+	{
+		auto job = std::make_shared<AmbientJob>();
+		const auto prepareStarted = std::chrono::steady_clock::now();
+		const auto resource = sound.addPrefix("SOUNDS/");
+		const auto loaders = CResourceHandler::get()->getResourcesWithName(resource);
+		if(!loaders.empty())
+		{
+			const auto * selected = loaders.back();
+			if(const auto * archive = dynamic_cast<const CArchiveLoader *>(selected))
+				job->open = archive->makeStreamOpener(resource);
+			else if(const auto * files = dynamic_cast<const CFilesystemLoader *>(selected))
+				if(auto path = files->getResourceName(resource))
+					job->open = [file = *path]() { return std::make_unique<CFileInputStream>(file); };
+		}
+		VitaAmbientStats::sourcePrepare.add(static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - prepareStarted).count()));
+		if(job->open)
+		{
+			std::weak_ptr<AmbientState> state = ambientState;
+			auto * engine = ENGINE.get();
+			ambientState->loading.emplace(sound, job);
+			VitaAmbientStats::pending.store(1);
+			VitaAmbientStats::sourceBytes.store(1024 * 1024);
+			engine->async().run([engine, state, job, sound]()
+			{
+				try
+				{
+					constexpr si64 limit = 1024 * 1024;
+					{
+						VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::SoundRead);
+						job->stream = job->open();
+						job->open = {};
+						job->source.first.reset(new ui8[limit + 1]);
+						while(job->source.second <= limit)
+						{
+							const auto request = std::min<si64>(16384, limit + 1 - job->source.second);
+							const auto count = job->stream->read(job->source.first.get() + job->source.second, request);
+							if(count < 0 || count > request)
+								throw std::runtime_error("Ambient source returned invalid byte count");
+							if(!count) break;
+							job->source.second += count;
+						}
+						job->stream.reset();
+					}
+					if(job->source.second > 0 && job->source.second <= limit)
+					{
+						VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::SoundCacheRead);
+						job->signature = VitaSoundDiskCache::key(job->source.first.get(), job->source.second);
+						job->result = VitaSoundDiskCache::readCandidates(job->signature, VitaSoundDiskCache::slots(job->signature));
+					}
+				}
+				catch(const std::exception & error)
+				{
+					job->error = error.what();
+				}
+				job->stream.reset();
+				job->source.first.reset();
+				std::weak_ptr<AmbientJob> ready = job;
+				engine->dispatchMainThread([state, ready, sound]()
+				{
+					auto live = state.lock();
+					auto result = ready.lock();
+					if(live && live->owner && result)
+						live->owner->finishAmbientSound(sound, result);
+				});
+			});
+			VitaAmbientStats::queued.fetch_add(1);
+			return true;
+		}
+	}
+	catch(const std::exception & error)
+	{
+		ambientState->loading.erase(sound);
+		VitaAmbientStats::pending.store(0);
+		VitaAmbientStats::sourceBytes.store(0);
+		logGlobal->warn("Unable to queue ambient sound %s: %s", sound.getOriginalName(), error.what());
+	}
+	VitaAmbientStats::fallback.fetch_add(1);
+	return false;
+}
+
+void CSoundHandler::finishAmbientSound(const AudioPath & sound, const std::shared_ptr<AmbientJob> & job)
+{
+	const auto started = std::chrono::steady_clock::now();
+	std::map<AudioPath, int> wanted;
+	{
+		std::scoped_lock guard(mutex);
+		auto found = ambientState->loading.find(sound);
+		if(found == ambientState->loading.end() || found->second != job)
+			return;
+		ambientState->loading.erase(found);
+		VitaAmbientStats::pending.store(0);
+		VitaAmbientStats::sourceBytes.store(0);
+		VitaAmbientStats::completed.fetch_add(1);
+		if(!job->error.empty()) logGlobal->warn("Ambient cache load failed: %s", job->error);
+		if(ambientState->wanted.count(sound) && !soundChunks.count(sound))
+		{
+			if(job->result.chunk)
+			{
+				auto & cached = job->result;
+				MixChunkPtr chunk(cached.chunk.release(), MixChunkDeleter{});
+				soundChunks[sound].first = chunk;
+				VitaSoundDiskCache::hits.fetch_add(1);
+				if(cached.mono) VitaSoundDiskCache::monoHits.fetch_add(1);
+				(cached.compressed ? VitaSoundDiskCache::compressedHits : VitaSoundDiskCache::rawHits).fetch_add(1);
+				if(cached.legacy)
+				{
+					VitaSoundDiskCache::legacyHits.fetch_add(1);
+					persistSoundChunk(job->signature, chunk);
+				}
+			}
+			else
+			{
+				VitaAmbientStats::fallback.fetch_add(1);
+				getSoundChunkCached(sound);
+			}
+		}
+		else VitaAmbientStats::discarded.fetch_add(1);
+		wanted = ambientState->wanted;
+	}
+	ambientUpdateChannels(std::move(wanted));
+	VitaAmbientStats::completion.add(static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - started).count()));
+}
+#endif
+
 void CSoundHandler::ambientUpdateChannels(std::map<AudioPath, int> soundsArg)
 {
 	std::scoped_lock guard(mutex);
+#ifdef VCMI_VITA
+	ambientState->wanted = soundsArg;
+#endif
 
 	std::vector<AudioPath> stoppedSounds;
 	for(const auto & pair : ambientChannels)
@@ -467,6 +693,10 @@ void CSoundHandler::ambientUpdateChannels(std::map<AudioPath, int> soundsArg)
 
 		if(!vstd::contains(ambientChannels, soundId))
 		{
+#ifdef VCMI_VITA
+			if(VitaSoundDiskCache::enabled && isInitialized() && !soundId.empty() && !soundChunks.count(soundId) && queueAmbientSound(soundId))
+				continue;
+#endif
 			int channel = playSoundLooped(soundId);
 			int channelVolume = ambientDistToVolume(distance);
 			channelVolumes[channel] = channelVolume;
@@ -480,6 +710,9 @@ void CSoundHandler::ambientUpdateChannels(std::map<AudioPath, int> soundsArg)
 void CSoundHandler::ambientStopAllChannels()
 {
 	std::scoped_lock guard(mutex);
+#ifdef VCMI_VITA
+	ambientState->wanted.clear();
+#endif
 
 	for(const auto & ch : ambientChannels)
 	{

@@ -10,6 +10,8 @@
 #include "StdInc.h"
 #ifdef VCMI_VITA
 #include "lib/vita/VitaBattleEvents.h"
+#include <SDL_timer.h>
+#include <cstdio>
 #endif
 #include "BattleAnimationClasses.h"
 
@@ -1094,6 +1096,22 @@ void EffectAnimation::onEffectFinished()
 
 void EffectAnimation::playEffect(uint32_t msPassed)
 {
+#ifdef VCMI_VITA
+	if(SDL_GetTicks() % 5000 < msPassed)
+	{
+		unsigned matching = 0;
+		for(const auto & effect : owner.effectsController->battleEffects)
+			if(effect.effectID == ID)
+			{
+				++matching;
+				std::fprintf(stderr, "Vita spell effect: id=%u frame=%.3f frames=%u finished=%d speed=%.3f\n", ID,
+					effect.currentFrame, static_cast<unsigned>(effect.animation->size()), static_cast<int>(effectFinished),
+					AnimationControls::getSpellEffectSpeed());
+			}
+		if(!matching)
+			std::fprintf(stderr, "Vita spell effect: id=%u no_visual_entries finished=%d\n", ID, static_cast<int>(effectFinished));
+	}
+#endif
 	if ( effectFinished )
 		return;
 
@@ -1153,6 +1171,11 @@ bool HeroCastAnimation::init()
 	});
 
 	initializeProjectile();
+#ifdef VCMI_VITA
+	std::fprintf(stderr, "Vita hero cast init: id=%u spell=%d owns_projectile=%d global_flight=%d\n", ID,
+		spell->id.getNum(), static_cast<int>(static_cast<bool>(projectile)),
+		static_cast<int>(owner.projectilesController->hasActiveProjectile(nullptr, false)));
+#endif
 
 	return true;
 }
@@ -1170,7 +1193,7 @@ void HeroCastAnimation::initializeProjectile()
 	Point destcoord = owner.stacksController->getStackPositionAtHex(tile, target); //position attacked by projectile
 
 	destcoord += Point(225, 225); // offset from hex top-left to the target creature's center, as in ranged attacks
-	owner.projectilesController->createSpellProjectile( nullptr, srccoord, destcoord, spell);
+	projectile = owner.projectilesController->createSpellProjectile(nullptr, srccoord, destcoord, spell);
 }
 
 void HeroCastAnimation::emitProjectile()
@@ -1179,16 +1202,19 @@ void HeroCastAnimation::emitProjectile()
 		return;
 
 	//spell has no projectile to play, skip this step and immediately play hit animations
-	if (spell->animationInfo.projectile.empty())
+	if (!projectile)
 		emitAnimationEvent();
 	else
-		owner.projectilesController->emitStackProjectile( nullptr );
+		projectile->playing = true;
 
 	projectileEmitted = true;
 }
 
 void HeroCastAnimation::emitAnimationEvent()
 {
+	if(hitEmitted)
+		return;
+	hitEmitted = true;
 	owner.executeAnimationStage(EAnimationEvents::HIT);
 }
 
@@ -1203,6 +1229,13 @@ bool HeroCastAnimation::hasOngoingSpellEffectAnimation()
 void HeroCastAnimation::tick(uint32_t msPassed)
 {
 	float frame = hero->getFrame();
+#ifdef VCMI_VITA
+	if(SDL_GetTicks() % 5000 < msPassed)
+		std::fprintf(stderr, "Vita hero cast: id=%u frame=%.3f projectile=%d hit=%d others=%d own_flight=%d global_flight=%d\n", ID, frame,
+			static_cast<int>(projectileEmitted), static_cast<int>(hitEmitted), static_cast<int>(hasOngoingSpellEffectAnimation()),
+			static_cast<int>(owner.projectilesController->hasActiveProjectile(projectile)),
+			static_cast<int>(owner.projectilesController->hasActiveProjectile(nullptr, false)));
+#endif
 
 	if (frame < 4.0f) // middle point of animation //TODO: un-hardcode
 		return;
@@ -1214,13 +1247,12 @@ void HeroCastAnimation::tick(uint32_t msPassed)
 		return;
 	}
 
-	if (owner.projectilesController->hasActiveProjectile(nullptr, false))
+	if (owner.projectilesController->hasActiveProjectile(projectile))
 		return;
 
 	if (!hitEmitted)
 	{
 		emitAnimationEvent();
-		hitEmitted = true;
 		return;
 	}
 
@@ -1241,14 +1273,14 @@ ChainLightningAnimation::ChainLightningAnimation(BattleInterface & owner, const 
 
 bool ChainLightningAnimation::init()
 {
-	owner.projectilesController->createSpellRayProjectile(caster, targetPoints, spell->animationInfo.ray, spell->animationInfo.rayJaggedness, spell->animationInfo.rayHopDelay, spell->animationInfo.rayWidth);
+	projectile = owner.projectilesController->createSpellRayProjectile(caster, targetPoints, spell->animationInfo.ray, spell->animationInfo.rayJaggedness, spell->animationInfo.rayHopDelay, spell->animationInfo.rayWidth);
 	return true;
 }
 
 void ChainLightningAnimation::tick(uint32_t msPassed)
 {
 	// the animation only exists to keep the caster frozen and block waitForAnimations until the ray lands
-	if(!owner.projectilesController->hasActiveProjectile(caster, false))
+	if(!owner.projectilesController->hasActiveProjectile(projectile))
 		delete this;
 }
 

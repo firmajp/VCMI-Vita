@@ -6,4 +6,4 @@ The Vita adaptation, local debugging, optimization work and packaging/documentat
 
 `SOURCE_MANIFEST.json`, dependency recipes, original file headers and `MODIFICATIONS.md` record available origins and changes. Internal ScanCode license-scan outcomes and interpretations are recorded in `docs/compliance/SCANCODE_REVIEW.json`; no independent authorship/provenance audit is claimed. A scanner can help identify license notices and suspicious matches; it cannot certify authorship or exclude all code reproduction.
 
-The public artwork consists of the geometric assets documented in `ARTWORK_PROVENANCE.md`. The user-supplied generative image set used by later private tests is excluded from this public candidate. Do not replace the public VPK with a private performance-test binary while retaining this candidate's source/provenance claims.
+The public artwork is documented in `ARTWORK_PROVENANCE.md`. The release preserves the user-tested executable and runtime assets; current build/source hashes identify the actual package. Historical development records are kept separate from current checks.

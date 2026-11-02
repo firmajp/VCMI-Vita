@@ -1,0 +1,270 @@
+/*
+ * BattleAI.cpp, part of VCMI engine
+ *
+ * Authors: listed in file AUTHORS in main folder
+ *
+ * License: GNU General Public License v2.0 or later
+ * Full text of license available in license.txt file, in main folder
+ *
+ */
+#include "StdInc.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaBattleTraceStats.h"
+#endif
+#ifdef VCMI_VITA
+#include <cstdio>
+#endif
+#include "BattleAI.h"
+#include "BattleEvaluator.h"
+#include "BattleExchangeVariant.h"
+
+#include "StackWithBonuses.h"
+#include "tbb/parallel_for.h"
+#include "../../lib/CStopWatch.h"
+#include "../../lib/CThreadHelper.h"
+#include "../../lib/battle/CPlayerBattleCallback.h"
+#include "../../lib/callback/CBattleCallback.h"
+#include "../../lib/callback/IGameInfoCallback.h"
+#include "../../lib/mapObjects/CGTownInstance.h"
+#include "../../lib/spells/ISpellMechanics.h"
+#include "../../lib/battle/BattleAction.h"
+#include "../../lib/battle/BattleStateInfoForRetreat.h"
+#include "../../lib/battle/CObstacleInstance.h"
+#include "../../lib/StartInfo.h"
+#include "../../lib/CStack.h" // TODO: remove
+                              // Eventually only IBattleInfoCallback and battle::Unit should be used,
+                              // CUnitState should be private and CStack should be removed completely
+#include "../../lib/logging/VisualLogger.h"
+
+#define LOGL(text) print(text)
+#define LOGFL(text, formattingEl) print(boost::str(boost::format(text) % formattingEl))
+
+CBattleAI::CBattleAI()
+	: side(BattleSide::NONE)
+{
+}
+
+CBattleAI::~CBattleAI() = default;
+
+void logHexNumbers()
+{
+#if BATTLE_TRACE_LEVEL >= 1
+	logVisual->updateWithLock("hexes", [](IVisualLogBuilder & b)
+		{
+			for(BattleHex hex = BattleHex(0); hex < GameConstants::BFIELD_SIZE; ++hex)
+				b.addText(hex, std::to_string(hex.toInt()));
+		});
+#endif
+}
+
+void CBattleAI::initBattleInterface(std::shared_ptr<Environment> ENV, std::shared_ptr<CBattleCallback> CB)
+{
+	env = ENV;
+	cb = CB;
+	playerID = CB->getPlayerID().value();
+	movesSkippedByDefense = 0;
+
+	logHexNumbers();
+}
+
+void CBattleAI::initBattleInterface(std::shared_ptr<Environment> ENV, std::shared_ptr<CBattleCallback> CB, AutocombatPreferences autocombatPreferences)
+{
+	initBattleInterface(ENV, CB);
+	autobattlePreferences = autocombatPreferences;
+}
+
+void CBattleAI::yourTacticPhase(const BattleID & battleID, int distance)
+{
+	tacticsHandler->onTacticsStarted();
+}
+
+void CBattleAI::actionFinished(const BattleID & battleID, const BattleAction & action)
+{
+	tacticsHandler->onActionFinished(action);
+}
+
+static float getStrengthRatio(std::shared_ptr<CBattleInfoCallback> cb, BattleSide side)
+{
+	auto stacks = cb->battleGetAllStacks();
+	uint64_t our = 0;
+	uint64_t enemy = 0;
+
+	// evaluate each side against its actual opponent, to account for bonuses useful only against that opponent
+	const auto ourEnemy = CombatValueContext::against(*cb, side);
+	const auto theirEnemy = CombatValueContext::against(*cb, CBattleInfoEssentials::otherSide(side));
+
+	for(auto stack : stacks)
+	{
+		if(stack->unitSide() == side)
+			our += stack->estimateCombatValue(ourEnemy);
+		else
+			enemy += stack->estimateCombatValue(theirEnemy);
+	}
+
+	return enemy == 0 ? 1.0f : static_cast<float>(our) / enemy;
+}
+
+int getSimulationTurnsCount(const StartInfo * startInfo)
+{
+	return startInfo->difficulty < 4 ? 2 : 10;
+}
+
+void CBattleAI::activeStack(const BattleID & battleID, const CStack * stack )
+{
+	LOG_TRACE_PARAMS(logAi, "stack: %s", stack->nodeName());
+#ifdef VCMI_VITA
+	const unsigned diagnosticStackID = static_cast<unsigned>(stack->unitId());
+	VitaBattleTraceStats::Decision diagnosticDecision(diagnosticStackID);
+#endif
+
+	auto timeElapsed = [](std::chrono::time_point<std::chrono::high_resolution_clock> start) -> uint64_t
+	{
+		auto end = std::chrono::high_resolution_clock::now();
+
+		return std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+	};
+
+	BattleAction result = BattleAction::makeDefend(stack);
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+	if(stack->isCatapult())
+	{
+		cb->battleMakeUnitAction(battleID, useCatapult(battleID, stack));
+		return;
+	}
+	if(stack->hasBonusOfType(BonusType::SIEGE_WEAPON) && stack->hasBonusOfType(BonusType::HEALER))
+	{
+		cb->battleMakeUnitAction(battleID, BattleAction::makeHeal(stack));
+		return;
+	}
+
+#if BATTLE_TRACE_LEVEL>=1
+	logAi->trace("Build evaluator and targets");
+#endif
+
+	BattleEvaluator evaluator(
+		env, cb, stack, playerID, battleID, side,
+		getStrengthRatio(cb->getBattle(battleID), side),
+		getSimulationTurnsCount(env->game()->getStartInfo()));
+
+	result = evaluator.selectStackAction(stack);
+#ifdef VCMI_VITA
+	VitaBattleTraceStats::evaluated.fetch_add(1);
+	VitaBattleTraceStats::action.store(static_cast<int>(result.actionType));
+	VitaBattleTraceStats::stage.store(2);
+#endif
+
+	if(autobattlePreferences.enableSpellsUsage && evaluator.canCastSpell())
+	{
+#ifdef VCMI_VITA
+		VitaBattleTraceStats::stage.store(3);
+		const auto spellStarted = std::chrono::steady_clock::now();
+#endif
+		auto spelCasted = evaluator.attemptCastingSpell(stack);
+#ifdef VCMI_VITA
+		VitaBattleTraceStats::spells.add(static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - spellStarted).count()));
+		VitaBattleTraceStats::stage.store(4);
+#endif
+
+		if(spelCasted)
+			return;
+	}
+
+	logAi->trace("Spellcast attempt completed in %lld", timeElapsed(start));
+
+	if(auto action = considerFleeingOrSurrendering(battleID))
+	{
+		cb->battleMakeUnitAction(battleID, *action);
+		return;
+	}
+
+	if(result.actionType == EActionType::DEFEND)
+	{
+		movesSkippedByDefense++;
+	}
+	else if(result.actionType != EActionType::WAIT)
+	{
+		movesSkippedByDefense = 0;
+	}
+
+	logAi->trace("BattleAI decision made in %lld", timeElapsed(start));
+
+#ifdef VCMI_VITA
+	VitaBattleTraceStats::action.store(static_cast<int>(result.actionType));
+	VitaBattleTraceStats::stage.store(5);
+#endif
+	cb->battleMakeUnitAction(battleID, result);
+#ifdef VCMI_VITA
+	VitaBattleTraceStats::submitted.fetch_add(1);
+	VitaBattleTraceStats::stage.store(6);
+#endif
+}
+
+BattleAction CBattleAI::useCatapult(const BattleID & battleID, const CStack * stack)
+{
+	if(cb->getBattle(battleID)->getAttackableWallParts().empty())
+		return BattleAction::makeDefend(stack);
+
+	movesSkippedByDefense = 0;
+
+	// catapult will pick a target on its own, according to its targeting rules
+	return BattleAction::makeCatapultShot(stack);
+}
+
+void CBattleAI::battleStart(const BattleID & battleID, const CCreatureSet *army1, const CCreatureSet *army2, int3 tile, const CGHeroInstance *hero1, const CGHeroInstance *hero2, BattleSide Side, bool replayAllowed)
+{
+	LOG_TRACE(logAi);
+	side = Side;
+	auto tacticsSettings = TacticsHandler::Settings{.enabled = autobattlePreferences.enableTacticsUsage};
+	tacticsHandler = std::make_unique<TacticsHandler>(cb, battleID, tacticsSettings);
+}
+
+void CBattleAI::print(const std::string &text) const
+{
+	logAi->trace("%s Battle AI[%p]: %s", playerID.toString(), this, text);
+}
+
+std::optional<BattleAction> CBattleAI::considerFleeingOrSurrendering(const BattleID & battleID)
+{
+	BattleStateInfoForRetreat bs;
+
+	bs.canFlee = cb->getBattle(battleID)->battleCanFlee();
+	bs.canSurrender = cb->getBattle(battleID)->battleCanSurrender(playerID);
+	bs.ourSide = cb->getBattle(battleID)->battleGetMySide();
+	bs.ourHero = cb->getBattle(battleID)->battleGetMyHero();
+	bs.enemyHero = nullptr;
+
+	for(auto stack : cb->getBattle(battleID)->battleGetAllStacks(false))
+	{
+		if(stack->alive())
+		{
+			if(stack->unitSide() == bs.ourSide)
+				bs.ourStacks.push_back(stack);
+			else
+			{
+				bs.enemyStacks.push_back(stack);
+				bs.enemyHero = cb->getBattle(battleID)->battleGetOwnerHero(stack);
+			}
+		}
+	}
+
+	bs.turnsSkippedByDefense = movesSkippedByDefense / bs.ourStacks.size();
+
+	if(!bs.canFlee && !bs.canSurrender)
+	{
+		return std::nullopt;
+	}
+
+	auto result = cb->makeSurrenderRetreatDecision(battleID, bs);
+
+	if(!result && bs.canFlee && bs.turnsSkippedByDefense > 30)
+	{
+		return BattleAction::makeRetreat(bs.ourSide);
+	}
+
+	return result;
+}
+
+
+

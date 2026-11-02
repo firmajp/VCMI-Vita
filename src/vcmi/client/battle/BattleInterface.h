@@ -16,6 +16,9 @@
 #include "../../lib/battle/BattleHex.h"
 #include "../../lib/spells/SpellAnimationItem.h"
 #include "../../lib/ConditionalWait.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaConditionalWait.h"
+#endif
 
 class CCreatureSet;
 class CGHeroInstance;
@@ -95,7 +98,11 @@ class BattleInterface
 	};
 
 	/// Conditional variables that are set depending on ongoing animations on the battlefield
+#ifdef VCMI_VITA
+	VitaConditionalWait ongoingAnimationsState;
+#else
 	ConditionalWait ongoingAnimationsState;
+#endif
 
 	/// List of events that are waiting to be triggered
 	std::vector<AwaitingAnimationEvents> awaitingEvents;

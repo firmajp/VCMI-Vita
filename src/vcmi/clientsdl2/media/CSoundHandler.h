@@ -31,6 +31,11 @@ private:
 	std::mutex oneShotMutex;
 	std::list<std::pair<AudioPath, MixChunkPtr>> oneShotChunks;
 	size_t oneShotBytes = 0;
+	struct AmbientJob;
+	struct AmbientState;
+	std::shared_ptr<AmbientState> ambientState;
+	bool queueAmbientSound(const AudioPath & sound);
+	void finishAmbientSound(const AudioPath & sound, const std::shared_ptr<AmbientJob> & job);
 #else
 	using MixChunkPtr = std::unique_ptr<Mix_Chunk, MixChunkDeleter>;
 #endif

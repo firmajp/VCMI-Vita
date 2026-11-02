@@ -114,6 +114,7 @@ class CHeroList	: public CList
 		std::shared_ptr<CAnimImage> movement;
 		std::shared_ptr<CAnimImage> mana;
 		std::shared_ptr<CAnimImage> portrait;
+		std::optional<std::pair<size_t, size_t>> displayedBars;
 	public:
 		const CGHeroInstance * const hero;
 

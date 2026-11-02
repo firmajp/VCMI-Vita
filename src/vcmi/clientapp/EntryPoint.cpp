@@ -64,6 +64,13 @@
 #include "../lib/vita/VitaUidDiagnostics.h"
 #include "../lib/vita/VitaZipIO.h"
 #include "../lib/vita/VitaSurfaceCopyTest.h"
+#include "../lib/vita/VitaBufferedStreamTest.h"
+#include "../lib/vita/VitaBinaryAlphaStats.h"
+#include "../lib/vita/VitaTileImageStats.h"
+#include "../lib/vita/VitaVisibilityCache.h"
+#include "../lib/vita/VitaMonoWave.h"
+#include "../lib/vita/VitaSoundDiskCache.h"
+#include "../lib/vita/VitaAsyncLog.h"
 extern "C" unsigned int _get_vita_heap_size();
 extern "C" int _vita_net_init();
 #endif
@@ -430,6 +437,13 @@ int main(int argc, char * argv[])
 			ENGINE = std::make_unique<GameEngine>();
 #ifdef VCMI_VITA
 			runVitaSurfaceCopyTest();
+			runVitaBufferedStreamTest();
+			runVitaBinaryAlphaTest();
+			runVitaTileImageTest();
+			VitaVisibilityCache::selfTest();
+			VitaMonoWave::selfTest();
+			VitaSoundDiskCache::selfTest();
+			runVitaAsyncLogTest();
 #endif
 		}
 

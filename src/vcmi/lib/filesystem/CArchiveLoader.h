@@ -59,6 +59,7 @@ public:
 	/// Interface implementation
 	/// @see ISimpleResourceLoader
 	std::unique_ptr<CInputStream> load(const ResourcePath & resourceName) const override;
+	std::function<std::unique_ptr<CInputStream>()> makeStreamOpener(const ResourcePath & resourceName) const;
 	bool existsResource(const ResourcePath & resourceName) const override;
 	std::string getMountPoint() const override;
 	const std::unordered_map<ResourcePath, ArchiveEntry> & getEntries() const;

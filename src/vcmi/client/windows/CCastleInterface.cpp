@@ -83,12 +83,47 @@ struct VitaTownSceneCache
 	const CBuildingRect * selected = nullptr;
 	bool overlays = false;
 	bool dirty = true;
+	std::vector<Rect> dirtyAreas;
 	bool allocationFailed = false;
 
 	void invalidate(const CCastleBuildings * town)
 	{
 		if(owner == town)
+		{
 			dirty = true;
+			dirtyAreas.clear();
+		}
+	}
+	void invalidate(const CCastleBuildings * town, const CBuildingRect & building)
+	{
+		if(owner != town || dirty)
+			return;
+		Rect region = building.pos;
+		if(building.border)
+		{
+			region.w = std::max(region.w, building.border->width());
+			region.h = std::max(region.h, building.border->height());
+		}
+		region = region.intersect(bounds);
+		if(region.w <= 0 || region.h <= 0)
+			return;
+		for(size_t i = 0; i < dirtyAreas.size();)
+		{
+			if(region.intersectionTest(dirtyAreas[i]))
+			{
+				const int right = std::max(region.right(), dirtyAreas[i].right());
+				const int bottom = std::max(region.bottom(), dirtyAreas[i].bottom());
+				region.x = std::min(region.x, dirtyAreas[i].x);
+				region.y = std::min(region.y, dirtyAreas[i].y);
+				region.w = right - region.x;
+				region.h = bottom - region.y;
+				dirtyAreas.erase(dirtyAreas.begin() + i);
+				i = 0;
+			}
+			else
+				++i;
+		}
+		dirtyAreas.push_back(region);
 	}
 
 	void release(const CCastleBuildings * town)
@@ -98,6 +133,7 @@ struct VitaTownSceneCache
 		canvas.reset();
 		owner = nullptr;
 		dirty = true;
+		dirtyAreas.clear();
 		allocationFailed = false;
 		VitaTownCacheStats::bytes = 0;
 	}
@@ -410,7 +446,7 @@ void CBuildingRect::tick(uint32_t msPassed)
 	stateTimeCounter += msPassed;
 #ifdef VCMI_VITA
 	if(previousFrame != frame || construction)
-		vitaTownSceneCache.invalidate(owner);
+		vitaTownSceneCache.invalidate(owner, *this);
 #endif
 }
 
@@ -959,15 +995,59 @@ void CCastleBuildings::show(Canvas & to)
 		if(cache.canvas)
 		{
 			const bool moved = cache.bounds.x != pos.x || cache.bounds.y != pos.y || cache.bounds.w != pos.w || cache.bounds.h != pos.h;
-			if(cache.dirty || moved || cache.selected != selectedBuilding || cache.overlays != showTextOverlay)
+			const bool fullRebuild = cache.dirty || moved || cache.overlays != showTextOverlay;
+			if(!fullRebuild && cache.selected != selectedBuilding)
+			{
+				if(cache.selected)
+					cache.invalidate(this, *cache.selected);
+				if(selectedBuilding)
+					cache.invalidate(this, *selectedBuilding);
+			}
+			if(fullRebuild || !cache.dirtyAreas.empty())
 			{
 				const auto started = std::chrono::steady_clock::now();
-				CIntObject::show(*cache.canvas);
+				if(fullRebuild)
+				{
+					CIntObject::show(*cache.canvas);
+					VitaTownCacheStats::paintPixels += static_cast<uint64_t>(pos.w) * pos.h;
+				}
+				else
+				{
+					// Repaint every layer in order inside each changed region, including the background.
+					for(const auto & region : cache.dirtyAreas)
+					{
+						CanvasClipRectGuard clip(*cache.canvas, region);
+						for(auto * child : children)
+						{
+							if(!(child->recActions & UPDATE))
+								continue;
+							if(const auto * building = dynamic_cast<const CBuildingRect *>(child))
+							{
+								++VitaTownCacheStats::buildingVisits;
+								Rect bounds = building->pos;
+								if(building->border)
+								{
+									bounds.w = std::max(bounds.w, building->border->width());
+									bounds.h = std::max(bounds.h, building->border->height());
+								}
+								if(!bounds.intersectionTest(region))
+								{
+									++VitaTownCacheStats::buildingSkips;
+									continue;
+								}
+							}
+							child->show(*cache.canvas);
+						}
+						VitaTownCacheStats::paintPixels += static_cast<uint64_t>(region.w) * region.h;
+					}
+					++VitaTownCacheStats::partialBuilds;
+				}
 				const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - started).count();
 				VitaTownCacheStats::rebuildUs += elapsed;
 				VitaTownCacheStats::maxRebuildUs = std::max<uint64_t>(VitaTownCacheStats::maxRebuildUs, elapsed);
 				++VitaTownCacheStats::builds;
 				cache.dirty = false;
+				cache.dirtyAreas.clear();
 				cache.bounds = pos;
 				cache.selected = selectedBuilding;
 				cache.overlays = showTextOverlay;

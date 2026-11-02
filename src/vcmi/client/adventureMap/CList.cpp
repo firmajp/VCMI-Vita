@@ -9,6 +9,9 @@
  */
 
 #include "StdInc.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaMapUiStats.h"
+#endif
 #include "CList.h"
 
 #include "AdventureMapInterface.h"
@@ -237,8 +240,22 @@ CHeroList::CHeroItem::CHeroItem(CHeroList *owner, const CGHeroInstance * Hero)
 
 void CHeroList::CHeroItem::update()
 {
-	movement->setFrame(std::min<size_t>(movement->size()-1, hero->movementPointsRemaining() / 100));
-	mana->setFrame(std::min<size_t>(mana->size()-1, hero->mana / 5));
+	const std::pair<size_t, size_t> frames{
+		std::min<size_t>(movement->size()-1, hero->movementPointsRemaining() / 100),
+		std::min<size_t>(mana->size()-1, hero->mana / 5)};
+	if(displayedBars == frames)
+	{
+#ifdef VCMI_VITA
+		VitaMapUiStats::barHits.fetch_add(1, std::memory_order_relaxed);
+#endif
+		return;
+	}
+	displayedBars = frames;
+	movement->setFrame(frames.first);
+	mana->setFrame(frames.second);
+#ifdef VCMI_VITA
+	VitaMapUiStats::barUpdates.fetch_add(1, std::memory_order_relaxed);
+#endif
 	redraw();
 }
 

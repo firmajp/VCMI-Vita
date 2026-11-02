@@ -8,6 +8,14 @@
  *
  */
 #include "StdInc.h"
+#ifdef VCMI_VITA
+#include "../lib/vita/VitaPacketTrace.h"
+#endif
+#ifdef VCMI_VITA
+#include <cstdio>
+#include "../lib/vita/VitaMapWorkStats.h"
+#include "../lib/vita/VitaProtocolStats.h"
+#endif
 #include "ClientNetPackVisitors.h"
 
 #include "Client.h"
@@ -568,8 +576,17 @@ void ApplyFirstClientNetPackVisitor::visitTryMoveHero(TryMoveHero & pack)
 void ApplyClientNetPackVisitor::visitTryMoveHero(TryMoveHero & pack)
 {
 	const CGHeroInstance *h = cl.gameInfo().getHero(pack.id);
+	{
+#ifdef VCMI_VITA
+		VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::Invalidate);
+#endif
 	callAllInterfaces(cl, &CGameInterface::invalidatePaths);
+	}
 
+	{
+#ifdef VCMI_VITA
+		VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::Dispatch);
+#endif
 	switch(pack.result)
 	{
 		case TryMoveHero::SUCCESS:
@@ -585,12 +602,18 @@ void ApplyClientNetPackVisitor::visitTryMoveHero(TryMoveHero & pack)
 			GAME->map().onAfterHeroDisembark(h, pack.start, pack.end);
 			break;
 	}
+	}
 
 	PlayerColor player = h->tempOwner;
 
+	{
+#ifdef VCMI_VITA
+		VitaMapWorkStats::Scope measure(VitaMapWorkStats::Kind::Reveal);
+#endif
 	for(auto &i : cl.playerint)
 		if(cl.gameInfo().getPlayerRelations(i.first, player) != PlayerRelations::ENEMIES)
 			i.second->tileRevealed(pack.fowRevealed);
+	}
 
 	for(auto i=cl.playerint.begin(); i!=cl.playerint.end(); i++)
 	{
@@ -974,6 +997,15 @@ void ApplyClientNetPackVisitor::visitEndAction(EndAction & pack)
 
 void ApplyClientNetPackVisitor::visitPackageApplied(PackageApplied & pack)
 {
+#ifdef VCMI_VITA
+	VitaProtocolStats::acknowledgements.fetch_add(1);
+	VitaProtocolStats::lastAcknowledged.store(static_cast<int32_t>(pack.requestID));
+	if(!pack.result)
+	{
+		VitaProtocolStats::rejected.fetch_add(1);
+		std::fprintf(stderr, "Vita request rejected: id=%u type=%u\n", static_cast<unsigned>(pack.requestID), static_cast<unsigned>(pack.packType));
+	}
+#endif
 	callInterfaceIfPresent(cl, pack.player, &IGameEventsReceiver::requestRealized, &pack);
 	if(!cl.waitingRequest.tryRemovingElement(pack.requestID))
 		logNetwork->warn("Surprising server message! PackageApplied for unknown requestID!");
@@ -1001,8 +1033,18 @@ void ApplyClientNetPackVisitor::visitPlayerStartsTurn(PlayerStartsTurn & pack)
 {
 	logNetwork->debug("Server gives turn to %s", pack.player.toString());
 
+	{
+#ifdef VCMI_VITA
+		VitaPacketTrace::Scope measure("turn_notify_interfaces");
+#endif
 	callAllInterfaces(cl, &IGameEventsReceiver::playerStartsTurn, pack.player);
+	}
+	{
+#ifdef VCMI_VITA
+		VitaPacketTrace::Scope measure("turn_your_turn");
+#endif
 	callOnlyThatInterface(cl, pack.player, &CGameInterface::yourTurn, pack.questionID);
+	}
 }
 
 void ApplyClientNetPackVisitor::visitPlayerEndsTurn(PlayerEndsTurn & pack)

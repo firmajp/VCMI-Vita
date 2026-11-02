@@ -8,6 +8,10 @@
  *
  */
 #include "StdInc.h"
+#ifdef VCMI_VITA
+#include <SDL_timer.h>
+#include <cstdio>
+#endif
 #include "BattleHero.h"
 
 #include "BattleActionsController.h"
@@ -39,6 +43,12 @@ const CGHeroInstance * BattleHero::instance() const
 void BattleHero::tick(uint32_t msPassed)
 {
 	size_t groupIndex = static_cast<size_t>(phase);
+#ifdef VCMI_VITA
+	if(phase == EHeroAnimType::CAST_SPELL && SDL_GetTicks() % 5000 < msPassed)
+		std::fprintf(stderr, "Vita hero tick: defender=%d frame=%.3f speed=%.3f frames=%u dt=%u active=%d\n",
+			static_cast<int>(defender), currentFrame, currentSpeed, static_cast<unsigned>(animation->size(groupIndex)),
+			msPassed, static_cast<int>(isActive()));
+#endif
 
 	float timePassed = msPassed / 1000.f;
 

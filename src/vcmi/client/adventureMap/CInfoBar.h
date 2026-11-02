@@ -153,6 +153,20 @@ private:
 
 	std::shared_ptr<CVisibleInfo> visibleInfo;
 	std::optional<HeroInfoSource> visibleHeroInfoSource;
+	// Keep aligned with initFromHero; bonus-derived fields follow getTreeVersion().
+	struct HeroInfoInputs
+	{
+		ObjectInstanceID hero;
+		PlayerColor owner;
+		ArmyDescriptor army;
+		std::string nameTextID;
+		const CHeroClass * heroClass;
+		HeroTypeID portrait;
+		si32 mana, bonusVersion;
+		bool creatureManagement;
+		bool operator==(const HeroInfoInputs & other) const = default;
+	};
+	std::optional<HeroInfoInputs> visibleHeroInfoInputs;
 	EState state;
 	uint32_t timerCounter;
 	bool shouldPopAll = false;

@@ -8,6 +8,12 @@
  *
  */
 #include "StdInc.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaBattleTraceStats.h"
+#endif
+#ifdef VCMI_VITA
+#include <cstdio>
+#endif
 #include "BattleAI.h"
 #include "BattleEvaluator.h"
 #include "BattleExchangeVariant.h"
@@ -106,6 +112,10 @@ int getSimulationTurnsCount(const StartInfo * startInfo)
 void CBattleAI::activeStack(const BattleID & battleID, const CStack * stack )
 {
 	LOG_TRACE_PARAMS(logAi, "stack: %s", stack->nodeName());
+#ifdef VCMI_VITA
+	const unsigned diagnosticStackID = static_cast<unsigned>(stack->unitId());
+	VitaBattleTraceStats::Decision diagnosticDecision(diagnosticStackID);
+#endif
 
 	auto timeElapsed = [](std::chrono::time_point<std::chrono::high_resolution_clock> start) -> uint64_t
 	{
@@ -139,10 +149,23 @@ void CBattleAI::activeStack(const BattleID & battleID, const CStack * stack )
 		getSimulationTurnsCount(env->game()->getStartInfo()));
 
 	result = evaluator.selectStackAction(stack);
+#ifdef VCMI_VITA
+	VitaBattleTraceStats::evaluated.fetch_add(1);
+	VitaBattleTraceStats::action.store(static_cast<int>(result.actionType));
+	VitaBattleTraceStats::stage.store(2);
+#endif
 
 	if(autobattlePreferences.enableSpellsUsage && evaluator.canCastSpell())
 	{
+#ifdef VCMI_VITA
+		VitaBattleTraceStats::stage.store(3);
+		const auto spellStarted = std::chrono::steady_clock::now();
+#endif
 		auto spelCasted = evaluator.attemptCastingSpell(stack);
+#ifdef VCMI_VITA
+		VitaBattleTraceStats::spells.add(static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - spellStarted).count()));
+		VitaBattleTraceStats::stage.store(4);
+#endif
 
 		if(spelCasted)
 			return;
@@ -167,7 +190,15 @@ void CBattleAI::activeStack(const BattleID & battleID, const CStack * stack )
 
 	logAi->trace("BattleAI decision made in %lld", timeElapsed(start));
 
+#ifdef VCMI_VITA
+	VitaBattleTraceStats::action.store(static_cast<int>(result.actionType));
+	VitaBattleTraceStats::stage.store(5);
+#endif
 	cb->battleMakeUnitAction(battleID, result);
+#ifdef VCMI_VITA
+	VitaBattleTraceStats::submitted.fetch_add(1);
+	VitaBattleTraceStats::stage.store(6);
+#endif
 }
 
 BattleAction CBattleAI::useCatapult(const BattleID & battleID, const CStack * stack)

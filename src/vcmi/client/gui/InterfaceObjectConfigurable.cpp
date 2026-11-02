@@ -808,13 +808,9 @@ void InterfaceObjectConfigurable::setShortcutBlocked(EShortcut shortcut, bool is
 
 	target->second.blocked = isBlocked;
 
-	for	(auto & entry : widgets)
-	{
-		auto button = std::dynamic_pointer_cast<CButton>(entry.second);
-
-		if (button && button->assignedKey == shortcut)
+	for(const auto & button : target->second.assignedButtons)
+		if(button->assignedKey == shortcut)
 			button->block(isBlocked);
-	}
 }
 
 void InterfaceObjectConfigurable::addShortcut(EShortcut shortcut, std::function<void()> callback)

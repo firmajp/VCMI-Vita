@@ -1,0 +1,8 @@
+{
+  "version": "1.1.0",
+  "status": "passed after final manifest/index verification",
+  "method": "SHA256 source manifest and separate local Git index backed by historical baseline object store; remote untouched",
+  "baseline_commit": "3bec1a58b8061e17c380fe666ff734d9c22093e2",
+  "binary_distribution": "Release VPKs excluded from Git/source checksum scope",
+  "independent_clean_checkout": "not performed for1.1.0"
+}

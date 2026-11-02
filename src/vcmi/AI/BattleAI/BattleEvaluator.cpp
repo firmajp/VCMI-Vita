@@ -9,6 +9,9 @@
  */
 #include "StdInc.h"
 #include "BattleEvaluator.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaSpellAiProbe.h"
+#endif
 #include "BattleExchangeVariant.h"
 
 #include "StackWithBonuses.h"
@@ -632,6 +635,9 @@ bool BattleEvaluator::canCastSpell()
 
 bool BattleEvaluator::attemptCastingSpell(const CStack * activeStack)
 {
+#ifdef VCMI_VITA
+	VitaSpellAiProbe::Session probe(activeStack->unitId());
+#endif
 	auto hero = cb->getBattle(battleID)->battleGetMyHero();
 	if(!hero)
 		return false;
@@ -641,8 +647,13 @@ bool BattleEvaluator::attemptCastingSpell(const CStack * activeStack)
 	std::vector<const CSpell*> possibleSpells;
 
 	for (auto const & s : LIBRARY->spellh->objects)
+	{
+#ifdef VCMI_VITA
+		VitaSpellAiProbe::mark(VitaSpellAiProbe::Phase::Checks, s->id.getNum());
+#endif
 		if (s->canBeCast(cb->getBattle(battleID).get(), spells::Mode::HERO, hero))
 			possibleSpells.push_back(s.get());
+	}
 
 	LOGFL("I can cast %d spells.", possibleSpells.size());
 
@@ -657,6 +668,9 @@ bool BattleEvaluator::attemptCastingSpell(const CStack * activeStack)
 	std::vector<PossibleSpellcast> possibleCasts;
 	for(auto spell : possibleSpells)
 	{
+#ifdef VCMI_VITA
+		VitaSpellAiProbe::mark(VitaSpellAiProbe::Phase::Targets, spell->id.getNum());
+#endif
 		spells::BattleCast temp(cb->getBattle(battleID).get(), hero, spells::Mode::HERO, spell);
 
 		for(const auto & target : SpellTargetEvaluator::getViableTargets(spell->battleMechanics(&temp).get()))
@@ -671,6 +685,10 @@ bool BattleEvaluator::attemptCastingSpell(const CStack * activeStack)
 	if(possibleCasts.empty())
 		return false;
 
+#ifdef VCMI_VITA
+	VitaSpellAiProbe::total.store(static_cast<uint32_t>(possibleCasts.size()), std::memory_order_relaxed);
+	VitaSpellAiProbe::mark(VitaSpellAiProbe::Phase::Baseline);
+#endif
 	using ValueMap = PossibleSpellcast::ValueMap;
 
 	auto evaluateQueue = [&](ValueMap & values, const std::vector<battle::Units> & queue, std::shared_ptr<HypotheticBattle> state, size_t minTurnSpan, bool * enemyHadTurnOut) -> bool
@@ -798,6 +816,9 @@ bool BattleEvaluator::attemptCastingSpell(const CStack * activeStack)
 
 		auto state = std::make_shared<HypotheticBattle>(env.get(), cb->getBattle(battleID));
 
+#ifdef VCMI_VITA
+		VitaSpellAiProbe::mark(VitaSpellAiProbe::Phase::BaselineQueue);
+#endif
 		evaluateQueue(valueOfStack, turnOrder, state, 0, &enemyHadTurn);
 
 		if(!enemyHadTurn)
@@ -814,7 +835,8 @@ bool BattleEvaluator::attemptCastingSpell(const CStack * activeStack)
 
 	CStopWatch timer;
 
-#if BATTLE_TRACE_LEVEL >= 1
+// Keep hypothetical cast simulations on one AI worker on Vita.
+#if BATTLE_TRACE_LEVEL >= 1 || defined(VCMI_VITA)
 	tbb::blocked_range<size_t> r(0, possibleCasts.size());
 #else
 	tbb::parallel_for(tbb::blocked_range<size_t>(0, possibleCasts.size()), [&](const tbb::blocked_range<size_t> & r)
@@ -823,6 +845,9 @@ bool BattleEvaluator::attemptCastingSpell(const CStack * activeStack)
 			for(auto i = r.begin(); i != r.end(); i++)
 			{
 				auto & ps = possibleCasts[i];
+#ifdef VCMI_VITA
+				VitaSpellAiProbe::mark(VitaSpellAiProbe::Phase::State, ps.spell->id.getNum(), static_cast<int32_t>(i));
+#endif
 
 #if BATTLE_TRACE_LEVEL >= 1
 				if(ps.dest.empty())
@@ -839,6 +864,9 @@ bool BattleEvaluator::attemptCastingSpell(const CStack * activeStack)
 				auto state = std::make_shared<HypotheticBattle>(env.get(), cb->getBattle(battleID));
 
 				spells::BattleCast cast(state.get(), hero, spells::Mode::HERO, ps.spell);
+#ifdef VCMI_VITA
+				VitaSpellAiProbe::mark(VitaSpellAiProbe::Phase::Cast, ps.spell->id.getNum(), static_cast<int32_t>(i));
+#endif
 				cast.castEval(state->getServerCallback(), ps.dest);
 
 				auto allUnits = state->battleGetUnitsIf([](const battle::Unit * u) -> bool { return u->isValidTarget(true); });
@@ -852,6 +880,9 @@ bool BattleEvaluator::attemptCastingSpell(const CStack * activeStack)
 				DamageCache safeCopy = damageCache;
 				DamageCache innerCache(&safeCopy);
 
+#ifdef VCMI_VITA
+				VitaSpellAiProbe::mark(VitaSpellAiProbe::Phase::Damage, ps.spell->id.getNum(), static_cast<int32_t>(i));
+#endif
 				innerCache.buildDamageCache(state, side);
 
 				if(cachedAttack.ap && cachedAttack.waited)
@@ -862,8 +893,14 @@ bool BattleEvaluator::attemptCastingSpell(const CStack * activeStack)
 				float stackActionScore = 0;
 				float damageToHostilesScore = 0;
 				float damageToFriendliesScore = 0;
+#ifdef VCMI_VITA
+				VitaSpellAiProbe::mark(VitaSpellAiProbe::Phase::Score, ps.spell->id.getNum(), static_cast<int32_t>(i));
+#endif
 				float bonusEffectsScore = scoreBonusEffects(allUnits, innerCache);
 
+#ifdef VCMI_VITA
+				VitaSpellAiProbe::mark(VitaSpellAiProbe::Phase::FullEval, ps.spell->id.getNum(), static_cast<int32_t>(i));
+#endif
 				if(needFullEval || !cachedAttack.ap)
 				{
 #if BATTLE_TRACE_LEVEL >= 1
@@ -986,13 +1023,19 @@ bool BattleEvaluator::attemptCastingSpell(const CStack * activeStack)
 #if BATTLE_TRACE_LEVEL >= 1
 				logAi->trace("Total score for %s: %2f (action: %2f, friedly damage: %2f, hostile damage: %2f, bonuses: %2f)", ps.spell->getJsonKey(), ps.value, stackActionScore, damageToFriendliesScore, damageToHostilesScore, bonusEffectsScore);
 #endif
+#ifdef VCMI_VITA
+				VitaSpellAiProbe::mark(VitaSpellAiProbe::Phase::Release, ps.spell->id.getNum(), static_cast<int32_t>(i));
+#endif
 			}
-#if BATTLE_TRACE_LEVEL == 0
+#if BATTLE_TRACE_LEVEL == 0 && !defined(VCMI_VITA)
 		});
 #endif
 
 	LOGFL("Evaluation took %d ms", timer.getDiff());
 
+#ifdef VCMI_VITA
+	VitaSpellAiProbe::mark(VitaSpellAiProbe::Phase::Select);
+#endif
 	auto castToPerform = *std::ranges::max_element(possibleCasts,
 		[&](const PossibleSpellcast & left, const PossibleSpellcast & right) -> bool
 		{
@@ -1010,6 +1053,9 @@ bool BattleEvaluator::attemptCastingSpell(const CStack * activeStack)
 	{
 		// debug rather than trace, so that a cast the server refuses can be matched to the spell in reported logs
 		logAi->debug("%s will cast %s (value %f)", hero->getNameTextID(), castToPerform.spell->getJsonKey(), castToPerform.value);
+#ifdef VCMI_VITA
+		VitaSpellAiProbe::mark(VitaSpellAiProbe::Phase::Submit, castToPerform.spell->id.getNum());
+#endif
 		cb->battleMakeSpellAction(battleID, BattleAction::makeHeroSpellcast(side, castToPerform.dest, castToPerform.spell->id));
 		activeActionMade = true;
 

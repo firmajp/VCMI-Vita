@@ -10,4 +10,6 @@ __pycache__/
 *.a
 *.o
 *.obj
-# Public VPKs are included in dist/ for review; also attach them to GitHub Releases.
+# Attach public VPKs to Releases; do not duplicate binaries in new Git commits.
+/dist/*.vpk
+/dist/*.vpk.sha256

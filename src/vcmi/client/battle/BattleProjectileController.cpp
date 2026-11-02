@@ -8,6 +8,10 @@
  *
  */
 #include "StdInc.h"
+#ifdef VCMI_VITA
+#include <cstdio>
+#include <mutex>
+#endif
 #include "BattleProjectileController.h"
 
 #include "BattleInterface.h"
@@ -164,7 +168,31 @@ void ProjectileRay::tick(uint32_t msPassed)
 
 BattleProjectileController::BattleProjectileController(BattleInterface & owner):
 	owner(owner)
-{}
+{
+#ifdef VCMI_VITA
+	static std::once_flag checked;
+	std::call_once(checked, [this]()
+	{
+		struct TestProjectile : ProjectileBase
+		{
+			TestProjectile() { shooterID = -1; progress = 0; playing = false; speed = 0; }
+			void show(Canvas &) override {}
+			void tick(uint32_t) override { progress = 2; }
+		};
+		auto parked = std::make_shared<TestProjectile>();
+		auto flight = std::make_shared<TestProjectile>();
+		projectiles = {parked, flight};
+		if(hasActiveProjectile(std::shared_ptr<ProjectileBase>{}) || !hasActiveProjectile(flight))
+			throw std::runtime_error("Vita projectile identity test failed");
+		flight->playing = true;
+		tick(1);
+		if(hasActiveProjectile(flight) || !hasActiveProjectile(parked) || !hasActiveProjectile(nullptr, false))
+			throw std::runtime_error("Vita independent projectile completion test failed");
+		projectiles.clear();
+		std::fprintf(stderr, "Vita projectile ownership tests: passed\n");
+	});
+#endif
+}
 
 const CCreature & BattleProjectileController::getShooter(const CStack * stack) const
 {
@@ -274,6 +302,11 @@ bool BattleProjectileController::hasActiveProjectile(const CStack * stack, bool 
 	return false;
 }
 
+bool BattleProjectileController::hasActiveProjectile(const std::shared_ptr<ProjectileBase> & projectile) const
+{
+	return projectile && vstd::contains(projectiles, projectile);
+}
+
 float BattleProjectileController::computeProjectileFlightTime( Point from, Point dest, double animSpeed)
 {
 	float distanceSquared = (dest.x - from.x) * (dest.x - from.x) + (dest.y - from.y) * (dest.y - from.y);
@@ -370,7 +403,7 @@ void BattleProjectileController::createProjectile(const CStack * shooter, Point 
 	projectiles.push_back(projectile);
 }
 
-void BattleProjectileController::createSpellProjectile(const CStack * shooter, Point from, Point dest, const CSpell * spell)
+std::shared_ptr<ProjectileBase> BattleProjectileController::createSpellProjectile(const CStack * shooter, Point from, Point dest, const CSpell * spell)
 {
 	double projectileAngle = std::abs(atan2(dest.x - from.x, dest.y - from.y));
 	AnimationPath animToDisplay = spell->animationInfo.selectProjectile(projectileAngle);
@@ -379,7 +412,7 @@ void BattleProjectileController::createSpellProjectile(const CStack * shooter, P
 
 	if(!animToDisplay.empty())
 	{
-		auto projectile = new ProjectileAnimatedMissile();
+		auto projectile = std::make_shared<ProjectileAnimatedMissile>();
 
 		projectile->animation     = createProjectileImage(animToDisplay);
 		projectile->frameProgress = 0;
@@ -392,8 +425,11 @@ void BattleProjectileController::createSpellProjectile(const CStack * shooter, P
 		projectile->speed         = computeProjectileFlightTime(from, dest, AnimationControls::getProjectileSpeed());
 		projectile->playing       = false;
 
-		projectiles.push_back(std::shared_ptr<ProjectileBase>(projectile));
+		projectiles.push_back(projectile);
+		return projectile;
 	}
+	logGlobal->error("No projectile animation selected for spell %d", spell->id.getNum());
+	return nullptr;
 }
 
 /// appends a midpoint-displaced polyline from a (exclusive) to b (inclusive) to `out`
@@ -445,12 +481,12 @@ static std::vector<RayColor> expandRayColors(const std::vector<RayColor> & keys,
 	return out;
 }
 
-void BattleProjectileController::createSpellRayProjectile(const CStack * caster, const std::vector<Point> & targetPoints, const std::vector<RayColor> & rayConfig, float jaggedness, float hopDelay, int width)
+std::shared_ptr<ProjectileBase> BattleProjectileController::createSpellRayProjectile(const CStack * caster, const std::vector<Point> & targetPoints, const std::vector<RayColor> & rayConfig, float jaggedness, float hopDelay, int width)
 {
 	if (targetPoints.size() < 2)
-		return;
+		return nullptr;
 
-	auto ray = new ProjectileRay();
+	auto ray = std::make_shared<ProjectileRay>();
 
 	// each hop between consecutive targets is midpoint-displaced twice -> 4 jagged sub-segments per hop
 	ray->path.push_back(targetPoints.front());
@@ -467,5 +503,6 @@ void BattleProjectileController::createSpellRayProjectile(const CStack * caster,
 	ray->speed     = totalTime > 0 ? 1.f / totalTime : 1000.f;
 	ray->playing   = true;
 
-	projectiles.push_back(std::shared_ptr<ProjectileBase>(ray));
+	projectiles.push_back(ray);
+	return ray;
 }

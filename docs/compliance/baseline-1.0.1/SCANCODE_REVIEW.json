@@ -1,0 +1,2050 @@
+{
+  "tool": "ScanCode Toolkit 32.5.0",
+  "python": "3.12.14",
+  "pluggy": "1.5.0",
+  "scan": "licenses + info; full eligible source/docs coverage verified by file hashes; empty records verified against empty files because ScanCode omits their hashes",
+  "files": 36644,
+  "expressions": {
+    "(no detection)": 8111,
+    "(LicenseRef-scancode-public-domain AND CC0-1.0 AND OFL-1.1) AND (CC-BY-SA-3.0 AND CC-BY-4.0)": 1,
+    "GPL-3.0-or-later AND GPL-2.0-or-later AND LGPL-2.1-only AND GPL-1.0-or-later AND LGPL-2.0-or-later": 1,
+    "GPL-3.0-only": 26,
+    "(LGPL-2.0-or-later AND LGPL-2.1-only AND GPL-3.0-or-later AND GPL-1.0-or-later AND GPL-3.0-only) AND (LGPL-2.0-or-later AND GPL-1.0-or-later) AND (GPL-1.0-or-later AND LGPL-2.1-only)": 1,
+    "GPL-3.0-or-later AND GPL-2.0-or-later AND LGPL-2.0-or-later AND LGPL-2.1-or-later AND GPL-1.0-or-later AND CC0-1.0": 1,
+    "GPL-3.0-or-later AND LGPL-2.0-or-later AND LGPL-2.1-only": 1,
+    "(BSL-1.0 AND CC0-1.0 AND OFL-1.1) AND (LGPL-2.1-or-later AND GPL-1.0-or-later) AND CC0-1.0": 1,
+    "(GPL-1.0-or-later AND GPL-3.0-or-later AND GPL-2.0-or-later AND GPL-3.0-only AND Apache-2.0 AND Zlib AND BSD-3-Clause) AND (BSL-1.0 AND MIT AND Zlib AND LGPL-2.1-only AND LGPL-2.0-or-later AND GPL-3.0-only AND GCC-exception-3.1 AND OFL-1.1 AND CC-BY-SA-4.0) AND (CC-BY-4.0 AND CC0-1.0 AND LGPL-2.1-or-later AND GPL-1.0-or-later)": 1,
+    "BSL-1.0": 15207,
+    "Zlib": 1256,
+    "MIT": 318,
+    "CC-BY-3.0": 1,
+    "CC-BY-SA-4.0": 1,
+    "CC0-1.0": 7,
+    "LGPL-2.1-only": 7,
+    "(LGPL-2.1-or-later AND LicenseRef-scancode-other-permissive AND GPL-2.0-or-later) AND GPL-3.0-or-later AND (LGPL-3.0-only AND LGPL-3.0-or-later AND (LGPL-3.0-only AND GPL-3.0-only)) AND (IJG AND MIT) AND GPL-2.0-only AND (GPL-2.0-only AND LGPL-3.0-only) AND (LGPL-3.0-only AND Apache-2.0 AND LGPL-3.0-or-later AND GPL-3.0-only)": 1,
+    "GCC-exception-3.1": 1,
+    "BSD-3-Clause": 362,
+    "((BSD-3-Clause AND LicenseRef-scancode-other-permissive AND LicenseRef-scancode-other-copyleft) AND BSD-3-Clause) AND BSD-3-Clause AND dtoa AND SMLNJ AND AMD-newlib AND SunPro AND HP-1986 AND LicenseRef-scancode-nilsson-historical AND LicenseRef-scancode-newlib-historical AND BSD-2-Clause AND LicenseRef-scancode-x11-hanson AND (LicenseRef-scancode-delorie-historical AND LGPL-2.1-or-later AND LGPL-2.0-or-later) AND HPND-Intel AND Spencer-94 AND LicenseRef-scancode-bsd-unmodified AND (LicenseRef-scancode-newlib-historical AND BSD-2-Clause-Views) AND (BSD-2-Clause AND BSD-2-Clause-Views) AND (BSD-2-Clause AND BSD-3-Clause)": 3,
+    "OFL-1.1": 8,
+    "Apache-2.0": 751,
+    "BSD-3-Clause AND LicenseRef-scancode-proprietary-license": 7,
+    "(LicenseRef-scancode-other-copyleft AND LGPL-2.1-or-later AND LGPL-2.1-only) AND (LGPL-3.0-only AND LGPL-2.1-or-later) AND (LGPL-3.0-only AND LicenseRef-scancode-other-copyleft) AND LGPL-2.1-or-later AND LGPL-2.0-or-later AND (LGPL-2.1-or-later AND LGPL-2.0-or-later AND GPL-1.0-or-later) AND (GPL-1.0-or-later AND LGPL-2.0-or-later)": 3,
+    "HPND-sell-variant AND MIT AND Zlib": 1,
+    "CC-BY-SA-4.0 AND CC-BY-3.0": 1,
+    "CC-BY-SA-2.5 AND CC-BY-SA-4.0": 1,
+    "GPL-2.0-or-later": 2349,
+    "GPL-2.0-only": 9,
+    "FTL": 1132,
+    "Libpng": 100,
+    "LicenseRef-scancode-google-patent-license-webm": 2,
+    "LicenseRef-scancode-proprietary-license AND BSD-3-Clause AND (LicenseRef-scancode-unknown-license-reference AND BSD-3-Clause) AND (GPL-1.0-or-later AND GCC-exception-3.1) AND MIT": 2,
+    "bzip2-1.0.6": 26,
+    "(FTL OR GPL-3.0-only) AND MIT AND LicenseRef-scancode-public-domain": 2,
+    "LicenseRef-scancode-public-domain": 88,
+    "Libpng AND (Libpng AND libpng-1.6.35)": 5,
+    "LicenseRef-scancode-greg-roelofs OR GPL-2.0-or-later": 10,
+    "MIT AND CC-PDDC": 2,
+    "HIDAPI": 2,
+    "GPL-3.0-only AND BSD-3-Clause AND GPL-1.0-or-later AND GPL-2.0-only": 2,
+    "CPL-1.0 AND LicenseRef-scancode-unknown-license-reference": 2,
+    "BSD-2-Clause AND IJG AND Apache-2.0": 4,
+    "BSD-2-Clause": 228,
+    "libtiff": 6,
+    "LicenseRef-scancode-public-domain AND Unlicense AND MIT-0": 2,
+    "Artistic-1.0-Perl": 3,
+    "LicenseRef-scancode-unknown-license-reference AND MIT-Modern-Variant": 2,
+    "(MIT-Modern-Variant AND LicenseRef-scancode-other-permissive) AND (LicenseRef-scancode-unknown-license-reference AND MIT-Modern-Variant)": 5,
+    "LicenseRef-scancode-info-zip-2009-01": 2,
+    "(LicenseRef-scancode-public-domain AND LicenseRef-scancode-warranty-disclaimer) AND (LicenseRef-scancode-unknown-license-reference AND LicenseRef-scancode-public-domain) AND (MIT OR Unlicense)": 2,
+    "GPL-3.0-only AND (LicenseRef-scancode-public-domain AND Unlicense AND MIT-0)": 1,
+    "LicenseRef-scancode-frontier-1.0": 38,
+    "GPL-2.0-only AND LGPL-2.0-or-later AND Artistic-2.0": 2,
+    "GPL-3.0-or-later AND (GPL-3.0-only AND Apache-2.0 AND LGPL-2.1-only AND CC-BY-SA-4.0 AND CC0-1.0)": 1,
+    "GPL-3.0-or-later": 11,
+    "GPL-3.0-or-later AND LGPL-2.0-or-later": 1,
+    "(GPL-3.0-or-later AND LGPL-2.1-only) AND (LGPL-2.0-or-later AND LGPL-2.1-only) AND LGPL-2.0-or-later": 1,
+    "GPL-2.0-or-later AND CC-BY-SA-4.0": 1,
+    "LicenseRef-scancode-unknown-license-reference": 175,
+    "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference AND GPL-2.0-only": 3,
+    "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference": 6,
+    "GPL-2.0-or-later AND MIT": 1,
+    "(GPL-1.0-or-later AND GPL-3.0-only) AND (LicenseRef-scancode-generic-exception AND GPL-1.0-or-later AND x11vnc-openssl-exception)": 4,
+    "GPL-2.0-or-later AND LicenseRef-scancode-warranty-disclaimer": 2,
+    "LicenseRef-scancode-public-domain AND BSD-3-Clause": 3,
+    "CC-BY-SA-4.0 AND GPL-2.0-or-later": 1,
+    "GPL-2.0-only AND GPL-2.0-or-later": 28,
+    "LicenseRef-scancode-free-unknown": 1,
+    "(Apache-2.0 OR GPL-2.0-only) AND GPL-2.0-or-later": 1,
+    "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference AND (GPL-2.0-only OR BSD-2-Clause)": 6,
+    "GPL-2.0-or-later AND BSD-2-Clause": 2,
+    "GPL-2.0-or-later AND CC-BY-SA-3.0": 1,
+    "GPL-1.0-or-later AND GPL-2.0-or-later": 5,
+    "LicenseRef-scancode-boost-original": 4,
+    "BSL-1.0 AND Zlib": 17,
+    "LicenseRef-scancode-public-domain AND BSL-1.0": 3,
+    "(NCSA OR MIT) AND BSL-1.0": 1,
+    "BSL-1.0 AND (NCSA OR MIT)": 4,
+    "BSL-1.0 AND BSD-3-Clause": 1,
+    "BSL-1.0 AND LicenseRef-scancode-public-domain": 5,
+    "BSL-1.0 AND LicenseRef-scancode-mit-old-style": 11,
+    "BSL-1.0 AND MIT": 126,
+    "BSL-1.0 AND LicenseRef-scancode-unknown": 1,
+    "BSL-1.0 AND (LicenseRef-scancode-public-domain AND MIT)": 1,
+    "MIT AND BSL-1.0": 2,
+    "BSL-1.0 AND MPL-1.1": 3,
+    "BSL-1.0 AND LicenseRef-scancode-boost-original": 1,
+    "Apache-2.0 AND BSL-1.0": 11,
+    "Apache-2.0 AND BSL-1.0 AND LicenseRef-scancode-warranty-disclaimer": 2,
+    "LicenseRef-scancode-mit-old-style AND BSL-1.0": 1,
+    "LicenseRef-scancode-proprietary-license AND BSL-1.0": 1,
+    "BSL-1.0 AND LicenseRef-scancode-unknown-license-reference": 4,
+    "BSL-1.0 AND Python-2.0": 1,
+    "LicenseRef-scancode-openwall-md5-permissive AND BSL-1.0": 1,
+    "GPL-1.0-or-later WITH PS-or-PDF-font-exception-20170817 AND OFL-1.1": 1,
+    "LGPL-2.0-or-later": 279,
+    "(GPL-2.0-or-later AND GPL-1.0-or-later AND LGPL-3.0-or-later) AND GPL-1.0-or-later AND GPL-3.0-only AND (GPL-1.0-or-later AND GPL-3.0-only) AND LGPL-3.0-only AND (GPL-1.0-or-later AND GPL-3.0-only AND LGPL-3.0-only) AND (GPL-3.0-only AND GPL-3.0-or-later AND LGPL-3.0-only AND LGPL-3.0-or-later AND GPL-1.0-or-later AND GPL-2.0-or-later AND LGPL-2.1-or-later) AND (GPL-1.0-or-later AND GPL-2.0-or-later) AND (GPL-3.0-only AND GPL-1.0-or-later AND LGPL-3.0-or-later)": 1,
+    "LGPL-3.0-only": 1,
+    "(LGPL-2.1-only AND GPL-2.0-only) AND GPL-3.0-or-later AND (LGPL-3.0-only AND LGPL-3.0-or-later AND GPL-3.0-only) AND (IJG AND MIT) AND GPL-2.0-only AND (GPL-2.0-only AND LGPL-3.0-only) AND (LGPL-3.0-only AND Apache-2.0 AND LGPL-3.0-or-later AND GPL-3.0-only)": 1,
+    "LGPL-2.0-or-later AND GPL-1.0-or-later": 2,
+    "LGPL-2.1-or-later AND LicenseRef-scancode-public-domain": 3,
+    "LGPL-2.1-or-later": 4438,
+    "GPL-3.0-or-later AND GPL-3.0-only": 1,
+    "ISC": 12,
+    "LGPL-2.1-only AND ISC AND MIT AND GPL-2.0-only AND LGPL-2.0-or-later": 1,
+    "(GPL-1.0-or-later AND GPL-2.0-or-later) AND LGPL-3.0-or-later AND GPL-2.0-or-later": 1,
+    "LicenseRef-scancode-generic-exception": 3,
+    "MS-RL AND (GPL-1.0-or-later AND GPL-2.0-or-later)": 1,
+    "(GPL-2.0-only AND GPL-1.0-or-later) AND BSD-3-Clause-Clear AND ((Apache-2.0 AND (LGPL-3.0-only OR GPL-3.0-only)) AND GPL-1.0-or-later) AND (GPL-2.0-only AND (Apache-2.0 AND (LGPL-3.0-only OR GPL-3.0-only)))": 1,
+    "LGPL-2.1-or-later AND (LicenseRef-scancode-proprietary-license AND GPL-3.0-only AND GPL-3.0-or-later AND GPL-2.0-or-later AND LGPL-3.0-only AND LGPL-3.0-or-later AND LGPL-2.1-or-later)": 1,
+    "BSD-3-Clause AND LGPL-2.1-or-later": 28,
+    "LGPL-2.1-or-later AND BSD-2-Clause": 6,
+    "LGPL-2.1-or-later AND MPL-2.0": 4,
+    "IJG": 1,
+    "LicenseRef-scancode-ijg-2020": 2,
+    "LGPL-2.1-or-later AND BSD-3-Clause": 5,
+    "LGPL-2.1-or-later AND LGPL-2.1-only": 2,
+    "LicenseRef-scancode-public-domain AND LGPL-2.1-or-later": 1,
+    "LicenseRef-scancode-public-domain AND MIT": 1,
+    "(GPL-1.0-or-later AND LGPL-2.0-or-later) AND LGPL-2.1-or-later": 1,
+    "LGPL-2.1-or-later AND LicenseRef-scancode-proprietary-license": 1,
+    "LGPL-2.1-or-later AND GPL-1.0-or-later AND LGPL-2.0-or-later": 1,
+    "(LGPL-2.1-or-later AND (BSD-2-Clause AND LicenseRef-scancode-proprietary-license)) AND BSD-3-Clause AND CC-BY-4.0": 1,
+    "LGPL-2.1-or-later AND MIT": 2,
+    "LGPL-2.1-or-later AND MS-RL": 1,
+    "GPL-2.0-or-later AND LGPL-2.0-or-later": 1,
+    "LGPL-2.0-or-later AND LGPL-2.1-or-later": 1,
+    "BSD-Source-Code": 1,
+    "LGPL-2.1-or-later AND NTP-0": 1,
+    "MPL-2.0": 2,
+    "LGPL-2.1-or-later AND (LGPL-2.0-only AND LGPL-2.1-or-later)": 1,
+    "LGPL-2.1-or-later AND BSL-1.0": 2,
+    "LicenseRef-scancode-public-domain AND BSD-3-Clause AND LGPL-2.1-or-later": 1,
+    "GPL-2.0-or-later AND GPL-1.0-or-later AND LicenseRef-scancode-other-copyleft": 1,
+    "GPL-1.0-or-later AND Apache-2.0 AND LicenseRef-scancode-public-domain": 1,
+    "GPL-1.0-or-later": 2,
+    "MIT AND LicenseRef-scancode-public-domain": 8,
+    "MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL": 12,
+    "FTL WITH Autoconf-exception-generic": 15,
+    "FTL WITH Autoconf-exception-generic AND (MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL) AND MIT": 2,
+    "FSFULLRWD AND (FSFULLR AND GPL-2.0-or-later WITH Libtool-exception) AND FSFUL AND FSFULLR": 1,
+    "FSFAP": 8,
+    "GPL-3.0-or-later WITH Autoconf-exception-2.0": 4,
+    "GPL-3.0-or-later WITH Autoconf-exception-generic-3.0 AND LicenseRef-scancode-warranty-disclaimer": 24,
+    "FSFUL AND GPL-2.0-or-later WITH Libtool-exception": 8,
+    "X11 AND LicenseRef-scancode-public-domain": 12,
+    "GPL-2.0-or-later WITH Libtool-exception AND LicenseRef-scancode-warranty-disclaimer AND (MIT AND GPL-2.0-or-later AND GPL-2.0-only) AND ((MIT OR GPL-3.0-only) AND GPL-2.0-or-later AND GPL-2.0-only) AND GPL-2.0-or-later": 2,
+    "GPL-2.0-or-later WITH Autoconf-exception-generic": 40,
+    "(LicenseRef-scancode-generic-exception AND FTL) AND FTL": 2,
+    "LicenseRef-scancode-generic-exception AND FTL": 2,
+    "Adobe-Glyph AND FTL": 4,
+    "(LicenseRef-scancode-public-domain OR LicenseRef-scancode-other-permissive) AND FTL": 2,
+    "MIT AND 0BSD": 1,
+    "CC-BY-4.0 AND OFL-1.1 AND MIT": 1,
+    "FTL AND Adobe-Glyph": 4,
+    "MIT-Modern-Variant": 352,
+    "LicenseRef-scancode-openwall-md5-permissive": 4,
+    "Zlib AND LicenseRef-scancode-warranty-disclaimer": 3,
+    "MIT-open-group": 2,
+    "FTL AND LicenseRef-scancode-freetype-patent": 42,
+    "LicenseRef-scancode-public-domain AND GPL-1.0-or-later": 1,
+    "LicenseRef-scancode-public-domain AND LicenseRef-scancode-public-domain-disclaimer": 1,
+    "FSFULLRWD AND FSFULLR AND FSFULLRSD": 5,
+    "GPL-2.0-or-later WITH Libtool-exception AND LicenseRef-scancode-warranty-disclaimer AND (MIT AND GPL-2.0-or-later AND GPL-2.0-only) AND BSD-3-Clause AND ((MIT OR GPL-3.0-only) AND GPL-2.0-or-later AND GPL-2.0-only)": 1,
+    "FSFULLRWD": 42,
+    "LicenseRef-scancode-ietf": 1,
+    "BSD-3-Clause AND LicenseRef-scancode-ietf-trust": 1,
+    "(FSFULLR AND GPL-2.0-or-later WITH Libtool-exception) AND FSFUL": 7,
+    "FSFULLR": 43,
+    "BSD-3-Clause AND LicenseRef-scancode-public-domain": 1,
+    "FSFULLRWD AND FSFULLR AND FSFULLRSD AND GPL-2.0-only": 2,
+    "LicenseRef-scancode-unknown-license-reference AND Libpng AND MIT": 1,
+    "Libpng AND libpng-2.0": 9,
+    "FSFUL AND GPL-2.0-only AND GPL-2.0-or-later WITH Libtool-exception": 2,
+    "Libpng AND libpng-1.6.35": 24,
+    "FSFULLRWD AND (Libpng AND libpng-1.6.35)": 1,
+    "MIT AND CC-BY-4.0": 1,
+    "(LicenseRef-scancode-unknown-license-reference AND GPL-2.0-only) AND (LicenseRef-scancode-greg-roelofs OR GPL-2.0-or-later)": 5,
+    "Libpng AND (Libpng AND CC0-1.0)": 1,
+    "(Libpng AND Apache-2.0 AND BSD-3-Clause) AND Apache-2.0": 1,
+    "LicenseRef-scancode-pngsuite": 1,
+    "LicenseRef-scancode-cexcept-2008": 1,
+    "Libpng AND Zlib": 1,
+    "GPL-2.0-or-later WITH Libtool-exception AND GPL-3.0-or-later WITH Libtool-exception AND GPL-3.0-or-later": 3,
+    "LicenseRef-scancode-ietf-trust": 1,
+    "BSD-3-Clause AND TU-Berlin-1.0": 1,
+    "GPL-3.0-only AND LicenseRef-scancode-google-patent-license-webm": 1,
+    "LicenseRef-scancode-generic-cla": 1,
+    "GPL-2.0-or-later WITH Libtool-exception AND LicenseRef-scancode-warranty-disclaimer AND (MIT AND GPL-2.0-or-later AND GPL-2.0-only) AND BSD-3-Clause AND ((MIT OR GPL-3.0-only) AND GPL-2.0-or-later AND GPL-2.0-only) AND GPL-2.0-or-later": 1,
+    "BSD-3-Clause AND LicenseRef-scancode-google-patent-license-webm": 229,
+    "GPL-3.0-or-later WITH Autoconf-exception-macro": 5,
+    "FSFUL": 3,
+    "CC-PDDC": 1,
+    "MIT AND LicenseRef-scancode-unknown-license-reference": 18,
+    "Zlib AND (LicenseRef-scancode-public-domain AND Zlib)": 1,
+    "Zlib AND GPL-3.0-only": 1,
+    "Apache-2.0 AND bzip2-1.0.6": 9,
+    "Apache-2.0 AND BSD-3-Clause": 84,
+    "Apache-2.0 AND (LicenseRef-scancode-unknown-license-reference AND Apache-2.0)": 1,
+    "Apache-2.0 AND MIT AND BSL-1.0": 1,
+    "GPL-2.0-or-later WITH Libtool-exception AND LicenseRef-scancode-warranty-disclaimer AND (MIT AND GPL-2.0-or-later AND GPL-2.0-only) AND (BSD-3-Clause AND LicenseRef-scancode-proprietary-license) AND ((MIT OR GPL-3.0-only) AND GPL-2.0-or-later AND GPL-2.0-only)": 1,
+    "FSFULLRWD AND GPL-2.0-or-later WITH Autoconf-exception-generic AND FSFULLR AND FSFULLRSD": 1,
+    "GPL-2.0-or-later WITH Autoconf-exception-2.0": 1,
+    "MIT AND LGPL-2.0-or-later": 1,
+    "OAR": 1,
+    "FSFUL AND MIT AND GPL-2.0-or-later WITH Libtool-exception": 1,
+    "GPL-2.0-or-later WITH Autoconf-exception-macro": 12,
+    "LicenseRef-scancode-paypal-sdk-2013-2016 AND Zlib": 2,
+    "CC-BY-4.0": 1,
+    "Zlib AND LGPL-2.0-or-later": 1,
+    "Zlib AND LicenseRef-scancode-public-domain": 2,
+    "Zlib AND LicenseRef-scancode-khronos AND Apache-2.0": 1,
+    "Zlib AND (HIDAPI AND Zlib)": 1,
+    "Zlib AND MIT": 1,
+    "LicenseRef-scancode-khronos": 2,
+    "MIT AND LicenseRef-scancode-khronos": 1,
+    "Zlib AND NTP": 1,
+    "BSD-3-Clause AND GPL-3.0-only AND GPL-1.0-or-later AND GPL-2.0-only": 1,
+    "LGPL-3.0-only AND BSD-3-Clause AND GPL-3.0-only": 2,
+    "GPL-1.0-or-later AND GPL-3.0-only AND BSD-3-Clause": 2,
+    "GPL-1.0-or-later AND BSD-3-Clause AND GPL-3.0-only": 1,
+    "SunPro": 21,
+    "Zlib AND CC-PDDC": 1,
+    "Zlib AND BSD-2-Clause AND (LicenseRef-scancode-public-domain AND LicenseRef-scancode-other-permissive AND LicenseRef-scancode-proprietary-license)": 1,
+    "Zlib AND CC0-1.0": 2,
+    "Zlib AND RSA-MD": 1,
+    "LicenseRef-scancode-x11-x11r5": 1,
+    "MIT AND Zlib": 1,
+    "Apache-2.0 AND LicenseRef-scancode-proprietary-license": 1,
+    "(BSD-3-Clause AND BSD-2-Clause AND LicenseRef-scancode-other-permissive) AND BSD-3-Clause": 4,
+    "LicenseRef-scancode-other-permissive": 79,
+    "LicenseRef-scancode-other-permissive AND EPICS": 1,
+    "LicenseRef-scancode-other-permissive AND BSD-3-Clause": 1,
+    "HPND-sell-variant": 2,
+    "BSD-3-Clause AND GPL-3.0-only": 1,
+    "GPL-2.0-or-later WITH Libtool-exception": 3,
+    "FSFULLR AND GPL-2.0-or-later WITH Libtool-exception AND FSFUL": 3,
+    "(LicenseRef-scancode-paypal-sdk-2013-2016 AND Zlib) AND (Zlib AND Libpng) AND libtiff": 1,
+    "Zlib AND HPND-Pbmplus": 1,
+    "(LicenseRef-scancode-public-domain AND Unlicense) AND Unlicense AND LicenseRef-scancode-public-domain": 1,
+    "LicenseRef-scancode-public-domain AND (GPL-1.0-or-later AND Zlib) AND GPL-1.0-or-later": 1,
+    "(Unlicense AND MIT-0) AND (LicenseRef-scancode-public-domain AND Unlicense AND MIT-0)": 1,
+    "LicenseRef-scancode-public-domain OR MIT": 1,
+    "MIT OR Unlicense": 1,
+    "BSD-3-Clause AND LicenseRef-scancode-unknown-license-reference": 1,
+    "LicenseRef-scancode-proprietary-license AND Zlib": 1,
+    "FSFAP-no-warranty-disclaimer": 1,
+    "MIT-Modern-Variant AND MIT": 1,
+    "LicenseRef-scancode-unicode": 1,
+    "FTL OR GPL-3.0-only": 1,
+    "LicenseRef-scancode-protobuf AND Zlib": 1,
+    "Info-ZIP": 1,
+    "GPL-2.0-or-later WITH GNAT-exception": 10,
+    "LicenseRef-scancode-mit-old-style": 1,
+    "Apache-2.0 AND LicenseRef-scancode-warranty-disclaimer": 1,
+    "GPL-3.0-only AND Zlib": 1,
+    "LPD-document": 3,
+    "LicenseRef-scancode-public-domain AND (CC-BY-NC-ND-4.0 AND CC-BY-ND-4.0)": 1,
+    "CC0-1.0 AND OFL-1.1": 1,
+    "CC0-1.0 AND LicenseRef-scancode-public-domain AND OFL-1.1": 1
+  },
+  "scan_errors": {},
+  "review_flags": [
+    {
+      "path": "LICENSES/FFmpeg-LICENSE.md",
+      "expression": "(LGPL-2.1-or-later AND LicenseRef-scancode-other-permissive AND GPL-2.0-or-later) AND GPL-3.0-or-later AND (LGPL-3.0-only AND LGPL-3.0-or-later AND (LGPL-3.0-only AND GPL-3.0-only)) AND (IJG AND MIT) AND GPL-2.0-only AND (GPL-2.0-only AND LGPL-3.0-only) AND (LGPL-3.0-only AND Apache-2.0 AND LGPL-3.0-or-later AND GPL-3.0-only)",
+      "interpretation": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "path": "LICENSES/opus-notice.txt",
+      "expression": "BSD-3-Clause AND LicenseRef-scancode-proprietary-license",
+      "interpretation": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "path": "LICENSES/VCMI-GPL-2.0.txt",
+      "expression": "GPL-2.0-only",
+      "interpretation": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "path": "LICENSES/additional-notices/oneTBB/third-party-programs.txt",
+      "expression": "LicenseRef-scancode-proprietary-license AND BSD-3-Clause AND (LicenseRef-scancode-unknown-license-reference AND BSD-3-Clause) AND (GPL-1.0-or-later AND GCC-exception-3.1) AND MIT",
+      "interpretation": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "path": "LICENSES/components/libpng/contrib/gregbook/COPYING",
+      "expression": "GPL-2.0-only",
+      "interpretation": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "path": "LICENSES/components/opus/COPYING",
+      "expression": "BSD-3-Clause AND LicenseRef-scancode-proprietary-license",
+      "interpretation": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "path": "LICENSES/components/SDL2/src/hidapi/LICENSE.txt",
+      "expression": "GPL-3.0-only AND BSD-3-Clause AND GPL-1.0-or-later AND GPL-2.0-only",
+      "interpretation": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "path": "LICENSES/components/SDL2/Xcode-iOS/Demos/data/bitmapfont/license.txt",
+      "expression": "CPL-1.0 AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "path": "LICENSES/components/SDL2_mixer/VisualC/external/optional/x64/LICENSE.opus.txt",
+      "expression": "BSD-3-Clause AND LicenseRef-scancode-proprietary-license",
+      "interpretation": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "path": "LICENSES/components/SDL2_mixer/VisualC/external/optional/x86/LICENSE.opus.txt",
+      "expression": "BSD-3-Clause AND LicenseRef-scancode-proprietary-license",
+      "interpretation": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "path": "LICENSES/components/SDL2_ttf/external/harfbuzz/COPYING",
+      "expression": "LicenseRef-scancode-unknown-license-reference AND MIT-Modern-Variant",
+      "interpretation": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "path": "LICENSES/components/SDL2_ttf/VisualC/external/lib/x64/LICENSE.harfbuzz.txt",
+      "expression": "(MIT-Modern-Variant AND LicenseRef-scancode-other-permissive) AND (LicenseRef-scancode-unknown-license-reference AND MIT-Modern-Variant)",
+      "interpretation": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "path": "LICENSES/components/SDL2_ttf/VisualC/external/lib/x86/LICENSE.harfbuzz.txt",
+      "expression": "(MIT-Modern-Variant AND LicenseRef-scancode-other-permissive) AND (LicenseRef-scancode-unknown-license-reference AND MIT-Modern-Variant)",
+      "interpretation": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "path": "LICENSES/embedded-source-notices/SDL2_image/src/stb_image.h",
+      "expression": "(LicenseRef-scancode-public-domain AND LicenseRef-scancode-warranty-disclaimer) AND (LicenseRef-scancode-unknown-license-reference AND LicenseRef-scancode-public-domain) AND (MIT OR Unlicense)",
+      "interpretation": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "path": "LICENSES/embedded-source-notices/SDL2_mixer/src/codecs/timidity/README",
+      "expression": "GPL-2.0-only AND LGPL-2.0-or-later AND Artistic-2.0",
+      "interpretation": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "path": "src/vcmi/license.txt",
+      "expression": "GPL-2.0-only",
+      "interpretation": "Original GPLv2 license text retained. VCMI source headers and project grant permit version 2 or later; the combined executable selects GPLv3 under that option, without editing the original GPLv2 text."
+    },
+    {
+      "path": "src/vcmi/CI/wininstaller/lang/BrazilianPortuguese.isl",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "path": "src/vcmi/CI/wininstaller/lang/Czech.isl",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "path": "src/vcmi/CI/wininstaller/lang/English.isl",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "path": "src/vcmi/CI/wininstaller/lang/Finnish.isl",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "path": "src/vcmi/CI/wininstaller/lang/French.isl",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "path": "src/vcmi/CI/wininstaller/lang/German.isl",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "path": "src/vcmi/CI/wininstaller/lang/Hungarian.isl",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "path": "src/vcmi/CI/wininstaller/lang/Italian.isl",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "path": "src/vcmi/CI/wininstaller/lang/Korean.isl",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "path": "src/vcmi/CI/wininstaller/lang/Polish.isl",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "path": "src/vcmi/CI/wininstaller/lang/Russian.isl",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "path": "src/vcmi/CI/wininstaller/lang/Spanish.isl",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "path": "src/vcmi/CI/wininstaller/lang/Swedish.isl",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "path": "src/vcmi/CI/wininstaller/lang/Ukrainian.isl",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "path": "src/vcmi/CI/wininstaller/lang/Vietnamese.isl",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "path": "src/vcmi/client/VitaRenderProfiling.h",
+      "expression": "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference AND GPL-2.0-only",
+      "interpretation": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Short GPLv2-only/BSD fuzzy matches overlap the explicit or-later sentence, not a separate code grant."
+    },
+    {
+      "path": "src/vcmi/client/VitaRuntimeDiagnostics.h",
+      "expression": "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Short GPLv2-only/BSD fuzzy matches overlap the explicit or-later sentence, not a separate code grant."
+    },
+    {
+      "path": "src/vcmi/clientapp/VitaUidDiagnostics.cpp",
+      "expression": "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Vita GPL-2.0-or-later SPDX/header retained; license.txt/MODIFICATIONS.md references resolve to supplied files."
+    },
+    {
+      "path": "src/vcmi/launcher/po/be.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/bg.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/cs.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/de.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/el.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/es.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/fi.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/fil.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/fr.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/hu.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/it.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/ja.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/ko.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/lt.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/lv.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/nl.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/no.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/pl.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/pt.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/ro.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/ru.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/sr.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/sv.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/tr.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/uk.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/VCMI.pot",
+      "expression": "LicenseRef-scancode-free-unknown",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/vi.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/zh_CN.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/launcher/po/zh_TW.po",
+      "expression": "GPL-2.0-only AND GPL-2.0-or-later",
+      "interpretation": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "path": "src/vcmi/lib/rmg/TileInfo.cpp",
+      "expression": "(Apache-2.0 OR GPL-2.0-only) AND GPL-2.0-or-later",
+      "interpretation": "Explicit original header grants GPL-2.0-or-later at line 6 (100% matched). The Apache/GPLv2-only sequence match has 16% score and overlaps lines 6-7 of that same header; it is a fuzzy false alternative, not an additional grant or restriction."
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaBattleEvents.h",
+      "expression": "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference AND (GPL-2.0-only OR BSD-2-Clause)",
+      "interpretation": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Low-confidence GPLv2/BSD sequence matches overlap the explicit or-later license sentence, not additional copied implementation."
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaBonusLocks.h",
+      "expression": "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Low-confidence GPLv2/BSD sequence matches overlap the explicit or-later license sentence, not additional copied implementation."
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaBootScreen.h",
+      "expression": "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference AND (GPL-2.0-only OR BSD-2-Clause)",
+      "interpretation": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Low-confidence GPLv2/BSD sequence matches overlap the explicit or-later license sentence, not additional copied implementation."
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaConditionalWait.h",
+      "expression": "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Low-confidence GPLv2/BSD sequence matches overlap the explicit or-later license sentence, not additional copied implementation."
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaLegacyLineStats.h",
+      "expression": "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference AND (GPL-2.0-only OR BSD-2-Clause)",
+      "interpretation": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Low-confidence GPLv2/BSD sequence matches overlap the explicit or-later license sentence, not additional copied implementation."
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaLegacyNumberParser.h",
+      "expression": "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference AND GPL-2.0-only",
+      "interpretation": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Low-confidence GPLv2/BSD sequence matches overlap the explicit or-later license sentence, not additional copied implementation."
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaLoading.h",
+      "expression": "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Low-confidence GPLv2/BSD sequence matches overlap the explicit or-later license sentence, not additional copied implementation."
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaOpaqueCacheStats.h",
+      "expression": "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference AND (GPL-2.0-only OR BSD-2-Clause)",
+      "interpretation": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Low-confidence GPLv2/BSD sequence matches overlap the explicit or-later license sentence, not additional copied implementation."
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaSurfaceCopyTest.h",
+      "expression": "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference AND (GPL-2.0-only OR BSD-2-Clause)",
+      "interpretation": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Low-confidence GPLv2/BSD sequence matches overlap the explicit or-later license sentence, not additional copied implementation."
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaTownCacheStats.h",
+      "expression": "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference AND (GPL-2.0-only OR BSD-2-Clause)",
+      "interpretation": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Low-confidence GPLv2/BSD sequence matches overlap the explicit or-later license sentence, not additional copied implementation."
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaUidDiagnostics.h",
+      "expression": "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Low-confidence GPLv2/BSD sequence matches overlap the explicit or-later license sentence, not additional copied implementation."
+    },
+    {
+      "path": "src/vcmi/lib/vita/VitaZipIO.h",
+      "expression": "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference AND GPL-2.0-only",
+      "interpretation": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Low-confidence GPLv2/BSD sequence matches overlap the explicit or-later license sentence, not additional copied implementation."
+    },
+    {
+      "path": "third_party/boost-headers/boost/geometry/srs/projections/impl/geocent.hpp",
+      "expression": "BSL-1.0 AND LicenseRef-scancode-unknown",
+      "interpretation": "BSL-1.0 header and original GEOCENTRIC provenance retained. Unknown match is the original LICENSES/None apply and no-restrictions statement."
+    },
+    {
+      "path": "third_party/boost-headers/boost/numeric/odeint/external/mkl/mkl_operations.hpp",
+      "expression": "LicenseRef-scancode-proprietary-license AND BSL-1.0",
+      "interpretation": "BSL-1.0 source header preserved. Proprietary match comes from a comment linking an optional non-commercial MKL download; no MKL library is supplied or linked."
+    },
+    {
+      "path": "third_party/boost-headers/boost/preprocessor/iteration/detail/iter/limits/forward2_1024.hpp",
+      "expression": "BSL-1.0 AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "BSL-1.0 header refers to accompanying LICENSE_1_0.txt, which is supplied; no additional unknown grant is required by the referenced text."
+    },
+    {
+      "path": "third_party/boost-headers/boost/preprocessor/iteration/detail/iter/limits/forward3_1024.hpp",
+      "expression": "BSL-1.0 AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "BSL-1.0 header refers to accompanying LICENSE_1_0.txt, which is supplied; no additional unknown grant is required by the referenced text."
+    },
+    {
+      "path": "third_party/boost-headers/boost/preprocessor/iteration/detail/iter/limits/reverse2_1024.hpp",
+      "expression": "BSL-1.0 AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "BSL-1.0 header refers to accompanying LICENSE_1_0.txt, which is supplied; no additional unknown grant is required by the referenced text."
+    },
+    {
+      "path": "third_party/boost-headers/boost/preprocessor/iteration/detail/iter/limits/reverse3_1024.hpp",
+      "expression": "BSL-1.0 AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "BSL-1.0 header refers to accompanying LICENSE_1_0.txt, which is supplied; no additional unknown grant is required by the referenced text."
+    },
+    {
+      "path": "third_party/FFmpeg/COPYING.GPLv2",
+      "expression": "GPL-2.0-only",
+      "interpretation": "Original license text retained for optional FFmpeg sources; not evidence that GPLv2-only implementation is linked into this configuration."
+    },
+    {
+      "path": "third_party/FFmpeg/LICENSE.md",
+      "expression": "(LGPL-2.1-only AND GPL-2.0-only) AND GPL-3.0-or-later AND (LGPL-3.0-only AND LGPL-3.0-or-later AND GPL-3.0-only) AND (IJG AND MIT) AND GPL-2.0-only AND (GPL-2.0-only AND LGPL-3.0-only) AND (LGPL-3.0-only AND Apache-2.0 AND LGPL-3.0-or-later AND GPL-3.0-only)",
+      "interpretation": "Overview of alternative/optional component licenses. GPL, nonfree and version3 configurations are disabled in the release; retain the overview."
+    },
+    {
+      "path": "third_party/FFmpeg/doc/developer.texi",
+      "expression": "LGPL-2.1-only AND ISC AND MIT AND GPL-2.0-only AND LGPL-2.0-or-later",
+      "interpretation": "Documentation discussing optional libraries and licensing, not a change to the enabled minimal LGPL build; source and notices retained."
+    },
+    {
+      "path": "third_party/FFmpeg/doc/general_contents.texi",
+      "expression": "(GPL-2.0-only AND GPL-1.0-or-later) AND BSD-3-Clause-Clear AND ((Apache-2.0 AND (LGPL-3.0-only OR GPL-3.0-only)) AND GPL-1.0-or-later) AND (GPL-2.0-only AND (Apache-2.0 AND (LGPL-3.0-only OR GPL-3.0-only)))",
+      "interpretation": "Documentation discussing optional libraries and licensing, not a change to the enabled minimal LGPL build; source and notices retained."
+    },
+    {
+      "path": "third_party/FFmpeg/fftools/opt_common.c",
+      "expression": "LGPL-2.1-or-later AND (LicenseRef-scancode-proprietary-license AND GPL-3.0-only AND GPL-3.0-or-later AND GPL-2.0-or-later AND LGPL-3.0-only AND LGPL-3.0-or-later AND LGPL-2.1-or-later)",
+      "interpretation": "LGPL header; code prints possible configured license descriptions. Programs are disabled, so this optional tool is not linked."
+    },
+    {
+      "path": "third_party/FFmpeg/libavcodec/vulkan_decode.c",
+      "expression": "LGPL-2.1-or-later AND LicenseRef-scancode-proprietary-license",
+      "interpretation": "LGPL header; proprietary match is the VK_DRIVER_ID_NVIDIA_PROPRIETARY identifier. Vulkan decoding is disabled."
+    },
+    {
+      "path": "third_party/FFmpeg/libavcodec/vvc/itx_1d.c",
+      "expression": "(LGPL-2.1-or-later AND (BSD-2-Clause AND LicenseRef-scancode-proprietary-license)) AND BSD-3-Clause AND CC-BY-4.0",
+      "interpretation": "LGPL-2.1-or-later and full BSD-3-Clause grant preserved. Proprietary detection is the standard third-party/patent-rights disclaimer, not a restriction on the BSD grant. CC-BY matches are two-token hits in transform-table variables at lines 413/435, not license notices. VVC is disabled."
+    },
+    {
+      "path": "third_party/FFmpeg/libavformat/mpegtsenc.c",
+      "expression": "LGPL-2.1-or-later AND (LGPL-2.0-only AND LGPL-2.1-or-later)",
+      "interpretation": "Full LGPL-2.1-or-later source header retained; the additional notice says Released under the LGPL v2.1+. The scanner GPL-only label does not match the full source grant. This transport-stream muxer is disabled."
+    },
+    {
+      "path": "third_party/freetype/LICENSE.TXT",
+      "expression": "MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL",
+      "interpretation": "FreeType source/build documentation refers to its included license alternatives. The FTL option is selected; docs/FTL.TXT, original GPL alternative and per-file permissive notices are retained."
+    },
+    {
+      "path": "third_party/freetype/Makefile",
+      "expression": "MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL",
+      "interpretation": "FreeType source/build documentation refers to its included license alternatives. The FTL option is selected; docs/FTL.TXT, original GPL alternative and per-file permissive notices are retained."
+    },
+    {
+      "path": "third_party/freetype/meson_options.txt",
+      "expression": "MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL",
+      "interpretation": "FreeType source/build documentation refers to its included license alternatives. The FTL option is selected; docs/FTL.TXT, original GPL alternative and per-file permissive notices are retained."
+    },
+    {
+      "path": "third_party/freetype/modules.cfg",
+      "expression": "MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL",
+      "interpretation": "FreeType source/build documentation refers to its included license alternatives. The FTL option is selected; docs/FTL.TXT, original GPL alternative and per-file permissive notices are retained."
+    },
+    {
+      "path": "third_party/freetype/README",
+      "expression": "MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL",
+      "interpretation": "FreeType source/build documentation refers to its included license alternatives. The FTL option is selected; docs/FTL.TXT, original GPL alternative and per-file permissive notices are retained."
+    },
+    {
+      "path": "third_party/freetype/README.git",
+      "expression": "MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL",
+      "interpretation": "FreeType source/build documentation refers to its included license alternatives. The FTL option is selected; docs/FTL.TXT, original GPL alternative and per-file permissive notices are retained."
+    },
+    {
+      "path": "third_party/freetype/vms_make.com",
+      "expression": "FTL WITH Autoconf-exception-generic AND (MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL) AND MIT",
+      "interpretation": "FreeType source/build documentation refers to its included license alternatives. The FTL option is selected; docs/FTL.TXT, original GPL alternative and per-file permissive notices are retained."
+    },
+    {
+      "path": "third_party/freetype/builds/unix/ltmain.sh",
+      "expression": "GPL-2.0-or-later WITH Libtool-exception AND LicenseRef-scancode-warranty-disclaimer AND (MIT AND GPL-2.0-or-later AND GPL-2.0-only) AND ((MIT OR GPL-3.0-only) AND GPL-2.0-or-later AND GPL-2.0-only) AND GPL-2.0-or-later",
+      "interpretation": "FreeType source/build documentation refers to its included license alternatives. The FTL option is selected; docs/FTL.TXT, original GPL alternative and per-file permissive notices are retained."
+    },
+    {
+      "path": "third_party/freetype/docs/GPLv2.TXT",
+      "expression": "GPL-2.0-only",
+      "interpretation": "FreeType source/build documentation refers to its included license alternatives. The FTL option is selected; docs/FTL.TXT, original GPL alternative and per-file permissive notices are retained."
+    },
+    {
+      "path": "third_party/freetype/src/tools/no-copyright",
+      "expression": "GPL-2.0-only",
+      "interpretation": "FreeType source/build documentation refers to its included license alternatives. The FTL option is selected; docs/FTL.TXT, original GPL alternative and per-file permissive notices are retained."
+    },
+    {
+      "path": "third_party/libogg/ltmain.sh",
+      "expression": "GPL-2.0-or-later WITH Libtool-exception AND LicenseRef-scancode-warranty-disclaimer AND (MIT AND GPL-2.0-or-later AND GPL-2.0-only) AND BSD-3-Clause AND ((MIT OR GPL-3.0-only) AND GPL-2.0-or-later AND GPL-2.0-only)",
+      "interpretation": "Build-support script with original notices/exceptions retained. Libtool/Autoconf and generated example license references do not change the runtime library license; script source remains available."
+    },
+    {
+      "path": "third_party/libpng/aclocal.m4",
+      "expression": "FSFULLRWD AND FSFULLR AND FSFULLRSD AND GPL-2.0-only",
+      "interpretation": "Build-support script with original notices/exceptions retained. Libtool/Autoconf and generated example license references do not change the runtime library license; script source remains available."
+    },
+    {
+      "path": "third_party/libpng/CHANGES",
+      "expression": "LicenseRef-scancode-unknown-license-reference AND Libpng AND MIT",
+      "interpretation": "Historical license discussion retained as documentation, not a replacement for the current PNG library license."
+    },
+    {
+      "path": "third_party/libpng/configure",
+      "expression": "FSFUL AND GPL-2.0-only AND GPL-2.0-or-later WITH Libtool-exception",
+      "interpretation": "Build-support script with original notices/exceptions retained. Libtool/Autoconf and generated example license references do not change the runtime library license; script source remains available."
+    },
+    {
+      "path": "third_party/libpng/ltmain.sh",
+      "expression": "GPL-2.0-or-later WITH Libtool-exception AND LicenseRef-scancode-warranty-disclaimer AND (MIT AND GPL-2.0-or-later AND GPL-2.0-only) AND ((MIT OR GPL-3.0-only) AND GPL-2.0-or-later AND GPL-2.0-only) AND GPL-2.0-or-later",
+      "interpretation": "Build-support script with original notices/exceptions retained. Libtool/Autoconf and generated example license references do not change the runtime library license; script source remains available."
+    },
+    {
+      "path": "third_party/libpng/contrib/gregbook/COPYING",
+      "expression": "GPL-2.0-only",
+      "interpretation": "Separate example programs offer the Greg Roelofs permission or GPL-2.0-or-later. Notices and COPYING retained. Examples are not part of the Vita runtime build."
+    },
+    {
+      "path": "third_party/libpng/contrib/gregbook/rpng-win.c",
+      "expression": "(LicenseRef-scancode-unknown-license-reference AND GPL-2.0-only) AND (LicenseRef-scancode-greg-roelofs OR GPL-2.0-or-later)",
+      "interpretation": "Separate example programs offer the Greg Roelofs permission or GPL-2.0-or-later. Notices and COPYING retained. Examples are not part of the Vita runtime build."
+    },
+    {
+      "path": "third_party/libpng/contrib/gregbook/rpng-x.c",
+      "expression": "(LicenseRef-scancode-unknown-license-reference AND GPL-2.0-only) AND (LicenseRef-scancode-greg-roelofs OR GPL-2.0-or-later)",
+      "interpretation": "Separate example programs offer the Greg Roelofs permission or GPL-2.0-or-later. Notices and COPYING retained. Examples are not part of the Vita runtime build."
+    },
+    {
+      "path": "third_party/libpng/contrib/gregbook/rpng2-win.c",
+      "expression": "(LicenseRef-scancode-unknown-license-reference AND GPL-2.0-only) AND (LicenseRef-scancode-greg-roelofs OR GPL-2.0-or-later)",
+      "interpretation": "Separate example programs offer the Greg Roelofs permission or GPL-2.0-or-later. Notices and COPYING retained. Examples are not part of the Vita runtime build."
+    },
+    {
+      "path": "third_party/libpng/contrib/gregbook/rpng2-x.c",
+      "expression": "(LicenseRef-scancode-unknown-license-reference AND GPL-2.0-only) AND (LicenseRef-scancode-greg-roelofs OR GPL-2.0-or-later)",
+      "interpretation": "Separate example programs offer the Greg Roelofs permission or GPL-2.0-or-later. Notices and COPYING retained. Examples are not part of the Vita runtime build."
+    },
+    {
+      "path": "third_party/libpng/contrib/gregbook/wpng.c",
+      "expression": "(LicenseRef-scancode-unknown-license-reference AND GPL-2.0-only) AND (LicenseRef-scancode-greg-roelofs OR GPL-2.0-or-later)",
+      "interpretation": "Separate example programs offer the Greg Roelofs permission or GPL-2.0-or-later. Notices and COPYING retained. Examples are not part of the Vita runtime build."
+    },
+    {
+      "path": "third_party/libwebp/aclocal.m4",
+      "expression": "FSFULLRWD AND FSFULLR AND FSFULLRSD AND GPL-2.0-only",
+      "interpretation": "Build-support script with original notices/exceptions retained. Libtool/Autoconf and generated example license references do not change the runtime library license; script source remains available."
+    },
+    {
+      "path": "third_party/libwebp/configure",
+      "expression": "FSFUL AND GPL-2.0-only AND GPL-2.0-or-later WITH Libtool-exception",
+      "interpretation": "Build-support script with original notices/exceptions retained. Libtool/Autoconf and generated example license references do not change the runtime library license; script source remains available."
+    },
+    {
+      "path": "third_party/libwebp/ltmain.sh",
+      "expression": "GPL-2.0-or-later WITH Libtool-exception AND LicenseRef-scancode-warranty-disclaimer AND (MIT AND GPL-2.0-or-later AND GPL-2.0-only) AND BSD-3-Clause AND ((MIT OR GPL-3.0-only) AND GPL-2.0-or-later AND GPL-2.0-only) AND GPL-2.0-or-later",
+      "interpretation": "Build-support script with original notices/exceptions retained. Libtool/Autoconf and generated example license references do not change the runtime library license; script source remains available."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/Makefile",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lib_bit.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lib_buffer.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lib_ffi.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lib_jit.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lib_math.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/ljamalg.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_arch.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_asm.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_asm.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_asm_arm.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_asm_arm64.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_asm_mips.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_asm_ppc.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_asm_x86.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_assert.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_bc.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_bc.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_bcdump.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_bcread.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_bcwrite.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_buf.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_buf.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_carith.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_carith.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_ccall.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_ccall.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_ccallback.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_ccallback.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_cconv.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_cconv.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_cdata.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_cdata.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_clib.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_clib.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_cparse.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_cparse.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_crecord.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_crecord.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_ctype.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_ctype.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_debug.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_debug.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_def.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_dispatch.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_dispatch.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_emit_arm.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_emit_arm64.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_emit_mips.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_emit_ppc.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_emit_x86.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_err.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_err.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_errmsg.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_ff.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_ffrecord.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_ffrecord.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_frame.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_func.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_gc.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_gdbjit.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_gdbjit.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_ir.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_ir.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_ircall.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_iropt.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_jit.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_lex.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_lib.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_lib.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_load.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_mcode.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_mcode.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_meta.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_obj.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_opt_dce.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_opt_fold.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_opt_loop.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_opt_mem.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_opt_narrow.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_opt_sink.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_opt_split.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_parse.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_prng.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_prng.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_profile.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_profile.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_record.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_record.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_serialize.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_serialize.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_snap.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_snap.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_state.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_str.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_str.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_strfmt.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_strfmt.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_strfmt_num.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_strscan.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_strscan.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_tab.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_target.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_target_arm.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_target_arm64.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_target_mips.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_target_ppc.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_target_x86.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_trace.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_trace.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_traceerr.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_udata.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_udata.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_vm.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_vmevent.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_vmevent.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lj_vmmath.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/luaconf.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/lualib.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/Makefile",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/msvcbuild.bat",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/vm_arm.dasc",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/vm_arm64.dasc",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/vm_mips.dasc",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/vm_mips64.dasc",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/vm_ppc.dasc",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/vm_x64.dasc",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/vm_x86.dasc",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/host/buildvm.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/host/buildvm.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/host/buildvm_asm.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/host/buildvm_fold.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/host/buildvm_lib.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/host/buildvm_peobj.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/host/genlibbc.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/host/genminilua.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/bc.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/bcsave.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/dis_arm.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/dis_arm64.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/dis_arm64be.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/dis_mips.lua",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/dis_mips64.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/dis_mips64el.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/dis_mips64r6.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/dis_mips64r6el.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/dis_mipsel.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/dis_ppc.lua",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/dis_x64.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/dis_x86.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/dump.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/p.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/v.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/LuaJIT-Vita/src/jit/zone.lua",
+      "expression": "MIT AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "path": "third_party/oneTBB/third-party-programs.txt",
+      "expression": "LicenseRef-scancode-proprietary-license AND BSD-3-Clause AND (LicenseRef-scancode-unknown-license-reference AND BSD-3-Clause) AND (GPL-1.0-or-later AND GCC-exception-3.1) AND MIT",
+      "interpretation": "Original Apache-distribution third-party notices preserved. Generic Intel EULA preface does not replace the actual included BSD/MIT/runtime-exception notices; hwloc reference resolves to its reproduced BSD grant. No proprietary Intel runtime is bundled."
+    },
+    {
+      "path": "third_party/oneTBB/python/setup.py",
+      "expression": "Apache-2.0 AND (LicenseRef-scancode-unknown-license-reference AND Apache-2.0)",
+      "interpretation": "Apache-2.0 source refers to accompanying license; Python bindings are not built."
+    },
+    {
+      "path": "third_party/opus/COPYING",
+      "expression": "BSD-3-Clause AND LicenseRef-scancode-proprietary-license",
+      "interpretation": "BSD-3-Clause grant and patent-license references retained. Patent-grant references are not a proprietary source-code license."
+    },
+    {
+      "path": "third_party/opus/ltmain.sh",
+      "expression": "GPL-2.0-or-later WITH Libtool-exception AND LicenseRef-scancode-warranty-disclaimer AND (MIT AND GPL-2.0-or-later AND GPL-2.0-only) AND (BSD-3-Clause AND LicenseRef-scancode-proprietary-license) AND ((MIT OR GPL-3.0-only) AND GPL-2.0-or-later AND GPL-2.0-only)",
+      "interpretation": "Build-support script with original notices/exceptions retained. Libtool/Autoconf and generated example license references do not change the runtime library license; script source remains available."
+    },
+    {
+      "path": "third_party/SDL2/src/hidapi/LICENSE.txt",
+      "expression": "GPL-3.0-only AND BSD-3-Clause AND GPL-1.0-or-later AND GPL-2.0-only",
+      "interpretation": "HIDAPI offers original/BSD/GPL alternatives; all original license files remain supplied. Makefile license-name lists cause mixed-license scanner detections. Vita uses its selected platform backend; no non-commercial grant is selected."
+    },
+    {
+      "path": "third_party/SDL2/src/hidapi/Makefile.am",
+      "expression": "BSD-3-Clause AND GPL-3.0-only AND GPL-1.0-or-later AND GPL-2.0-only",
+      "interpretation": "HIDAPI offers original/BSD/GPL alternatives; all original license files remain supplied. Makefile license-name lists cause mixed-license scanner detections. Vita uses its selected platform backend; no non-commercial grant is selected."
+    },
+    {
+      "path": "third_party/SDL2/src/stdlib/SDL_qsort.c",
+      "expression": "Zlib AND BSD-2-Clause AND (LicenseRef-scancode-public-domain AND LicenseRef-scancode-other-permissive AND LicenseRef-scancode-proprietary-license)",
+      "interpretation": "Gareth McCaughan relicensed this code under zlib, explicitly recorded at lines 66-75, with complete grant below. Historical descriptions do not impose a proprietary restriction; original notices retained."
+    },
+    {
+      "path": "third_party/SDL2/src/video/khronos/vulkan/vulkan_core.h",
+      "expression": "Apache-2.0 AND LicenseRef-scancode-proprietary-license",
+      "interpretation": "Apache-2.0 header; proprietary detection is a driver enum name, not the source license. Vulkan backend is not built for this Vita configuration."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/include/SDL_visualtest_action_configparser.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/include/SDL_visualtest_exhaustive_variator.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/include/SDL_visualtest_parsehelper.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/include/SDL_visualtest_process.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/include/SDL_visualtest_random_variator.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/include/SDL_visualtest_rwhelper.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/include/SDL_visualtest_screenshot.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/include/SDL_visualtest_sut_configparser.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/include/SDL_visualtest_variators.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/include/SDL_visualtest_variator_common.h",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/src/action_configparser.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/src/harness_argparser.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/src/parsehelper.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/src/rwhelper.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/src/screenshot.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/src/sut_configparser.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/src/testharness.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/src/variators.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/src/variator_common.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/src/variator_exhaustive.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/src/variator_random.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/src/linux/linux_process.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/src/windows/windows_process.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/visualtest/src/windows/windows_screenshot.c",
+      "expression": "LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "path": "third_party/SDL2/Xcode-iOS/Demos/data/bitmapfont/license.txt",
+      "expression": "CPL-1.0 AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "Original CPL-1.0 grant and font-author notice for an unmodified, separate iOS demo bitmap font. Full terms remain with the demo asset; it is not linked into or packaged with the Vita application."
+    },
+    {
+      "path": "third_party/SDL2_image/src/stb_image.h",
+      "expression": "(LicenseRef-scancode-public-domain AND LicenseRef-scancode-warranty-disclaimer) AND (LicenseRef-scancode-unknown-license-reference AND LicenseRef-scancode-public-domain) AND (MIT OR Unlicense)",
+      "interpretation": "Original stb image single-header decoder retains complete MIT/public-domain alternatives at its end; references do not introduce an unidentified third license."
+    },
+    {
+      "path": "third_party/SDL2_mixer/src/codecs/timidity/README",
+      "expression": "GPL-2.0-only AND LGPL-2.0-or-later AND Artistic-2.0",
+      "interpretation": "Original README records the author's GPL/LGPL/Artistic alternatives. Notices and source retained; it does not impose each alternative cumulatively."
+    },
+    {
+      "path": "third_party/SDL2_mixer/VisualC/external/include/wavpack/wavpack.h",
+      "expression": "BSD-3-Clause AND LicenseRef-scancode-unknown-license-reference",
+      "interpretation": "BSD grant is supplied in VisualC/external/optional/x86/LICENSE.wavpack.txt and its x64 copy. Optional Windows API header only; WavPack implementation is not bundled in the Vita executable."
+    },
+    {
+      "path": "third_party/SDL2_mixer/VisualC/external/optional/x64/LICENSE.opus.txt",
+      "expression": "BSD-3-Clause AND LicenseRef-scancode-proprietary-license",
+      "interpretation": "Original notices for optional Windows dependency packages; no Windows library binaries are supplied. Opus retains its BSD-3-Clause grant and patent references."
+    },
+    {
+      "path": "third_party/SDL2_mixer/VisualC/external/optional/x86/LICENSE.opus.txt",
+      "expression": "BSD-3-Clause AND LicenseRef-scancode-proprietary-license",
+      "interpretation": "Original notices for optional Windows dependency packages; no Windows library binaries are supplied. Opus retains its BSD-3-Clause grant and patent references."
+    },
+    {
+      "path": "third_party/SDL2_ttf/README.txt",
+      "expression": "LicenseRef-scancode-proprietary-license AND Zlib",
+      "interpretation": "Warning about third-party Microsoft font redistribution is documentation, not a license on SDL_ttf or the included OFL Noto fonts. SDL_ttf uses the supplied zlib grant."
+    },
+    {
+      "path": "third_party/SDL2_ttf/external/freetype/LICENSE.TXT",
+      "expression": "MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL",
+      "interpretation": "Bundled FreeType source/build references resolve to included license texts. FTL option and all original notices retained; optional GPL alternative text is not a GPLv2-only runtime selection."
+    },
+    {
+      "path": "third_party/SDL2_ttf/external/freetype/Makefile",
+      "expression": "MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL",
+      "interpretation": "Bundled FreeType source/build references resolve to included license texts. FTL option and all original notices retained; optional GPL alternative text is not a GPLv2-only runtime selection."
+    },
+    {
+      "path": "third_party/SDL2_ttf/external/freetype/meson_options.txt",
+      "expression": "MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL",
+      "interpretation": "Bundled FreeType source/build references resolve to included license texts. FTL option and all original notices retained; optional GPL alternative text is not a GPLv2-only runtime selection."
+    },
+    {
+      "path": "third_party/SDL2_ttf/external/freetype/modules.cfg",
+      "expression": "MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL",
+      "interpretation": "Bundled FreeType source/build references resolve to included license texts. FTL option and all original notices retained; optional GPL alternative text is not a GPLv2-only runtime selection."
+    },
+    {
+      "path": "third_party/SDL2_ttf/external/freetype/README",
+      "expression": "MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL",
+      "interpretation": "Bundled FreeType source/build references resolve to included license texts. FTL option and all original notices retained; optional GPL alternative text is not a GPLv2-only runtime selection."
+    },
+    {
+      "path": "third_party/SDL2_ttf/external/freetype/README.git",
+      "expression": "MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL",
+      "interpretation": "Bundled FreeType source/build references resolve to included license texts. FTL option and all original notices retained; optional GPL alternative text is not a GPLv2-only runtime selection."
+    },
+    {
+      "path": "third_party/SDL2_ttf/external/freetype/vms_make.com",
+      "expression": "FTL WITH Autoconf-exception-generic AND (MIT AND LicenseRef-scancode-public-domain AND GPL-2.0-only AND FTL) AND MIT",
+      "interpretation": "Bundled FreeType source/build references resolve to included license texts. FTL option and all original notices retained; optional GPL alternative text is not a GPLv2-only runtime selection."
+    },
+    {
+      "path": "third_party/SDL2_ttf/external/freetype/docs/GPLv2.TXT",
+      "expression": "GPL-2.0-only",
+      "interpretation": "Bundled FreeType source/build references resolve to included license texts. FTL option and all original notices retained; optional GPL alternative text is not a GPLv2-only runtime selection."
+    },
+    {
+      "path": "third_party/SDL2_ttf/external/freetype/src/tools/no-copyright",
+      "expression": "GPL-2.0-only",
+      "interpretation": "Bundled FreeType source/build references resolve to included license texts. FTL option and all original notices retained; optional GPL alternative text is not a GPLv2-only runtime selection."
+    },
+    {
+      "path": "third_party/SDL2_ttf/external/harfbuzz/COPYING",
+      "expression": "LicenseRef-scancode-unknown-license-reference AND MIT-Modern-Variant",
+      "interpretation": "Original HarfBuzz Old MIT grant and copyright notices preserved. The unknown-reference match asks readers to consult individual source/subdirectory COPYING files; supplied source notices remain authoritative."
+    },
+    {
+      "path": "third_party/SDL2_ttf/VisualC/external/lib/x64/LICENSE.harfbuzz.txt",
+      "expression": "(MIT-Modern-Variant AND LicenseRef-scancode-other-permissive) AND (LicenseRef-scancode-unknown-license-reference AND MIT-Modern-Variant)",
+      "interpretation": "Original optional Windows dependency notice collection retained without Windows binaries. HarfBuzz Old MIT grant is reproduced in full; per-file notice references are not a separate unidentified license."
+    },
+    {
+      "path": "third_party/SDL2_ttf/VisualC/external/lib/x86/LICENSE.harfbuzz.txt",
+      "expression": "(MIT-Modern-Variant AND LicenseRef-scancode-other-permissive) AND (LicenseRef-scancode-unknown-license-reference AND MIT-Modern-Variant)",
+      "interpretation": "Original optional Windows dependency notice collection retained without Windows binaries. HarfBuzz Old MIT grant is reproduced in full; per-file notice references are not a separate unidentified license."
+    },
+    {
+      "path": "third_party/SDL2_ttf/Xcode/pkg-support/resources/HarfBuzz-LICENSE.txt",
+      "expression": "(MIT-Modern-Variant AND LicenseRef-scancode-other-permissive) AND (LicenseRef-scancode-unknown-license-reference AND MIT-Modern-Variant)",
+      "interpretation": "Original optional Apple dependency license notice retained. No Apple compiled framework is distributed or linked into the Vita executable; source/license alternatives remain supplied."
+    },
+    {
+      "path": "third_party/zlib/examples/zlib_how.html",
+      "expression": "LicenseRef-scancode-public-domain AND (CC-BY-NC-ND-4.0 AND CC-BY-ND-4.0)",
+      "interpretation": "zlib example source refers to the copyright/permission notice in supplied zlib.h. Source and notice retained; separate example program is not the Vita runtime."
+    }
+  ],
+  "status": "reviewed",
+  "report": "scancode-licenses.json.gz",
+  "path_normalization": "Local diagnostic prefixes normalized; findings and file hashes retained.",
+  "review_scope": "Internal path/header/build-configuration interpretation of all flagged findings; every eligible source/doc SHA1 verified against merged ScanCode output. Not independent legal certification or an authorship/similarity audit.",
+  "remediation": "Omitted unused modified PKWARE/Info-ZIP ZIP-specification reference documents; kept implementation source, original copyright/license notices and alternatives.",
+  "no_detection": "No license detection is not a grant or proof of original authorship. Original component notices, provenance, supplied license inventory and author/asset records remain necessary.",
+  "interpretation_groups": [
+    {
+      "files": 15,
+      "rationale": "Retained license/author texts describe separate components and alternatives; scanner conjunctions in a notice collection are not the license of every linked file. Component source and build configuration govern selection."
+    },
+    {
+      "files": 1,
+      "rationale": "Original GPLv2 license text retained. VCMI source headers and project grant permit version 2 or later; the combined executable selects GPLv3 under that option, without editing the original GPLv2 text."
+    },
+    {
+      "files": 15,
+      "rationale": "License-agreement dialog/message translations in the upstream Windows installer. Unknown-reference hits are interface text, not a source license declaration. Upstream source provenance retained; Windows installer is not part of the Vita build."
+    },
+    {
+      "files": 2,
+      "rationale": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Short GPLv2-only/BSD fuzzy matches overlap the explicit or-later sentence, not a separate code grant."
+    },
+    {
+      "files": 1,
+      "rationale": "Vita GPL-2.0-or-later SPDX/header retained; license.txt/MODIFICATIONS.md references resolve to supplied files."
+    },
+    {
+      "files": 29,
+      "rationale": "Translation header explicitly grants GPL-2.0-or-later; GPLv2-only hits overlap translated license text. Launcher/translations are disabled for the Vita build; original author notices remain."
+    },
+    {
+      "files": 1,
+      "rationale": "Explicit original header grants GPL-2.0-or-later at line 6 (100% matched). The Apache/GPLv2-only sequence match has 16% score and overlaps lines 6-7 of that same header; it is a fuzzy false alternative, not an additional grant or restriction."
+    },
+    {
+      "files": 12,
+      "rationale": "Vita GPL-2.0-or-later SPDX/header retained. Unknown references point to supplied license.txt/MODIFICATIONS.md. Low-confidence GPLv2/BSD sequence matches overlap the explicit or-later license sentence, not additional copied implementation."
+    },
+    {
+      "files": 1,
+      "rationale": "BSL-1.0 header and original GEOCENTRIC provenance retained. Unknown match is the original LICENSES/None apply and no-restrictions statement."
+    },
+    {
+      "files": 1,
+      "rationale": "BSL-1.0 source header preserved. Proprietary match comes from a comment linking an optional non-commercial MKL download; no MKL library is supplied or linked."
+    },
+    {
+      "files": 4,
+      "rationale": "BSL-1.0 header refers to accompanying LICENSE_1_0.txt, which is supplied; no additional unknown grant is required by the referenced text."
+    },
+    {
+      "files": 1,
+      "rationale": "Original license text retained for optional FFmpeg sources; not evidence that GPLv2-only implementation is linked into this configuration."
+    },
+    {
+      "files": 1,
+      "rationale": "Overview of alternative/optional component licenses. GPL, nonfree and version3 configurations are disabled in the release; retain the overview."
+    },
+    {
+      "files": 2,
+      "rationale": "Documentation discussing optional libraries and licensing, not a change to the enabled minimal LGPL build; source and notices retained."
+    },
+    {
+      "files": 1,
+      "rationale": "LGPL header; code prints possible configured license descriptions. Programs are disabled, so this optional tool is not linked."
+    },
+    {
+      "files": 1,
+      "rationale": "LGPL header; proprietary match is the VK_DRIVER_ID_NVIDIA_PROPRIETARY identifier. Vulkan decoding is disabled."
+    },
+    {
+      "files": 1,
+      "rationale": "LGPL-2.1-or-later and full BSD-3-Clause grant preserved. Proprietary detection is the standard third-party/patent-rights disclaimer, not a restriction on the BSD grant. CC-BY matches are two-token hits in transform-table variables at lines 413/435, not license notices. VVC is disabled."
+    },
+    {
+      "files": 1,
+      "rationale": "Full LGPL-2.1-or-later source header retained; the additional notice says Released under the LGPL v2.1+. The scanner GPL-only label does not match the full source grant. This transport-stream muxer is disabled."
+    },
+    {
+      "files": 10,
+      "rationale": "FreeType source/build documentation refers to its included license alternatives. The FTL option is selected; docs/FTL.TXT, original GPL alternative and per-file permissive notices are retained."
+    },
+    {
+      "files": 8,
+      "rationale": "Build-support script with original notices/exceptions retained. Libtool/Autoconf and generated example license references do not change the runtime library license; script source remains available."
+    },
+    {
+      "files": 1,
+      "rationale": "Historical license discussion retained as documentation, not a replacement for the current PNG library license."
+    },
+    {
+      "files": 6,
+      "rationale": "Separate example programs offer the Greg Roelofs permission or GPL-2.0-or-later. Notices and COPYING retained. Examples are not part of the Vita runtime build."
+    },
+    {
+      "files": 154,
+      "rationale": "LuaJIT files refer to the copyright notice in luajit.h; the MIT grant and Lua notice are supplied in COPYRIGHT and the license collection. Original references remain unchanged."
+    },
+    {
+      "files": 1,
+      "rationale": "Original Apache-distribution third-party notices preserved. Generic Intel EULA preface does not replace the actual included BSD/MIT/runtime-exception notices; hwloc reference resolves to its reproduced BSD grant. No proprietary Intel runtime is bundled."
+    },
+    {
+      "files": 1,
+      "rationale": "Apache-2.0 source refers to accompanying license; Python bindings are not built."
+    },
+    {
+      "files": 1,
+      "rationale": "BSD-3-Clause grant and patent-license references retained. Patent-grant references are not a proprietary source-code license."
+    },
+    {
+      "files": 2,
+      "rationale": "HIDAPI offers original/BSD/GPL alternatives; all original license files remain supplied. Makefile license-name lists cause mixed-license scanner detections. Vita uses its selected platform backend; no non-commercial grant is selected."
+    },
+    {
+      "files": 1,
+      "rationale": "Gareth McCaughan relicensed this code under zlib, explicitly recorded at lines 66-75, with complete grant below. Historical descriptions do not impose a proprietary restriction; original notices retained."
+    },
+    {
+      "files": 1,
+      "rationale": "Apache-2.0 header; proprietary detection is a driver enum name, not the source license. Vulkan backend is not built for this Vita configuration."
+    },
+    {
+      "files": 24,
+      "rationale": "Standalone SDL visual-test files refer to the accompanying SDL LICENSE.txt, supplied at the SDL source root. These test-harness sources are not linked into the Vita runtime."
+    },
+    {
+      "files": 1,
+      "rationale": "Original CPL-1.0 grant and font-author notice for an unmodified, separate iOS demo bitmap font. Full terms remain with the demo asset; it is not linked into or packaged with the Vita application."
+    },
+    {
+      "files": 1,
+      "rationale": "Original stb image single-header decoder retains complete MIT/public-domain alternatives at its end; references do not introduce an unidentified third license."
+    },
+    {
+      "files": 1,
+      "rationale": "Original README records the author's GPL/LGPL/Artistic alternatives. Notices and source retained; it does not impose each alternative cumulatively."
+    },
+    {
+      "files": 1,
+      "rationale": "BSD grant is supplied in VisualC/external/optional/x86/LICENSE.wavpack.txt and its x64 copy. Optional Windows API header only; WavPack implementation is not bundled in the Vita executable."
+    },
+    {
+      "files": 2,
+      "rationale": "Original notices for optional Windows dependency packages; no Windows library binaries are supplied. Opus retains its BSD-3-Clause grant and patent references."
+    },
+    {
+      "files": 1,
+      "rationale": "Warning about third-party Microsoft font redistribution is documentation, not a license on SDL_ttf or the included OFL Noto fonts. SDL_ttf uses the supplied zlib grant."
+    },
+    {
+      "files": 9,
+      "rationale": "Bundled FreeType source/build references resolve to included license texts. FTL option and all original notices retained; optional GPL alternative text is not a GPLv2-only runtime selection."
+    },
+    {
+      "files": 1,
+      "rationale": "Original HarfBuzz Old MIT grant and copyright notices preserved. The unknown-reference match asks readers to consult individual source/subdirectory COPYING files; supplied source notices remain authoritative."
+    },
+    {
+      "files": 2,
+      "rationale": "Original optional Windows dependency notice collection retained without Windows binaries. HarfBuzz Old MIT grant is reproduced in full; per-file notice references are not a separate unidentified license."
+    },
+    {
+      "files": 1,
+      "rationale": "Original optional Apple dependency license notice retained. No Apple compiled framework is distributed or linked into the Vita executable; source/license alternatives remain supplied."
+    },
+    {
+      "files": 1,
+      "rationale": "zlib example source refers to the copyright/permission notice in supplied zlib.h. Source and notice retained; separate example program is not the Vita runtime."
+    }
+  ]
+}

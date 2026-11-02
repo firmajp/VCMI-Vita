@@ -168,12 +168,8 @@ void CArchiveLoader::initSNDArchive(const std::string &mountPoint, CFileInputStr
 	}
 }
 
-std::unique_ptr<CInputStream> CArchiveLoader::load(const ResourcePath & resourceName) const
+static std::unique_ptr<CInputStream> openArchiveEntry(const boost::filesystem::path & archive, const ArchiveEntry & entry)
 {
-	assert(existsResource(resourceName));
-
-	const ArchiveEntry & entry = entries.at(resourceName);
-
 	if (entry.compressedSize != 0) //compressed data
 	{
 		auto fileStream = std::make_unique<CFileInputStream>(archive, entry.offset, entry.compressedSize);
@@ -184,6 +180,20 @@ std::unique_ptr<CInputStream> CArchiveLoader::load(const ResourcePath & resource
 	{
 		return std::make_unique<CFileInputStream>(archive, entry.offset, entry.fullSize);
 	}
+}
+
+std::unique_ptr<CInputStream> CArchiveLoader::load(const ResourcePath & resourceName) const
+{
+	assert(existsResource(resourceName));
+	return openArchiveEntry(archive, entries.at(resourceName));
+}
+
+std::function<std::unique_ptr<CInputStream>()> CArchiveLoader::makeStreamOpener(const ResourcePath & resourceName) const
+{
+	return [path = archive, entry = entries.at(resourceName)]()
+	{
+		return openArchiveEntry(path, entry);
+	};
 }
 
 bool CArchiveLoader::existsResource(const ResourcePath & resourceName) const

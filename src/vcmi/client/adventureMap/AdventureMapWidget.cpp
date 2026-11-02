@@ -8,7 +8,11 @@
  *
  */
 #include "StdInc.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaMapUiStats.h"
+#endif
 #include "AdventureMapWidget.h"
+#include "../../lib/texts/CGeneralTextHandler.h"
 
 #include "AdventureMapShortcuts.h"
 #include "CInfoBar.h"
@@ -404,6 +408,8 @@ std::shared_ptr<CInfoBar> AdventureMapWidget::getInfoBar()
 
 void AdventureMapWidget::setPlayerColor(const PlayerColor & player)
 {
+	mapLayerButtonSource.reset();
+	mapLayerHelpSource.reset();
 	setPlayerChildren(this, player);
 }
 
@@ -523,40 +529,57 @@ void AdventureMapWidget::updateActiveState()
 void AdventureMapWidget::updateMapLayerButtonsHelp()
 {
 	if(!settings["general"]["enableUiEnhancements"].Bool())
+	{
+		mapLayerHelpSource.reset();
 		return;
-
+	}
+	const std::pair<int, std::string> source{mapLevel, LIBRARY->generaltexth->getPreferredLanguage()};
+	const bool rebuild = mapLayerHelpSource != source;
 	int mapLevelNext = (mapLevel + 1) % GAME->interface()->cb->getMapHeader()->levels();
 	auto currentLevel = GAME->interface()->cb->getMapHeader()->mapLayers.at(mapLevel);
 	auto nextLevel = GAME->interface()->cb->getMapHeader()->mapLayers.at(mapLevelNext);
-
-	for (auto & widgetname : { "buttonUnderground", "buttonSurface", "buttonLayerOther" })
-	{
-		if (auto w = widget<CButton>(widgetname))
+	for(const auto & widgetname : {"buttonUnderground", "buttonSurface", "buttonLayerOther"})
+		if(auto w = widget<CButton>(widgetname))
 		{
-			auto replaceText = [&](auto & text){
-				text.replaceTextID(currentLevel.toEntity(LIBRARY)->getNameTextID());
-				text.replaceNumber(mapLevel);
-				text.replaceTextID(nextLevel.toEntity(LIBRARY)->getNameTextID());
-				text.replaceNumber(mapLevelNext);
-			};
-			auto hoverText = MetaString::createFromTextID("vcmi.adventureMap.layer.hover");
-			replaceText(hoverText);
-			auto helpText = MetaString::createFromTextID("vcmi.adventureMap.layer.help");
-			replaceText(helpText);
-			w->setHelp({hoverText.toString(&GAME->translator()), helpText.toString(&GAME->translator())});
-			
-			// Refresh hover state using current cursor position so statusbar updates immediately
-			Point cursor = ENGINE->getCursorPosition();
-			bool inside = w->pos.isInside(cursor);
-			w->hover(inside);
+			if(rebuild)
+			{
+				auto replaceText = [&](auto & text)
+				{
+					text.replaceTextID(currentLevel.toEntity(LIBRARY)->getNameTextID());
+					text.replaceNumber(mapLevel);
+					text.replaceTextID(nextLevel.toEntity(LIBRARY)->getNameTextID());
+					text.replaceNumber(mapLevelNext);
+				};
+				auto hoverText = MetaString::createFromTextID("vcmi.adventureMap.layer.hover");
+				replaceText(hoverText);
+				auto helpText = MetaString::createFromTextID("vcmi.adventureMap.layer.help");
+				replaceText(helpText);
+				w->setHelp({hoverText.toString(&GAME->translator()), helpText.toString(&GAME->translator())});
+			}
+			const Point cursor = ENGINE->getCursorPosition();
+			w->hover(w->pos.isInside(cursor));
 		}
-	}
+	mapLayerHelpSource = source;
+#ifdef VCMI_VITA
+	if(rebuild)
+		VitaMapUiStats::helpBuilds.fetch_add(1, std::memory_order_relaxed);
+	else
+		VitaMapUiStats::helpHits.fetch_add(1, std::memory_order_relaxed);
+#endif
 }
 
 void AdventureMapWidget::updateMapLayerButtonIcon()
 {
 	int mapLevelNext = (mapLevel + 1) % GAME->interface()->cb->getMapHeader()->levels();
 	auto nextLevel = GAME->interface()->cb->getMapHeader()->mapLayers.at(mapLevelNext);
+	const std::pair<int, int> source{nextLevel.getNum(), GAME->interface()->playerID.getNum()};
+	if(mapLayerButtonSource == source)
+	{
+#ifdef VCMI_VITA
+		VitaMapUiStats::layerHits.fetch_add(1, std::memory_order_relaxed);
+#endif
+		return;
+	}
 	auto nextLayerType = nextLevel.toEntity(LIBRARY);
 	auto layerIcon = nextLayerType->getIcon();
 
@@ -584,4 +607,8 @@ void AdventureMapWidget::updateMapLayerButtonIcon()
 				w->setImage(targetAnim, true);
 		}
 	}
+	mapLayerButtonSource = source;
+#ifdef VCMI_VITA
+	VitaMapUiStats::layerRebuilds.fetch_add(1, std::memory_order_relaxed);
+#endif
 }

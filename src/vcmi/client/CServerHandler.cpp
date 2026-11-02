@@ -9,6 +9,11 @@
  */
 #include "StdInc.h"
 #include "CServerHandler.h"
+#ifdef VCMI_VITA
+#include "../lib/vita/VitaNetworkStats.h"
+#include "../lib/vita/VitaPacketTrace.h"
+#include <chrono>
+#endif
 
 #include "CPlayerInterface.h"
 #include "Client.h"
@@ -1046,7 +1051,16 @@ void CServerHandler::onPacketReceived(const std::shared_ptr<INetworkConnection> 
 	if(getState() == EClientState::DISCONNECTING)
 		return;
 
+#ifdef VCMI_VITA
+	const auto decodeStarted = std::chrono::steady_clock::now();
+#endif
 	auto pack = logicConnection->retrievePack(message);
+#ifdef VCMI_VITA
+	const auto decodeDone = std::chrono::steady_clock::now();
+	VitaNetworkStats::decode.add(static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(decodeDone - decodeStarted).count()));
+	VitaPacketTrace::record({typeid(*pack).name(), VitaPacketTrace::microseconds(decodeStarted), VitaPacketTrace::microseconds(decodeDone), 0, 0, 0, 0, "decode"});
+	VitaNetworkStats::bytes.fetch_add(static_cast<uint32_t>(message.size()), std::memory_order_relaxed);
+#endif
 	ServerHandlerCPackVisitor visitor(*this);
 	pack->visit(visitor);
 }
@@ -1156,7 +1170,17 @@ void CServerHandler::visitForClient(CPackForClient & clientPack)
 
 	// not done in CGameState::apply() - lag compensation applies predictions and rollbacks there
 	if(client)
+	{
+#ifdef VCMI_VITA
+		const auto replayStarted = std::chrono::steady_clock::now();
+#endif
 		client->gameState().replayLog.recordPack(clientPack, client->gameState());
+#ifdef VCMI_VITA
+		const auto replayDone = std::chrono::steady_clock::now();
+		VitaNetworkStats::replay.add(static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(replayDone - replayStarted).count()));
+		VitaPacketTrace::record({typeid(clientPack).name(), VitaPacketTrace::microseconds(replayStarted), VitaPacketTrace::microseconds(replayDone), 0, 0, 0, 0, "replay"});
+#endif
+	}
 
 	if (networkLagCompensator && networkLagCompensator->verifyReply(clientPack))
 		return;

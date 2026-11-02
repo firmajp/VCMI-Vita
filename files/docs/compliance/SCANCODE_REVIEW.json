@@ -1,0 +1,54 @@
+{
+  "version": "1.1.0",
+  "tool": "ScanCode Toolkit32.5.0 get_licenses API; manual SHA256 file info",
+  "changed_file_count": 84,
+  "changed_file_hashes_verified": true,
+  "errors": [],
+  "expressions": {
+    "(no detection)": 8,
+    "GPL-3.0-or-later AND GPL-2.0-or-later AND LGPL-2.1-only AND GPL-1.0-or-later AND LGPL-2.0-or-later": 1,
+    "(LGPL-2.0-or-later AND LGPL-2.1-only AND GPL-3.0-or-later AND GPL-1.0-or-later AND GPL-3.0-only) AND (LGPL-2.0-or-later AND GPL-1.0-or-later) AND (GPL-1.0-or-later AND LGPL-2.1-only)": 1,
+    "GPL-3.0-or-later AND GPL-2.0-or-later AND LGPL-2.0-or-later AND LGPL-2.1-or-later AND GPL-1.0-or-later": 1,
+    "GPL-3.0-or-later AND LGPL-2.0-or-later AND LGPL-2.1-only": 1,
+    "(BSL-1.0 AND CC0-1.0 AND OFL-1.1) AND (LGPL-2.1-or-later AND GPL-1.0-or-later) AND CC0-1.0": 1,
+    "GPL-3.0-or-later AND (GPL-3.0-only AND Apache-2.0 AND LGPL-2.1-only AND CC-BY-SA-4.0 AND CC0-1.0)": 1,
+    "GPL-3.0-or-later": 2,
+    "GPL-2.0-or-later": 65,
+    "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference": 1,
+    "GPL-2.0-or-later AND LicenseRef-scancode-warranty-disclaimer": 1,
+    "GPL-2.0-or-later AND LicenseRef-scancode-unknown-license-reference AND (GPL-2.0-only OR BSD-2-Clause)": 1
+  },
+  "current_report": "scancode-delta-1.1.0.json.gz",
+  "historical_full_scan": "scancode-licenses.json.gz",
+  "historical_full_scan_review": "baseline-1.0.1/SCANCODE_REVIEW.json",
+  "method": "License API scan of changed/new engine sources and selected release docs/scripts. SHA256 computed directly and verified against current bytes. Unchanged third-party source retained from historical scanned tree; no new full-tree rescan claimed. CLI inventory attempts were stopped; successful get_licenses API scan is the current evidence. Generated audit reports are excluded from scanner coverage.",
+  "reviewed_matches": [
+    {
+      "files": [
+        "src/vcmi/client/VitaRuntimeDiagnostics.h",
+        "src/vcmi/lib/vita/VitaTownCacheStats.h"
+      ],
+      "finding": "unknown-license-reference",
+      "interpretation": "Comment points to supplied src/vcmi/license.txt and root MODIFICATIONS.md; explicit SPDX GPL-2.0-or-later retained."
+    },
+    {
+      "files": [
+        "src/vcmi/lib/vita/VitaTownCacheStats.h"
+      ],
+      "finding": "GPL-2.0-only OR BSD-2-Clause partial detection",
+      "interpretation": "Matched only the explicit GPL v2.0 or later sentence. SPDX/header select GPL-2.0-or-later; no BSD grant is asserted."
+    },
+    {
+      "files": [
+        "src/vcmi/clientapp/EntryPoint.cpp"
+      ],
+      "finding": "warranty-disclaimer",
+      "interpretation": "Existing free-software console message, not an additional source licence."
+    }
+  ],
+  "limits": [
+    "Internal notice scan, not independent legal/authorship certification",
+    "No detection does not imply public domain",
+    "Original per-file terms remain authoritative"
+  ]
+}

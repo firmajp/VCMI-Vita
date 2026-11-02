@@ -1,7 +1,7 @@
 {
-  "source_files_checked": 36668,
+  "version": "1.1.0",
+  "source_files_checked": 36698,
   "compiled_CPU_binary_magic_matches": [],
   "forbidden_artifact_extensions": [],
-  "retained": "Vita/engine/dependency implementation source, required Boost Jamfiles, licenses, public artwork and generated technical evidence",
-  "excluded": "Only top-level generated build directory, dist binary checked separately, Git/cache metadata; vendor build source directories remain included"
+  "scope": "Top-level build/dist, Git and cache directories excluded. Vendor build-source directories retained. VPK checked separately by recursive distribution audit."
 }

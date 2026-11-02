@@ -9,6 +9,9 @@
  */
 #include "StdInc.h"
 #include "GameConnection.h"
+#ifdef VCMI_VITA
+#include "../vita/VitaSendStats.h"
+#endif
 
 #include "BinaryDeserializer.h"
 #include "BinarySerializer.h"
@@ -67,21 +70,42 @@ GameConnection::~GameConnection() = default;
 
 void GameConnection::sendPack(const CPack & pack)
 {
+#ifdef VCMI_VITA
+	const auto lockStarted = std::chrono::steady_clock::now();
+#endif
 	std::scoped_lock lock(writeMutex);
+#ifdef VCMI_VITA
+	VitaSendStats::counters.at(static_cast<size_t>(VitaSendStats::Kind::ConnectionLock)).add(static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - lockStarted).count()));
+#endif
 
 	auto connectionPtr = networkConnection.lock();
 
 	if (!connectionPtr)
 		throw std::runtime_error("Attempt to send packet on a closed connection!");
 
-	packWriter->buffer.clear();
-	*serializer & &pack;
+	{
+#ifdef VCMI_VITA
+		VitaSendStats::Scope measure(VitaSendStats::Kind::Encode);
+#endif
+		packWriter->buffer.clear();
+		*serializer & &pack;
+	}
 
 	logNetwork->trace("Sending a pack of type %s", typeid(pack).name());
 
-	connectionPtr->sendPacket(packWriter->buffer);
-	packWriter->buffer.clear();
-	serializer->clear();
+	{
+#ifdef VCMI_VITA
+		VitaSendStats::Scope measure(VitaSendStats::Kind::Transport);
+#endif
+		connectionPtr->sendPacket(packWriter->buffer);
+	}
+	{
+#ifdef VCMI_VITA
+		VitaSendStats::Scope measure(VitaSendStats::Kind::Finalize);
+#endif
+		packWriter->buffer.clear();
+		serializer->clear();
+	}
 }
 
 std::unique_ptr<CPack> GameConnection::retrievePack(const std::vector<std::byte> & data)

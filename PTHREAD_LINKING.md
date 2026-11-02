@@ -21,6 +21,6 @@ Source-form application code is used for the relinking route; this is not a clai
 
 ## Verification evidence
 
-Current engine build and modified-pthread source/relink outcomes are recorded separately from the historical 1.0.0 evidence. See docs/compliance/BUILD_VERIFICATION.json for actual outcomes and BUILDING.md for reproduction. The probe is a link-level check, not execution on a console; the original library and release executable are restored before packaging. Do not infer a completed device test from this build check.
+`docs/compliance/BUILD_VERIFICATION.json` identifies the current build and hashes of unchanged dependency archives. The modified-pthread rebuild/relink experiment is historical evidence under `baseline-1.0.1`; it was not repeated for 1.1.0. Full source and the relink script remain supplied for users. The earlier probe was a link-level test, not device execution.
 
-`LICENSES/pthread-GPL.txt` preserves an upstream alternative/historical license text; this distribution uses pthread-embedded under LGPL 2.1 through the section 6(a) source/relinking route, not under that GPL alternative.
+`LICENSES/pthread-GPL.txt` preserves an upstream alternative/historical text; this distribution selects LGPL 2.1 through the section 6(a) source/relinking route.

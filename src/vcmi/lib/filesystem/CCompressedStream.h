@@ -25,7 +25,7 @@ public:
 class DLL_LINKAGE CBufferedStream : public CInputStream
 {
 public:
-	CBufferedStream();
+	explicit CBufferedStream(size_t capacityHint = 0);
 
 	/**
 	 * Reads n bytes from the stream into the data buffer.

@@ -1,7 +1,7 @@
-# 1.0.1 checks
+# 1.1.0 checks
 
-Review the current build, modified-LGPL relink, binary privacy, source/resource, ScanCode, Git/index/checkout and ZIP checks in docs/compliance and AUDIT_RESULTS.json. Only checks actually executed may be marked passed. Historical baseline evidence is in baseline-1.0.0/.
+The user accepted the exact 1.1.0 test build after the requested installation, LiveArea, launch, town, battle and save/load checks. The public package must retain that executable and runtime resources unchanged; record both archive hashes and the shared executable hash in `docs/compliance/DEVICE_TEST.json`.
 
-1.0.1 console test: pending. Install the matching VPK; check bubble/background/gate, launch-image to splash/loading transition, readable progress messages, menu, town, battle, save/load and return to map. Compare startup/performance logs with 1.0.0. Keep the original title ID and back up saves/settings.
+Review current VPK layout/content, binary privacy, source changes, licence-scan scope and checksums. Historical dependency rebuild/relink evidence retains its original version; do not present it as a newly executed 1.1.0 test. New clean/reproducible builds are not claimed. Campaigns/mods, large sieges, other devices and long sessions need broader coverage.
 
-The user-reported 1.0.0 tests remain valid for that earlier artifact only. Larger battles/sieges, campaigns/mods and prolonged sessions require broader coverage. Scanner results are internal technical evidence, not a certification of legal rights or original authorship.
+Publish the matching source commit/tag and VPK together after reviewing the local update. Scanner output and internal technical checks are not legal or authorship certification.

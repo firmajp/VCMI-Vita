@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Check RC executable privacy, indexed artwork and shipped executable equality."""
+"""Check release executable privacy, indexed artwork and shipped executable equality."""
 from pathlib import Path
 import hashlib,json,re,struct,zipfile,zlib,subprocess,os,xml.etree.ElementTree as ET
 root=Path(__file__).resolve().parents[1]
@@ -57,7 +57,7 @@ for marker in [('VCMI VITA BUILD '+metadata['vita_app_ver']+' ('+version+')').en
 assert ('VCMI_'+version_symbol+'_MODIFIED_PTHREAD_RELINK_PROBE').encode() not in data
 result={'elf_sha256':hashlib.sha256(data).hexdigest(),'eboot_sha256':hashlib.sha256(eboot).hexdigest(),
         'private_paths_in_ELF_and_SELF':'none detected','ELF_load_segments_checked':segments,'SELF_valid_zlib_streams_checked':streams,
-        'shipped_SELF_equal_to_clean_build':True,'indexed_LiveArea_dimensions_palette':'passed: 8-bit opaque noninterlaced, <=128 colors','boot_image_equality':True,'launch_splash_loading_background_equality':True,'livearea_cache_counter_matches_VERSION':True,'known_public_CI_paths':sorted(set(x.decode('utf-8',errors='replace') for x in re.findall(rb'/home/runner/[^\x00\r\n ]{1,300}',data))),
+        'shipped_SELF_equal_to_current_build':True,'indexed_LiveArea_dimensions_palette':'passed: 8-bit opaque noninterlaced, <=128 colors','boot_image_equality':True,'launch_splash_loading_background_equality':True,'livearea_cache_counter_matches_VERSION':True,'known_public_CI_paths':sorted(set(x.decode('utf-8',errors='replace') for x in re.findall(rb'/home/runner/[^\x00\r\n ]{1,300}',data))),
         'OpenSSL_implementation_symbols':'none detected','modified_pthread_probe_absent_from_release':True,
         'limits':'Technical pattern, format and equality checks; not a legal certificate or device execution test.'}
 out=root/'docs/compliance/BINARY_CHECKS.json';out.parent.mkdir(parents=True,exist_ok=True)

@@ -9,6 +9,9 @@
  */
 
 #include "StdInc.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaPacketTrace.h"
+#endif
 #include "MapViewController.h"
 
 #include "MapRendererContext.h"
@@ -626,6 +629,9 @@ bool MapViewController::hasOngoingAnimations()
 
 void MapViewController::waitForOngoingAnimations()
 {
+#ifdef VCMI_VITA
+	VitaPacketTrace::AnimationWaitScope measure;
+#endif
 	auto unlockInterface = vstd::makeUnlockGuard(ENGINE->interfaceMutex);
 	animationWait.waitWhileBusy();
 }

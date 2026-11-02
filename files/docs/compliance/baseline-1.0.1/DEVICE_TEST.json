@@ -1,0 +1,7 @@
+{
+  "version": "1.0.1",
+  "status": "pending",
+  "baseline_release": "1.0.0",
+  "baseline_test": "User-confirmed previous release; historical evidence under baseline-1.0.0",
+  "required": "Install 1.0.1; check LiveArea, transition to early splash/loading, progress text, menu, town, battle and save/load; compare startup/performance logs"
+}

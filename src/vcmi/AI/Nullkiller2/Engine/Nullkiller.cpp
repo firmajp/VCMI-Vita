@@ -9,6 +9,9 @@
 */
 #include "StdInc.h"
 #include "Nullkiller.h"
+#ifdef VCMI_VITA
+#include "../../../lib/vita/VitaAiTurnStats.h"
+#endif
 
 #include "../../../lib/CPlayerState.h"
 #include "../../../lib/StartInfo.h"
@@ -217,6 +220,9 @@ TaskFailureAction chooseTaskFailureAction(bool hasAnySuccess, bool hasRemainingT
 
 Goals::TTask Nullkiller::choseBestTask(Goals::TGoalVec & tasks) const
 {
+#ifdef VCMI_VITA
+	VitaAiTurnStats::Scope vitaAiScope(VitaAiTurnStats::Phase::Evaluate);
+#endif
 	if(tasks.empty())
 	{
 		return taskptr(Invalid());
@@ -238,6 +244,9 @@ Goals::TTask Nullkiller::choseBestTask(Goals::TGoalVec & tasks) const
 
 Nullkiller::EvaluationContextMap Nullkiller::buildEvaluationContexts(const TGoalVec & tasks) const
 {
+#ifdef VCMI_VITA
+	VitaAiTurnStats::Scope vitaAiScope(VitaAiTurnStats::Phase::Evaluate);
+#endif
 	std::vector<std::optional<EvaluationContext>> contexts(tasks.size());
 
 	tbb::parallel_for(
@@ -262,6 +271,9 @@ Goals::TTaskVec Nullkiller::buildPlanAndFilter(
 	const EvaluationContextMap & evaluationContexts,
 	int priorityTier) const
 {
+#ifdef VCMI_VITA
+	VitaAiTurnStats::Scope vitaAiScope(VitaAiTurnStats::Phase::Plan);
+#endif
 	TaskPlan taskPlan;
 
 	tbb::parallel_for(
@@ -299,6 +311,9 @@ Goals::TTaskVec Nullkiller::buildPlanAndFilter(
 
 void Nullkiller::decompose(Goals::TGoalVec & results, const Goals::TSubgoal& behavior, int decompositionMaxDepth) const
 {
+#ifdef VCMI_VITA
+	VitaAiTurnStats::Scope vitaAiScope(VitaAiTurnStats::Phase::Decompose);
+#endif
 	makingTurnInterruption.interruptionPoint();
 	logAi->debug("Decomposing behavior %s", behavior->toString());
 	const auto start = std::chrono::high_resolution_clock::now();
@@ -336,6 +351,9 @@ void Nullkiller::invalidatePathfinderData()
 
 void Nullkiller::updateState()
 {
+#ifdef VCMI_VITA
+	VitaAiTurnStats::Scope vitaAiScope(VitaAiTurnStats::Phase::Update);
+#endif
 	const auto start = std::chrono::high_resolution_clock::now();
 	auto startMethod = start;
 	std::map<std::string, uint64_t> methodToElapsedMs = {};
@@ -360,9 +378,17 @@ void Nullkiller::updateState()
 		startMethod = std::chrono::high_resolution_clock::now();
 		dangerHitMap->updateHitMap();
 		methodToElapsedMs.emplace("dangerHitMap->updateHitMap()", timeElapsed(startMethod));
+#ifdef VCMI_VITA
+		if(VitaAiTurnStats::current)
+			VitaAiTurnStats::current->add(VitaAiTurnStats::Phase::Danger, static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startMethod).count()));
+#endif
 		startMethod = std::chrono::high_resolution_clock::now();
 		dangerHitMap->calculateTileOwners();
 		methodToElapsedMs.emplace("dangerHitMap->calculateTileOwners()", timeElapsed(startMethod));
+#ifdef VCMI_VITA
+		if(VitaAiTurnStats::current)
+			VitaAiTurnStats::current->add(VitaAiTurnStats::Phase::Owners, static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startMethod).count()));
+#endif
 
 		startMethod = std::chrono::high_resolution_clock::now();
 		makingTurnInterruption.interruptionPoint();
@@ -386,6 +412,10 @@ void Nullkiller::updateState()
 		startMethod = std::chrono::high_resolution_clock::now();
 		pathfinder->updatePaths(heroes, cfg);
 		methodToElapsedMs.emplace("pathfinder->updatePaths(heroes, cfg)", timeElapsed(startMethod));
+#ifdef VCMI_VITA
+		if(VitaAiTurnStats::current)
+			VitaAiTurnStats::current->add(VitaAiTurnStats::Phase::Paths, static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startMethod).count()));
+#endif
 
 		if(isObjectGraphAllowed())
 		{
@@ -401,6 +431,10 @@ void Nullkiller::updateState()
 		startMethod = std::chrono::high_resolution_clock::now();
 		objectClusterizer->clusterize();
 		methodToElapsedMs.emplace("objectClusterizer->clusterize()", timeElapsed(startMethod));
+#ifdef VCMI_VITA
+		if(VitaAiTurnStats::current)
+			VitaAiTurnStats::current->add(VitaAiTurnStats::Phase::Cluster, static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startMethod).count()));
+#endif
 		pathfinderInvalidated = false;
 	}
 
@@ -422,7 +456,12 @@ void Nullkiller::updateState()
 	}
 	else
 	{
+#ifdef VCMI_VITA
+		if(logAi->isDebugEnabled())
+			logAi->debug("PERFORMANCE: NK2 updateState took %ld ms", timeElapsedMs);
+#else
 		logAi->info("PERFORMANCE: NK2 updateState took %ld ms", timeElapsedMs);
+#endif
 	}
 }
 
@@ -739,7 +778,12 @@ void Nullkiller::makeTurn()
 				continue;
 			}
 
+#ifdef VCMI_VITA
+			if(logAi->isDebugEnabled())
+				logAi->debug("Pass %d: Performing task (prioOfTask %d) %s with prio: %d", pass, prioOfTask, selectedTask->toString(), selectedTask->priority);
+#else
 			logAi->info("Pass %d: Performing task (prioOfTask %d) %s with prio: %d", pass, prioOfTask, selectedTask->toString(), selectedTask->priority);
+#endif
 
 			if(HeroPtr heroPtr(selectedTask->getHero(), cc.get()); selectedTask->getHero() && !heroPtr.isVerified(false))
 			{
@@ -818,7 +862,12 @@ bool Nullkiller::updateStateAndExecutePriorityPass(Goals::TGoalVec & tempResults
 
 		if(bestPrioPassTask->priority > 0)
 		{
+#ifdef VCMI_VITA
+			if(logAi->isDebugEnabled())
+				logAi->debug("Pass %d: priorityPass %d: Performing task %s with prio: %d", passIndex, i, bestPrioPassTask->toString(), bestPrioPassTask->priority);
+#else
 			logAi->info("Pass %d: priorityPass %d: Performing task %s with prio: %d", passIndex, i, bestPrioPassTask->toString(), bestPrioPassTask->priority);
+#endif
 
 			const bool isRecruitHeroGoal = dynamic_cast<RecruitHero*>(bestPrioPassTask.get()) != nullptr;
 			HeroPtr heroPtr(bestPrioPassTask->getHero(), cc.get());
@@ -989,6 +1038,9 @@ bool Nullkiller::isPathKnownToFail(const AIPathNodeInfo & node) const
 
 bool Nullkiller::executeTask(const Goals::TTask & task)
 {
+#ifdef VCMI_VITA
+	VitaAiTurnStats::Scope vitaAiScope(VitaAiTurnStats::Phase::Execute);
+#endif
 	auto start = std::chrono::high_resolution_clock::now();
 	std::string taskDescr = task->toString();
 	resetTaskExecutionContext();

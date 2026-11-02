@@ -8,6 +8,10 @@
  *
  */
 #include "StdInc.h"
+#ifdef VCMI_VITA
+#include "../lib/vita/VitaPacketTrace.h"
+#include <cstdio>
+#endif
 #include "CPlayerInterface.h"
 
 #include <vcmi/Artifact.h>
@@ -256,7 +260,12 @@ void CPlayerInterface::playerStartsTurn(PlayerColor player)
 		bool isHuman = cb->getStartInfo()->playerInfos.count(player) && cb->getStartInfo()->playerInfos.at(player).isControlledByHuman();
 
 		if (makingTurn == false)
+			{
+#ifdef VCMI_VITA
+				VitaPacketTrace::Scope measure("enemy_turn_ui");
+#endif
 			adventureInt->onEnemyTurnStarted(player, isHuman);
+			}
 	}
 }
 
@@ -280,8 +289,13 @@ void CPlayerInterface::gamePause(bool pause)
 
 void CPlayerInterface::yourTurn(QuestionID questionID)
 {
+	{
+#ifdef VCMI_VITA
+		VitaPacketTrace::Scope measure("turn_dialogs");
+#endif
 	closeAllDialogs();
 	CTutorialWindow::openWindowFirstTime(TutorialMode::TOUCH_ADVENTUREMAP);
+	}
 
 	EVENT_HANDLER_CALLED_BY_CLIENT;
 
@@ -297,7 +311,12 @@ void CPlayerInterface::yourTurn(QuestionID questionID)
 		NotificationHandler::notify("Your turn");
 		if(settings["general"]["startTurnAutosave"].Bool())
 		{
+			{
+#ifdef VCMI_VITA
+				VitaPacketTrace::Scope measure("turn_autosave");
+#endif
 			performAutosave();
+			}
 		}
 
 		if (hotseatWait) //hot seat or MP message
@@ -315,10 +334,20 @@ void CPlayerInterface::yourTurn(QuestionID questionID)
 		else
 		{
 			makingTurn = true;
+			{
+#ifdef VCMI_VITA
+				VitaPacketTrace::Scope measure("player_turn_ui");
+#endif
 			adventureInt->onPlayerTurnStarted(playerID);
+			}
 		}
 
+	{
+#ifdef VCMI_VITA
+		VitaPacketTrace::Scope measure("turn_accept");
+#endif
 	acceptTurn(questionID, hotseatWait);
+	}
 }
 
 void CPlayerInterface::acceptTurn(QuestionID questionID, bool hotseatWait)
@@ -795,10 +824,18 @@ void CPlayerInterface::activeStack(const BattleID & battleID, const CStack * sta
 
 	if (autofightingAI)
 	{
+#ifdef VCMI_VITA
+		const unsigned diagnosticStackID = static_cast<unsigned>(stack->unitId());
+		std::fprintf(stderr, "Vita autocombat: player interface enters AI stack=%u enabled=%d\n",
+			diagnosticStackID, static_cast<int>(isAutoFightOn));
+#endif
 		//FIXME: we want client rendering to proceed while AI is making actions
 		// so unlock mutex while AI is busy since this might take quite a while, especially if hero has many spells
 		auto unlockInterface = vstd::makeUnlockGuard(ENGINE->interfaceMutex);
 		autofightingAI->activeStack(battleID, stack);
+#ifdef VCMI_VITA
+		std::fprintf(stderr, "Vita autocombat: player interface leaves AI stack=%u\n", diagnosticStackID);
+#endif
 		return;
 	}
 

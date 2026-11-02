@@ -10,6 +10,11 @@
 
 #include "StdInc.h"
 #include "CMinimap.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaMapUiStats.h"
+#include <SDL_timer.h>
+#include "render/IScreenHandler.h"
+#endif
 
 #include "AdventureMapInterface.h"
 
@@ -69,11 +74,31 @@ ColorRGBA CMinimapInstance::getTileColor(const int3 & pos, bool minimapShowHeroe
 void CMinimapInstance::refreshTile(const int3 &tile, bool minimapShowHeroes)
 {
 	if (level == tile.z)
+	{
+#ifdef VCMI_VITA
+		const auto area = minimap->getRenderArea();
+		if(tile.x < 0 || tile.y < 0 || tile.x >= area.w || tile.y >= area.h)
+			return;
+		const auto color = getTileColor(tile, minimapShowHeroes);
+		if(minimap->getPixel(Point(tile.x, tile.y)) == color)
+		{
+			VitaMapUiStats::minimapUnchanged.fetch_add(1, std::memory_order_relaxed);
+			return;
+		}
+		scaledDirty = true;
+		VitaMapUiStats::minimapChanged.fetch_add(1, std::memory_order_relaxed);
+		minimap->drawPoint(Point(tile.x, tile.y), color);
+#else
 		minimap->drawPoint(Point(tile.x, tile.y), getTileColor(tile, minimapShowHeroes));
+#endif
+	}
 }
 
 void CMinimapInstance::redrawMinimap()
 {
+#ifdef VCMI_VITA
+	scaledDirty = true;
+#endif
 	int3 mapSizes = GAME->interface()->cb->getMapSize();
 	const bool minimapShowHeroes = settings["adventure"]["minimapShowHeroes"].Bool();
 
@@ -96,6 +121,52 @@ CMinimapInstance::~CMinimapInstance() = default;
 
 void CMinimapInstance::showAll(Canvas & to)
 {
+#ifdef VCMI_VITA
+	const int scale = to.getScalingFactor();
+	const Point size = pos.dimensions();
+	const uint64_t bytes = static_cast<uint64_t>(size.x) * size.y * scale * scale * 4;
+	if(size.x > 0 && size.y > 0 && bytes <= 256 * 1024 && scale == ENGINE->screenHandler().getScalingFactor())
+	{
+		if(scaledDimensions != size || scaledScale != scale)
+		{
+			scaledMinimap.reset();
+			scaledDimensions = size;
+			scaledScale = scale;
+			scaledDirty = true;
+			scaleAllocationFailed = false;
+		}
+		if(!scaledMinimap && !scaleAllocationFailed)
+		{
+			try
+			{
+				scaledMinimap = std::make_unique<Canvas>(size, CanvasScalingPolicy::AUTO);
+			}
+			catch(const std::exception & e)
+			{
+				scaleAllocationFailed = true;
+				logGlobal->warn("Vita minimap cache allocation failed: %s", e.what());
+			}
+		}
+		if(scaledMinimap)
+		{
+			if(scaledDirty)
+			{
+				const auto started = SDL_GetPerformanceCounter();
+				scaledMinimap->drawScaled(*minimap, Point(0, 0), size);
+				VitaMapUiStats::minimapScaleTicks += SDL_GetPerformanceCounter() - started;
+				++VitaMapUiStats::minimapBuilds;
+				scaledDirty = false;
+			}
+			else
+				++VitaMapUiStats::minimapHits;
+			const auto started = SDL_GetPerformanceCounter();
+			to.draw(*scaledMinimap, pos.topLeft());
+			VitaMapUiStats::minimapCopyTicks += SDL_GetPerformanceCounter() - started;
+			return;
+		}
+	}
+	++VitaMapUiStats::minimapBypass;
+#endif
 	to.drawScaled(*minimap, pos.topLeft(), pos.dimensions());
 }
 

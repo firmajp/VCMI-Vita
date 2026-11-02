@@ -9,6 +9,9 @@
  */
 #include "StdInc.h"
 #include "PotentialTargets.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaBattleTraceStats.h"
+#endif
 #include "../../lib/CStack.h"//todo: remove
 #include "../../lib/mapObjects/CGTownInstance.h"
 
@@ -17,6 +20,9 @@ PotentialTargets::PotentialTargets(
 	DamageCache & damageCache,
 	std::shared_ptr<HypotheticBattle> state)
 {
+#ifdef VCMI_VITA
+	VitaBattleTraceStats::Timer targetTimer(VitaBattleTraceStats::targetBuild);
+#endif
 	auto attackerInfo = state->battleGetUnitByID(attacker->unitId());
 	auto reachability = state->getReachability(attackerInfo);
 	auto avHexes = state->battleGetAvailableHexes(reachability, attackerInfo, false);
@@ -67,14 +73,17 @@ PotentialTargets::PotentialTargets(
 		else
 		{
 			// a blocked war machine, e.g. Ballista, can neither shoot nor fight in melee
-			for(const BattleHex & hex : avHexes)
+			if(attackerInfo->isMeleeAttacker())
 			{
-				if(!attackerInfo->isMeleeAttacker() || !state->isMeleeAttackPossible(attackerInfo, defender, hex))
-					continue;
+				for(const BattleHex & hex : avHexes)
+				{
+					if(!state->isMeleeAttackPossible(attackerInfo, defender, hex))
+						continue;
 
-				auto bai = GenerateAttackInfo(false, hex);
-				if(!bai.affectedUnits.empty())
-					possibleAttacks.push_back(bai);
+					auto bai = GenerateAttackInfo(false, hex);
+					if(!bai.affectedUnits.empty())
+						possibleAttacks.push_back(std::move(bai));
+				}
 			}
 
 			if(!vstd::contains_if(possibleAttacks, [=](const AttackPossibility & pa) { return pa.attack.defender->unitId() == defender->unitId(); }))

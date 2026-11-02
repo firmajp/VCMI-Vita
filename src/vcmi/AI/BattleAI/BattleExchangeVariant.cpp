@@ -9,6 +9,9 @@
  */
 #include "StdInc.h"
 #include "BattleExchangeVariant.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaBattleTraceStats.h"
+#endif
 #include "BattleEvaluator.h"
 #include "../../lib/CStack.h"
 #include "../../lib/GameLibrary.h"
@@ -135,9 +138,11 @@ float BattleExchangeVariant::trackAttack(
 	std::shared_ptr<HypotheticBattle> hb,
 	AttackMode mode)
 {
-	const std::string cachingStringBlocksRetaliation = "type_BLOCKS_RETALIATION";
+	static const std::string cachingStringBlocksRetaliation = "type_BLOCKS_RETALIATION";
 	static const auto selectorBlocksRetaliation = Selector::type()(BonusType::BLOCKS_RETALIATION);
-	const bool counterAttacksBlocked = attacker->hasBonus(selectorBlocksRetaliation, cachingStringBlocksRetaliation);
+	// Capture before afterAttack can expire retaliation-blocking bonuses.
+	const bool counterAttacksBlocked = mode == AttackMode::FIRST_STRIKE && !shooting
+		&& attacker->hasBonus(selectorBlocksRetaliation, cachingStringBlocksRetaliation);
 
 	int64_t attackDamage = damageCache.getDamage(attacker.get(), defender.get(), hb);
 	float defenderDamageReduce = AttackPossibility::calculateDamageReduce(defender.get(), attackDamage, damageCache);
@@ -535,7 +540,7 @@ ReachabilityData BattleExchangeEvaluator::getExchangeUnits(
 	{
 		for(const auto & hex : ap.attack.attacker->getHexes())
 		{
-			auto unitsReachingAttacker = getOneTurnReachableUnits(turn, hex);
+			const auto & unitsReachingAttacker = getOneTurnReachableUnits(turn, hex);
 			for(auto unit : unitsReachingAttacker)
 			{
 				if(unit->unitSide() != ap.attack.attacker->unitSide())
@@ -647,6 +652,9 @@ BattleScore BattleExchangeEvaluator::calculateExchange(
 	std::shared_ptr<HypotheticBattle> hb,
 	const battle::Units & additionalUnits) const
 {
+#ifdef VCMI_VITA
+	VitaBattleTraceStats::Timer aiWorkTimer(VitaBattleTraceStats::exchange);
+#endif
 #if BATTLE_TRACE_LEVEL>=1
 	logAi->trace("Battle exchange at %d", ap.attack.shooting ? ap.dest.toInt() : ap.from.toInt());
 #endif
@@ -913,7 +921,10 @@ bool BattleExchangeEvaluator::canBeHitThisTurn(const AttackPossibility & ap)
 
 void ReachabilityMapCache::update(const std::vector<battle::Units> & turnOrder, std::shared_ptr<HypotheticBattle> hb)
 {
-	for(auto turn : turnOrder)
+#ifdef VCMI_VITA
+	VitaBattleTraceStats::Timer aiWorkTimer(VitaBattleTraceStats::reachabilityUpdate);
+#endif
+	for(const auto & turn : turnOrder)
 	{
 		for(auto u : turn)
 		{
@@ -952,6 +963,9 @@ const battle::Units & ReachabilityMapCache::getOneTurnReachableUnits(std::shared
 
 battle::Units ReachabilityMapCache::computeOneTurnReachableUnits(std::shared_ptr<CBattleInfoCallback> cb, std::shared_ptr<Environment> env, const std::vector<battle::Units> & turnOrder, uint8_t turn, const BattleHex & hex)
 {
+#ifdef VCMI_VITA
+	VitaBattleTraceStats::Timer aiWorkTimer(VitaBattleTraceStats::reachabilityQuery);
+#endif
 	battle::Units result;
 
 	for(int i = 0; i < turnOrder.size(); i++, turn++)
@@ -977,7 +991,8 @@ battle::Units ReachabilityMapCache::computeOneTurnReachableUnits(std::shared_ptr
 			auto reachabilityIter = unitReachabilityMap.find(unit->unitId());
 			assert(reachabilityIter != unitReachabilityMap.end()); // missing updateReachabilityMap call?
 
-			ReachabilityInfo unitReachability = reachabilityIter != unitReachabilityMap.end() ? reachabilityIter->second : turnBattle.getReachability(unit);
+			std::optional<ReachabilityInfo> fallbackReachability;
+			const ReachabilityInfo & unitReachability = reachabilityIter != unitReachabilityMap.end() ? reachabilityIter->second : fallbackReachability.emplace(turnBattle.getReachability(unit));
 
 			bool reachable = unitReachability.distances.at(hex.toInt()) <= radius;
 
@@ -1064,7 +1079,7 @@ bool BattleExchangeEvaluator::checkPositionBlocksOurStacks(const HypotheticBattl
 
 				if(!reachable)
 				{
-					auto reachableUnits = getOneTurnReachableUnits(0, hex);
+					const auto & reachableUnits = getOneTurnReachableUnits(0, hex);
 					if (std::count(reachableUnits.begin(), reachableUnits.end(), unit) > 1)
 						blockingScore += ratio * (enemyUnit ? BLOCKING_OWN_ATTACK_PENALTY : BLOCKING_OWN_MOVE_PENALTY);
 				}

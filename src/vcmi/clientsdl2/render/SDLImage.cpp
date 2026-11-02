@@ -33,7 +33,10 @@
 #include <SDL_version.h>
 #ifdef VCMI_VITA
 #include "lib/vita/VitaOpaqueCacheStats.h"
+#include "lib/vita/VitaBinaryAlphaStats.h"
+#include "lib/vita/VitaTileImageStats.h"
 #include <list>
+#include <unordered_map>
 #include <array>
 #include <cstring>
 
@@ -110,6 +113,305 @@ struct OpaqueImageCache
 		return result;
 	}
 } opaqueImageCache;
+
+struct BinaryAlphaCache
+{
+	using Surface = std::unique_ptr<SDL_Surface, decltype(&SDL_FreeSurface)>;
+	struct Entry
+	{
+		std::weak_ptr<const SDLImageShared> owner;
+		const SDLImageShared * identity;
+		Surface mapped{nullptr, SDL_FreeSurface};
+		std::array<SDL_Color, 256> palette;
+		size_t cost;
+	};
+	std::list<Entry> entries;
+	std::unordered_map<const SDLImageShared *, std::list<Entry>::iterator> index;
+
+	void clear()
+	{
+		index.clear();
+		entries.clear();
+		VitaBinaryAlphaStats::entries = 0;
+		VitaBinaryAlphaStats::bytes = 0;
+	}
+
+	SDL_Surface * get(const SDLImageShared & owner, SDL_Surface * source)
+	{
+		auto * palette = source->format->palette;
+		if(!palette || palette->ncolors != 256 || source->format->BitsPerPixel != 8 || SDL_MUSTLOCK(source))
+			return nullptr;
+		if(auto found = index.find(&owner); found != index.end())
+		{
+			auto it = found->second;
+			if(it->owner.expired())
+			{
+				VitaBinaryAlphaStats::bytes -= it->cost;
+				entries.erase(it);
+				index.erase(found);
+				VitaBinaryAlphaStats::entries = entries.size();
+				++VitaBinaryAlphaStats::evictions;
+			}
+			else
+			{
+				// Overlay colors can change without incrementing SDL's palette version.
+				if(std::memcmp(it->palette.data(), palette->colors, sizeof(it->palette)) != 0)
+				{
+					for(int i = 0; i < 256; ++i)
+						if(it->palette[i].a != palette->colors[i].a)
+							return nullptr;
+					if(SDL_SetPaletteColors(it->mapped->format->palette, palette->colors, 0, 256) != 0)
+						return nullptr;
+					std::memcpy(it->palette.data(), palette->colors, sizeof(it->palette));
+					++VitaBinaryAlphaStats::paletteUpdates;
+				}
+				auto * result = it->mapped.get();
+				entries.splice(entries.begin(), entries, it);
+				++VitaBinaryAlphaStats::hits;
+				return result;
+			}
+		}
+		int key = -1;
+		for(int i = 0; i < 256; ++i)
+		{
+			if(palette->colors[i].a != 0 && palette->colors[i].a != 255)
+				return nullptr;
+			if(key < 0 && palette->colors[i].a == 0)
+				key = i;
+		}
+		constexpr size_t budget = 2 * 1024 * 1024;
+		const size_t required = static_cast<size_t>(source->w + 3) * source->h + 4096;
+		auto lifetime = owner.weak_from_this();
+		if(lifetime.expired() || required > budget)
+			return nullptr;
+		while(!entries.empty() && (VitaBinaryAlphaStats::bytes + required > budget || entries.size() >= 256))
+		{
+			VitaBinaryAlphaStats::bytes -= entries.back().cost;
+			index.erase(entries.back().identity);
+			entries.pop_back();
+			VitaBinaryAlphaStats::entries = entries.size();
+			++VitaBinaryAlphaStats::evictions;
+		}
+		Surface mapped(SDL_CreateRGBSurfaceWithFormat(0, source->w, source->h, 8, SDL_PIXELFORMAT_INDEX8), SDL_FreeSurface);
+		if(!mapped || SDL_SetPaletteColors(mapped->format->palette, palette->colors, 0, 256) != 0
+			|| SDL_SetSurfaceBlendMode(mapped.get(), SDL_BLENDMODE_NONE) != 0
+			|| (key >= 0 && SDL_SetColorKey(mapped.get(), SDL_TRUE, key) != 0))
+			return nullptr;
+		const size_t cost = static_cast<size_t>(mapped->pitch) * mapped->h + 4096;
+		if(cost > required)
+			return nullptr;
+		for(int y = 0; y < source->h; ++y)
+		{
+			const auto * from = static_cast<const uint8_t *>(source->pixels) + y * source->pitch;
+			auto * to = static_cast<uint8_t *>(mapped->pixels) + y * mapped->pitch;
+			for(int x = 0; x < source->w; ++x)
+				to[x] = palette->colors[from[x]].a == 0 ? static_cast<uint8_t>(key) : from[x];
+		}
+		Entry entry{std::move(lifetime), &owner, std::move(mapped), {}, cost};
+		std::memcpy(entry.palette.data(), palette->colors, sizeof(entry.palette));
+		entries.push_front(std::move(entry));
+		index.emplace(&owner, entries.begin());
+		VitaBinaryAlphaStats::entries = entries.size();
+		VitaBinaryAlphaStats::bytes += cost;
+		++VitaBinaryAlphaStats::builds;
+		return entries.front().mapped.get();
+	}
+} binaryAlphaCache;
+struct TileImageCache
+{
+	using Surface = std::unique_ptr<SDL_Surface, decltype(&SDL_FreeSurface)>;
+	struct Entry
+	{
+		std::weak_ptr<const SDLImageShared> owner;
+		const SDLImageShared * identity;
+		Surface converted{nullptr, SDL_FreeSurface};
+		std::array<SDL_Color, 256> palette;
+		int key;
+	};
+	static constexpr size_t cost = 32 * 32 * 4 + 2048;
+	std::list<Entry> entries;
+	std::unordered_map<const SDLImageShared *, std::list<Entry>::iterator> index;
+
+	void clear()
+	{
+		index.clear(); entries.clear();
+		VitaTileImageStats::bytes = VitaTileImageStats::entries = 0;
+	}
+	void erase(std::list<Entry>::iterator entry)
+	{
+		index.erase(entry->identity);
+		entries.erase(entry);
+		VitaTileImageStats::bytes -= cost;
+		VitaTileImageStats::entries = entries.size();
+		++VitaTileImageStats::evictions;
+	}
+	SDL_Surface * get(const SDLImageShared & owner, SDL_Surface * source)
+	{
+		if(source->w != 32 || source->h != 32 || source->format->BitsPerPixel != 8 || !source->format->palette
+			|| source->format->palette->ncolors != 256 || SDL_MUSTLOCK(source)) return nullptr;
+		Uint32 colorKey = 0;
+		const int key = SDL_GetColorKey(source, &colorKey) == 0 ? static_cast<int>(colorKey) : -1;
+		if(key > 255) return nullptr;
+		auto * palette = source->format->palette;
+		if(auto found = index.find(&owner); found != index.end())
+		{
+			auto entry = found->second;
+			if(!entry->owner.expired() && entry->key == key && std::memcmp(entry->palette.data(), palette->colors, sizeof(entry->palette)) == 0)
+			{
+				auto * result = entry->converted.get();
+				entries.splice(entries.begin(), entries, entry);
+				++VitaTileImageStats::hits;
+				return result;
+			}
+			erase(entry);
+		}
+		for(int i = 0; i < 256; ++i) if(palette->colors[i].a != 255) return nullptr;
+		auto lifetime = owner.weak_from_this();
+		if(lifetime.expired()) return nullptr;
+		while(!entries.empty() && (VitaTileImageStats::bytes + cost > 1024 * 1024 || entries.size() >= 256)) erase(std::prev(entries.end()));
+		Surface converted(SDL_CreateRGBSurfaceWithFormat(0, 32, 32, 32, SDL_PIXELFORMAT_ARGB8888), SDL_FreeSurface);
+		if(!converted || SDL_SetSurfaceBlendMode(converted.get(), SDL_BLENDMODE_NONE) != 0) return nullptr;
+		std::array<Uint32, 256> lookup{};
+		for(int i = 0; i < 256; ++i)
+		{
+			const auto & color = palette->colors[i];
+			lookup[i] = SDL_MapRGBA(converted->format, color.r, color.g, color.b, 255);
+		}
+		Uint32 transparentColor = 0xff000000;
+		while(std::find(lookup.begin(), lookup.end(), transparentColor) != lookup.end()) ++transparentColor;
+		bool containsKey = false;
+		for(int y = 0; y < 32; ++y)
+		{
+			const auto * from = static_cast<const Uint8 *>(source->pixels) + y * source->pitch;
+			auto * to = reinterpret_cast<Uint32 *>(static_cast<Uint8 *>(converted->pixels) + y * converted->pitch);
+			for(int x = 0; x < 32; ++x)
+			{
+				const bool transparent = from[x] == key;
+				containsKey |= transparent;
+				to[x] = transparent ? transparentColor : lookup[from[x]];
+			}
+		}
+		if(containsKey && SDL_SetColorKey(converted.get(), SDL_TRUE, transparentColor) != 0) return nullptr;
+		Entry entry{std::move(lifetime), &owner, std::move(converted), {}, key};
+		std::memcpy(entry.palette.data(), palette->colors, sizeof(entry.palette));
+		entries.push_front(std::move(entry));
+		index.emplace(&owner, entries.begin());
+		VitaTileImageStats::bytes += cost; VitaTileImageStats::entries = entries.size();
+		++VitaTileImageStats::builds;
+		(containsKey ? VitaTileImageStats::keyedBuilds : VitaTileImageStats::solidBuilds)++;
+		return entries.front().converted.get();
+	}
+} tileImageCache;
+
+}
+
+void runVitaTileImageTest()
+{
+	bool ok = true;
+	unsigned cases = 0;
+	for(int pattern = 0; pattern < 4; ++pattern)
+	{
+		TileImageCache::Surface source(SDL_CreateRGBSurfaceWithFormat(0, 32, 32, 8, SDL_PIXELFORMAT_INDEX8), SDL_FreeSurface);
+		TileImageCache::Surface expected(SDL_CreateRGBSurfaceWithFormat(0, 41, 43, 32, SDL_PIXELFORMAT_ARGB8888), SDL_FreeSurface);
+		TileImageCache::Surface actual(SDL_CreateRGBSurfaceWithFormat(0, 41, 43, 32, SDL_PIXELFORMAT_ARGB8888), SDL_FreeSurface);
+		if(!source || !expected || !actual) { ok = false; break; }
+		auto owner = std::make_shared<SDLImageShared>(source.get());
+		std::array<SDL_Color, 256> colors{};
+		for(int i = 0; i < 256; ++i) colors[i] = SDL_Color{static_cast<Uint8>(i * 13), static_cast<Uint8>(i * 37), static_cast<Uint8>(i * 71), 255};
+		const int key = pattern == 0 ? -1 : pattern == 2 ? 7 : 0;
+		if(key >= 0) { colors[25] = colors[key]; SDL_SetColorKey(source.get(), SDL_TRUE, key); }
+		SDL_SetSurfaceBlendMode(source.get(), SDL_BLENDMODE_NONE);
+		for(int y = 0; y < 32; ++y)
+			for(int x = 0; x < 32; ++x)
+				static_cast<Uint8 *>(source->pixels)[y * source->pitch + x] = pattern == 3 ? 8 + (x + y * 32) % 248 : (x + y * 32) % 256;
+		for(int pass = 0; pass < 2; ++pass)
+		{
+			if(pass) for(auto & color : colors) color.r ^= 0x5a;
+			SDL_SetPaletteColors(source->format->palette, colors.data(), 0, 256);
+			auto * cached = tileImageCache.get(*owner, source.get());
+			if(!cached) { ok = false; break; }
+			for(int placement = 0; placement < 3; ++placement)
+			{
+				const size_t size = static_cast<size_t>(expected->pitch) * expected->h;
+				std::memset(expected->pixels, 0x65, size); std::memset(actual->pixels, 0x65, size);
+				SDL_Rect clip{5, 3, 27, 31};
+				SDL_SetClipRect(expected.get(), placement ? &clip : nullptr); SDL_SetClipRect(actual.get(), placement ? &clip : nullptr);
+				Rect sr = placement ? Rect(2, 3, 25, 19) : Rect(0, 0, 32, 32);
+				Point dest(placement == 2 ? -1 : 3, placement == 2 ? -2 : 4);
+				CSDL_Ext::blitSurface(source.get(), sr, expected.get(), dest);
+				CSDL_Ext::blitSurface(cached, sr, actual.get(), dest);
+				if(std::memcmp(expected->pixels, actual->pixels, size) != 0) ok = false;
+				++cases;
+			}
+		}
+		colors[9].a = 128; SDL_SetPaletteColors(source->format->palette, colors.data(), 0, 256);
+		if(tileImageCache.get(*owner, source.get())) ok = false;
+		++cases;
+		tileImageCache.clear();
+	}
+	tileImageCache.clear();
+	VitaTileImageStats::hits = VitaTileImageStats::builds = VitaTileImageStats::bypass = VitaTileImageStats::evictions = 0;
+	VitaTileImageStats::solidBuilds = VitaTileImageStats::keyedBuilds = 0;
+	VitaTileImageStats::enabled = ok;
+	std::fprintf(stderr, "Vita opaque tile self-test %s cases=%u enabled=%d\n", ok ? "PASS" : "FAIL", cases, ok);
+}
+
+void runVitaBinaryAlphaTest()
+{
+	bool ok = true;
+	unsigned cases = 0;
+	for(int pattern = 0; pattern < 4 && ok; ++pattern)
+	{
+		BinaryAlphaCache::Surface source(SDL_CreateRGBSurfaceWithFormat(0, 17, 11, 8, SDL_PIXELFORMAT_INDEX8), SDL_FreeSurface);
+		BinaryAlphaCache::Surface expected(SDL_CreateRGBSurfaceWithFormat(0, 23, 15, 32, SDL_PIXELFORMAT_ARGB8888), SDL_FreeSurface);
+		BinaryAlphaCache::Surface actual(SDL_CreateRGBSurfaceWithFormat(0, 23, 15, 32, SDL_PIXELFORMAT_ARGB8888), SDL_FreeSurface);
+		if(!source || !expected || !actual) { ok = false; break; }
+		auto owner = std::make_shared<SDLImageShared>(source.get());
+		for(int i = 0; i < 256; ++i)
+		{
+			const bool transparent = pattern == 0 ? i == 0 : pattern == 1 ? i % 5 == 0 : pattern == 2 ? i == 7 : false;
+			source->format->palette->colors[i] = SDL_Color{static_cast<uint8_t>(i * 13), static_cast<uint8_t>(i * 37), static_cast<uint8_t>(i * 71), static_cast<uint8_t>(transparent ? 0 : 255)};
+		}
+		for(int y = 0; y < source->h; ++y)
+			for(int x = 0; x < source->w; ++x)
+				static_cast<uint8_t *>(source->pixels)[y * source->pitch + x] = static_cast<uint8_t>(x + y * 17);
+		for(int pass = 0; pass < 2 && ok; ++pass)
+		{
+			if(pass)
+				for(int i = 0; i < 256; ++i)
+					source->format->palette->colors[i].r ^= 0x5a;
+			auto * mapped = binaryAlphaCache.get(*owner, source.get());
+			if(!mapped) { ok = false; break; }
+			for(int placement = 0; placement < 3; ++placement)
+			{
+				const size_t size = static_cast<size_t>(expected->pitch) * expected->h;
+				std::memset(expected->pixels, 0x65, size);
+				std::memset(actual->pixels, 0x65, size);
+				SDL_Rect clip{3, 2, 16, 10};
+				SDL_SetClipRect(expected.get(), placement ? &clip : nullptr);
+				SDL_SetClipRect(actual.get(), placement ? &clip : nullptr);
+				Rect sr = placement ? Rect(1, 1, 15, 9) : Rect(0, 0, 17, 11);
+				Point dest(placement == 2 ? -2 : 5, placement == 2 ? -1 : 4);
+				CSDL_Ext::blit8bppAlphaTo24bpp(source.get(), sr, expected.get(), dest, 255);
+				SDL_Rect s = CSDL_Ext::toSDL(sr), d{dest.x, dest.y, sr.w, sr.h};
+				if(SDL_BlitSurface(mapped, &s, actual.get(), &d) != 0 || std::memcmp(expected->pixels, actual->pixels, size) != 0)
+					ok = false;
+				++cases;
+			}
+		}
+		source->format->palette->colors[1].a = source->format->palette->colors[1].a == 0 ? 255 : 0;
+		if(binaryAlphaCache.get(*owner, source.get())) ok = false;
+		++cases;
+		source->format->palette->colors[1].a = 128;
+		if(binaryAlphaCache.get(*owner, source.get())) ok = false;
+		++cases;
+		binaryAlphaCache.clear();
+	}
+	binaryAlphaCache.clear();
+	VitaBinaryAlphaStats::hits = VitaBinaryAlphaStats::builds = VitaBinaryAlphaStats::bypass = 0;
+	VitaBinaryAlphaStats::evictions = VitaBinaryAlphaStats::paletteUpdates = 0;
+	VitaBinaryAlphaStats::enabled = ok;
+	std::fprintf(stderr, "Vita binary alpha self-test %s cases=%u cache_enabled=%d\n", ok ? "PASS" : "FAIL", cases, ok);
 }
 #endif
 
@@ -315,6 +617,23 @@ void SDLImageShared::draw(SDL_Surface * where, SDL_Palette * palette, const Poin
 
 	if(surf->format->palette && mode != EImageBlitMode::OPAQUE && mode != EImageBlitMode::COLORKEY)
 	{
+#ifdef VCMI_VITA
+		SDL_Surface * mapped = nullptr;
+		const bool body = mode == EImageBlitMode::ONLY_BODY_HIDE_SELECTION || mode == EImageBlitMode::ONLY_BODY_HIDE_FLAG_COLOR
+			|| mode == EImageBlitMode::ONLY_BODY_IGNORE_OVERLAY || mode == EImageBlitMode::GRAYSCALE_BODY_HIDE_SELECTION;
+		if(body && VitaBinaryAlphaStats::enabled && VitaRenderProfiling::active && alpha == 255
+			&& colorMultiplier.r == 255 && colorMultiplier.g == 255 && colorMultiplier.b == 255
+			&& where->format->format == SDL_PIXELFORMAT_ARGB8888 && sourceRect.w > 0 && sourceRect.h > 0)
+		{
+			VitaRenderProfiling::Scope blit(VitaRenderProfiling::Kind::ImageBlit);
+			mapped = binaryAlphaCache.get(*this, surf);
+			if(mapped)
+				CSDL_Ext::blitSurface(mapped, sourceRect, where, destShift);
+			else
+				++VitaBinaryAlphaStats::bypass;
+		}
+		if(!mapped)
+#endif
 		CSDL_Ext::blit8bppAlphaTo24bpp(surf, sourceRect, where, destShift, alpha);
 	}
 	else
@@ -328,6 +647,13 @@ void SDLImageShared::draw(SDL_Surface * where, SDL_Palette * palette, const Poin
 		{
 			if(auto * converted = opaqueImageCache.get(*this, surf))
 				selected = converted;
+		}
+		if(mode == EImageBlitMode::OPAQUE && VitaTileImageStats::enabled && VitaRenderProfiling::active && alpha == 255
+			&& colorMultiplier.r == 255 && colorMultiplier.g == 255 && colorMultiplier.b == 255
+			&& surf->w == 32 && surf->h == 32 && surf->format->BitsPerPixel == 8 && where->format->format == SDL_PIXELFORMAT_ARGB8888)
+		{
+			if(auto * converted = tileImageCache.get(*this, surf)) selected = converted;
+			else ++VitaTileImageStats::bypass;
 		}
 		CSDL_Ext::blitSurface(selected, sourceRect, where, destShift);
 #else

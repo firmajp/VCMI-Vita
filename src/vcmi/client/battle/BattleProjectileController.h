@@ -119,15 +119,16 @@ public:
 
 	/// returns true if stack has projectile that is yet to hit target
 	bool hasActiveProjectile(const CStack * stack, bool emittedOnly) const;
+	bool hasActiveProjectile(const std::shared_ptr<ProjectileBase> & projectile) const;
 
 	/// starts rendering previously created projectile
 	void emitStackProjectile(const CStack * stack);
 
 	/// creates (but not emits!) projectile and initializes it based on parameters
 	void createProjectile(const CStack * shooter, Point from, Point dest);
-	void createSpellProjectile(const CStack * shooter, Point from, Point dest, const CSpell * spell);
+	std::shared_ptr<ProjectileBase> createSpellProjectile(const CStack * shooter, Point from, Point dest, const CSpell * spell);
 	void createCatapultProjectile(const CStack * shooter, Point from, Point dest);
 
 	/// creates and immediately emits a jagged ray chaining through the given points (e.g. chain lightning)
-	void createSpellRayProjectile(const CStack * caster, const std::vector<Point> & targetPoints, const std::vector<RayColor> & rayConfig, float jaggedness, float hopDelay, int width);
+	std::shared_ptr<ProjectileBase> createSpellRayProjectile(const CStack * caster, const std::vector<Point> & targetPoints, const std::vector<RayColor> & rayConfig, float jaggedness, float hopDelay, int width);
 };

@@ -9,6 +9,12 @@
  */
 #include "StdInc.h"
 #ifdef VCMI_VITA
+#include "../../lib/vita/VitaBattleTraceStats.h"
+#endif
+#ifdef VCMI_VITA
+#include <cstdio>
+#endif
+#ifdef VCMI_VITA
 #include "lib/vita/VitaBattleEvents.h"
 #endif
 #include "BattleInterface.h"
@@ -396,6 +402,10 @@ void BattleInterface::spellCast(const BattleSpellCast * sc)
 	ENGINE->cursor().set(Cursor::Combat::BLOCKED);
 
 	const SpellID spellID = sc->spellID;
+#ifdef VCMI_VITA
+	std::fprintf(stderr, "Vita spell cast: spell=%d side=%d active=%d\n", spellID.getNum(),
+		static_cast<int>(sc->side), static_cast<int>(sc->activeCast));
+#endif
 
 	if(!spellID.hasValue())
 		return;
@@ -798,6 +808,9 @@ InfoAboutHero BattleInterface::enemyHero() const
 void BattleInterface::requestAutofightingAIToTakeAction()
 {
 	assert(curInt->isAutoFightOn);
+#ifdef VCMI_VITA
+	std::fprintf(stderr, "Vita autocombat: dispatch requested\n");
+#endif
 
 	if(getBattle()->battleIsFinished())
 	{
@@ -819,6 +832,9 @@ void BattleInterface::requestAutofightingAIToTakeAction()
 	else
 	{
 		const CStack* activeStack = stacksController->getActiveStack();
+#ifdef VCMI_VITA
+		std::fprintf(stderr, "Vita autocombat: active stack=%d\n", activeStack ? static_cast<int>(activeStack->unitId()) : -1);
+#endif
 
 		// If enemy is moving, activeStack can be null
 		if (activeStack)
@@ -889,6 +905,9 @@ void BattleInterface::onAnimationsFinished()
 
 void BattleInterface::waitForAnimations()
 {
+#ifdef VCMI_VITA
+	VitaBattleTraceStats::AnimationWait diagnosticWait;
+#endif
 	{
 		auto unlockInterface = vstd::makeUnlockGuard(ENGINE->interfaceMutex);
 		ongoingAnimationsState.waitWhileBusy();

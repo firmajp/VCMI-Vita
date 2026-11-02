@@ -1,8 +1,8 @@
 {
-  "version": "1.0.1",
-  "vita_app_ver": "01.01",
+  "version": "1.1.0",
+  "vita_app_ver": "01.60",
   "title_id": "H3VC00001",
-  "status": "development build; device test pending",
+  "status": "user-tested 1.1.0 executable; public distribution preparation",
   "baseline_release": "1.0.0",
   "baseline_commit": "0b66197149246ce61fc94f484d5ff0640988c2d9",
   "livearea_content_rev": 102

@@ -8,7 +8,18 @@
  *
  */
 #include "StdInc.h"
+#ifdef VCMI_VITA
+#include <chrono>
+#include <cstdio>
+#endif
 #include "Global.h"
+#ifdef VCMI_VITA
+#include "../lib/vita/VitaProtocolStats.h"
+#include "../lib/gameState/GameStatePackVisitor.h"
+#include <type_traits>
+#include "../lib/vita/VitaPacketTrace.h"
+#include "../lib/vita/VitaSendStats.h"
+#endif
 #include "Client.h"
 
 #include "CPlayerInterface.h"
@@ -334,18 +345,57 @@ void CClient::installNewBattleInterface(std::shared_ptr<CBattleGameInterface> ba
 
 void CClient::handlePack(CPackForClient & pack)
 {
+#ifdef VCMI_VITA
+	const auto started = std::chrono::steady_clock::now();
+	const auto animationWaitStarted = VitaPacketTrace::animationWaitUs;
+	VitaProtocolStats::packType.store(typeid(pack).name());
+#endif
 	ApplyClientNetPackVisitor afterVisitor(*this, gameState());
 	ApplyFirstClientNetPackVisitor beforeVisitor(*this, gameState());
 
 	pack.visit(beforeVisitor);
+#ifdef VCMI_VITA
+	const auto beforeDone = std::chrono::steady_clock::now();
+#endif
 	logNetwork->trace("\tMade first apply on cl: %s", typeid(pack).name());
+#ifdef VCMI_VITA
+	static_assert(std::is_same_v<decltype(&GameStatePackVisitor::visitPackageApplied), decltype(&ICPackVisitor::visitPackageApplied)>,
+		"PackageApplied must remain a game-state visitor no-op");
+	static_assert(std::is_same_v<decltype(&GameStatePackVisitor::visitForClient), decltype(&ICPackVisitor::visitForClient)>,
+		"Generic client game-state visitor must remain a no-op");
+	if(typeid(pack) == typeid(PackageApplied) && !gameState().replayLog.isRecordingPacks())
+	{
+		VitaProtocolStats::ackNoopApply.fetch_add(1, std::memory_order_relaxed);
+		gameState().apply(pack);
+	}
+	else
+#endif
 	{
 		std::unique_lock lock(CGameState::mutex);
 		gameState().apply(pack);
 	}
 	logNetwork->trace("\tApplied on gs: %s", typeid(pack).name());
+#ifdef VCMI_VITA
+	const auto stateDone = std::chrono::steady_clock::now();
+#endif
 	pack.visit(afterVisitor);
 	logNetwork->trace("\tMade second apply on cl: %s", typeid(pack).name());
+#ifdef VCMI_VITA
+	const auto ended = std::chrono::steady_clock::now();
+	VitaPacketTrace::record({typeid(pack).name(), VitaPacketTrace::microseconds(started), VitaPacketTrace::microseconds(ended),
+		VitaPacketTrace::animationWaitUs - animationWaitStarted,
+		static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(beforeDone - started).count()),
+		static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(stateDone - beforeDone).count()),
+		static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(ended - stateDone).count())});
+	VitaProtocolStats::packBefore.add(static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(beforeDone - started).count()));
+	VitaProtocolStats::packState.add(static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(stateDone - beforeDone).count()));
+	VitaProtocolStats::packAfter.add(static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(ended - stateDone).count()));
+	if(ended - started >= std::chrono::milliseconds(40))
+	{
+		VitaProtocolStats::slowPacks.fetch_add(1);
+		VitaProtocolStats::slowPackType.store(typeid(pack).name());
+	}
+#endif
 }
 
 void CClient::applyPackSilently(CPackForClient & pack)
@@ -511,15 +561,33 @@ int CClient::sendRequest(const CPackForServer & request, PlayerColor player, boo
 	ui32 requestID = requestCounter++;
 	logNetwork->trace("Sending a request \"%s\". It'll have an ID=%d.", typeid(request).name(), requestID);
 
-	waitingRequest.pushBack(requestID);
-	request.requestID = requestID;
-	request.player = player;
-	GAME->server().sendGamePack(request);
-	if(vstd::contains(playerint, player))
-		playerint[player]->requestSent(&request, requestID);
+	{
+#ifdef VCMI_VITA
+		VitaSendStats::Scope measure(VitaSendStats::Kind::Queue);
+#endif
+		waitingRequest.pushBack(requestID);
+		request.requestID = requestID;
+		request.player = player;
+	}
+	{
+#ifdef VCMI_VITA
+		VitaSendStats::Scope measure(VitaSendStats::Kind::GameSend);
+#endif
+		GAME->server().sendGamePack(request);
+	}
+	{
+#ifdef VCMI_VITA
+		VitaSendStats::Scope measure(VitaSendStats::Kind::Notify);
+#endif
+		if(vstd::contains(playerint, player))
+			playerint[player]->requestSent(&request, requestID);
+	}
 
 	if(waitTillRealize)
 	{
+#ifdef VCMI_VITA
+		VitaSendStats::Scope measure(VitaSendStats::Kind::Wait);
+#endif
 		logGlobal->trace("We'll wait till request %d is answered.\n", requestID);
 		auto gsUnlocker = vstd::makeUnlockSharedGuard(CGameState::mutex);
 		waitingRequest.waitWhileContains(requestID);

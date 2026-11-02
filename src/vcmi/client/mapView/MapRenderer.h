@@ -10,6 +10,9 @@
 #pragma once
 
 #include "../../lib/int3.h"
+#ifdef VCMI_VITA
+#include "../../lib/vita/VitaVisibilityCache.h"
+#endif
 #include "../../lib/Point.h"
 #include "../../lib/filesystem/ResourcePath.h"
 
@@ -87,18 +90,27 @@ class MapRendererObjects
 	{
 		bool baseAnimated = false;
 		bool flagAnimated = false;
+		uint8_t animationIndex = 0;
 		Point baseDimensions = Point(0, 0);
 		Point flagDimensions = Point(0, 0);
 	};
 
 	/// Memo for the above, valid for a single update pass only: the answer costs a string-keyed
 	/// animation lookup plus an image, and is asked once per tile the object covers, every frame.
-	/// Cleared by prepareFrame(), and nothing it depends on can change within a pass.
-	/// Keyed by object and animation group, packed into one integer.
-	std::unordered_map<uint64_t, ObjectChecksumInfo> checksumInfoCache;
+	/// Values are recomputed each pass; map nodes survive while objects remain in view.
+	/// Keyed by object; its group and animation index are fixed within the pass.
+	template<typename Value>
+	struct FrameCacheEntry
+	{
+		uint64_t pass;
+		Value value;
+	};
+	static constexpr uint64_t imageCacheRetentionPasses = 8;
+	uint64_t cachePass = 0;
+	std::unordered_map<int32_t, FrameCacheEntry<ObjectChecksumInfo>> checksumInfoCache;
 
 	/// The images an object contributes this pass, in draw order. Resolving them costs a lookup
-	/// each and is asked once per tile it covers. Cleared by prepareFrame().
+	/// each and is asked once per tile it covers. Recomputed each pass in reusable map nodes.
 	/// Like in H3 the shadow is drawn on its own, before the bodies of everything on the tile, so
 	/// it never darkens another object. Heroes and boats keep the shadow in their body image.
 	enum ObjectImageLayer
@@ -111,11 +123,11 @@ class MapRendererObjects
 		LAYER_COUNT
 	};
 	using ObjectImages = std::array<std::shared_ptr<IImage>, LAYER_COUNT>;
-	std::unordered_map<int32_t, ObjectImages> renderImageCache;
+	std::unordered_map<int32_t, FrameCacheEntry<ObjectImages>> renderImageCache;
 
 	const ObjectImages & getObjectImages(IMapRendererContext & context, const CGObjectInstance * object);
 
-	const ObjectChecksumInfo & getChecksumInfo(IMapRendererContext & context, const CGObjectInstance * object, size_t groupIndex);
+	const ObjectChecksumInfo & getChecksumInfo(IMapRendererContext & context, const CGObjectInstance * object);
 
 	std::shared_ptr<CAnimation> getBodyAnimation(const CGObjectInstance * obj);
 	std::shared_ptr<CAnimation> getShadowAnimation(const CGObjectInstance * obj);
@@ -217,6 +229,10 @@ public:
 
 class MapRenderer
 {
+#ifdef VCMI_VITA
+	VitaVisibilityCache::Cache visibilityCache;
+#endif
+	bool tileVisible(IMapRendererContext & context, const int3 & coordinates);
 	MapRendererTerrain rendererTerrain;
 	MapRendererRiver rendererRiver;
 	MapRendererRoad rendererRoad;

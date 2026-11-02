@@ -22,9 +22,14 @@ int CMemorySerializer::read(std::byte * data, unsigned size)
 
 int CMemorySerializer::write(const std::byte * data, unsigned size)
 {
+#ifdef VCMI_VITA
+	if(size)
+		buffer.insert(buffer.end(), data, data + size);
+#else
 	auto oldSize = buffer.size(); //and the pos to write from
 	buffer.resize(oldSize + size);
 	std::copy_n(data, size, buffer.data() + oldSize);
+#endif
 	return size;
 }
 

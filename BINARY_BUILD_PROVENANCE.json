@@ -1,16 +1,15 @@
 {
-  "version": "1.0.1",
-  "app_ver": "01.01",
+  "version": "1.1.0",
+  "app_ver": "01.60",
   "title_id": "H3VC00001",
-  "baseline_release": "1.0.0",
-  "baseline_commit": "0b66197149246ce61fc94f484d5ff0640988c2d9",
-  "baseline_release_vpk_sha256": "f33e5106a42bda7260570a31104492b66010df4dbfe3d0f4f1f91c8eb1c2b172",
-  "build": "Full engine build in a new build directory from the current 1.0.1 source tree. Compilation resumed after increasing parallelism; no private v038 application objects imported. Unchanged dependency archives match the official baseline hashes.",
-  "compiler": "VitaSDK GCC 15.2.0",
+  "first_public_release": true,
+  "build": "Incremental Release engine build from maintained corresponding source; no new independent clean or reproducible rebuild claimed. Public packaging refreshes notices only.",
+  "compiler": "VitaSDK GCC15.2.0",
   "cmake": "4.4.5",
-  "configuration": "Release; static; PCH off; monolithic paths; prefix mapping; video on; no Qt tools or standalone server",
-  "elf_sha256": "8dffaf9d2700191fe117506db5f01f94a945f3e8dc0caeb8973e9ac38836cf2c",
-  "eboot_sha256": "3d0b29194efd1123352bf042e636b1fa0cd8d06c80bd957f729813dc95b47482",
+  "configuration": "Release/static/PCH off/monolithic paths/prefix mapping/video enabled; Qt tools and standalone server disabled",
+  "elf_sha256": "67295278e076fbb6e8f2da47299757248a50ca08de84466a5a816c5d7a8d3454",
+  "eboot_sha256": "67ad9991cbec1e1bdfeb226af8158fcc8000252eec792c2bf595f8f0020fcbee",
+  "accepted_test_vpk_sha256": "4811783bc5cc34b53b9dd7ae56ad9a87edb4b3206ed88f4e2ea40ff2d57ade2e",
   "library_archive_sha256": {
     "pthread": "44d9ae198bccff822e9d755a1827b06e1bc59e2bc61545c83cbc97287e5b5c75",
     "SDL2": "ebc936488aecefee7d41e344c351acb54cd27f01bc42fcae63c32515e05e6931",
@@ -24,6 +23,11 @@
     "swscale": "1801d7b66607572a49552692d1875c68953b0488fb7349b7f03f7b30be1b2e66",
     "swresample": "a84df803e84a967569715494dfd0a4e7cab30904d7ac1fc8550e657336e6ff49"
   },
-  "FFmpeg": "Unchanged audited 7.1.2 minimal LGPL build; GPL/nonfree/version3 options disabled; supplied sources/header adaptation and build configuration retained",
-  "device_test": "1.0.1 pending; user-tested 1.0.0 is a separate artifact"
+  "unchanged_dependencies": "All listed archives match historical1.0.1 verification; sources/recipes and original notices retained.",
+  "device_test": "User accepted exact1.1.0 test executable after requested checks; public metadata-only repack compared separately.",
+  "limitations": [
+    "No new complete clean rebuild",
+    "Modified LGPL relink test retained as historical evidence; not repeated for1.1.0",
+    "No independent legal or authorship certification"
+  ]
 }
