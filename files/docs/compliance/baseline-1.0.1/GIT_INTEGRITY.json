@@ -1,7 +1,0 @@
-{
-  "version": "1.0.1",
-  "status": "passed",
-  "method": "SHA256 disk manifest, Git index and independent checkout with core.autocrlf=true",
-  "scope": "All final listed files; no history or remote included in archive",
-  "limits": "1.0.1 device execution remains pending; baseline tests recorded separately"
-}
